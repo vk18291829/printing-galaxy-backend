@@ -27,6 +27,9 @@ import { useProduct, useQuote, type QuoteInput } from '@/features/catalog/api';
 import { OptionPicker } from '@/features/catalog/components/option-picker';
 import { PriceTierTable } from '@/features/catalog/components/price-tier-table';
 import { useCartStore, type CartFile } from '@/features/cart/cart-store';
+import { CardCropUploader } from '@/features/crop/card-crop-uploader';
+import { DesignStudio, type AttachedDesign } from '@/features/design/design-studio';
+import { DESIGN_FOR_SLUG } from '@/features/design/designs';
 import { FileUploader } from '@/features/uploads/file-uploader';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useDocumentTitle } from '@/hooks/use-document-title';
@@ -198,6 +201,9 @@ export default function ProductPage() {
   const [manualPages, setManualPages] = useState(0);
   const [files, setFiles] = useState<CartFile[]>([]);
   const [notes, setNotes] = useState('');
+  const [design, setDesign] = useState<AttachedDesign | null>(null);
+  // Crop tool / design studio by default; plain upload for customers with a ready file.
+  const [plainUpload, setPlainUpload] = useState(false);
 
   useDocumentTitle(product ? l(product.name) : undefined);
 
@@ -213,6 +219,8 @@ export default function ProductPage() {
     setCopies(1);
     setFiles([]);
     setNotes('');
+    setDesign(null);
+    setPlainUpload(false);
   }, [product, audience]);
 
   const isPageBased = product?.unit === 'page';
@@ -243,8 +251,12 @@ export default function ProductPage() {
     );
   }
 
+  const designKind = DESIGN_FOR_SLUG[product.slug];
+  const useCropper = product.workflow === 'identity' && !plainUpload;
+  const useStudio = Boolean(designKind) && !plainUpload;
+  const allFiles = [...files, ...(design?.files ?? [])];
   const needsUpload = product.requiresUpload && product.workflow !== 'quote';
-  const extraErrors = needsUpload && files.length === 0 ? [t('product.errors.UPLOAD_REQUIRED')] : [];
+  const extraErrors = needsUpload && allFiles.length === 0 ? [t('product.errors.UPLOAD_REQUIRED')] : [];
   const stale = debouncedInput !== quoteInput;
   const canAdd = Boolean(quote?.valid) && extraErrors.length === 0 && !stale && !audienceBlocked;
 
@@ -260,8 +272,8 @@ export default function ProductPage() {
       options,
       optionLabels: quote.selectedOptions.map((o) => ({ label: o.label, value: o.valueLabel })),
       ...(isPageBased ? { pageCount, copies } : { quantity }),
-      notes: notes.trim() || undefined,
-      files,
+      notes: [design?.summary, notes.trim()].filter(Boolean).join('\n').slice(0, 1000) || undefined,
+      files: allFiles,
       estimate: quote.subtotal,
     });
     toast.success(t('product.added'), {
@@ -269,7 +281,44 @@ export default function ProductPage() {
     });
     setFiles([]);
     setNotes('');
+    setDesign(null);
   };
+
+  const uploadCard = (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {useStudio ? t('design.title') : useCropper ? t('crop.title') : t('product.upload')}{' '}
+          {!needsUpload && !useStudio && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
+        </CardTitle>
+        {useStudio ? (
+          <p className="text-sm text-muted-foreground">{t('design.subtitle')}</p>
+        ) : (
+          !useCropper && l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!principal ? (
+          <Button variant="outline" className="w-full" asChild>
+            <Link to="/login" state={{ from: location.pathname }}>
+              <IconLock /> {t('product.signInToUpload')}
+            </Link>
+          </Button>
+        ) : useStudio && designKind ? (
+          <DesignStudio kind={designKind} productId={product._id} options={options} attached={design} onAttach={setDesign} />
+        ) : useCropper ? (
+          <CardCropUploader productId={product._id} files={files} onChange={setFiles} />
+        ) : (
+          <FileUploader productId={product._id} accepted={product.acceptedFileTypes} files={files} onChange={setFiles} />
+        )}
+        {principal && (designKind || product.workflow === 'identity') && (
+          <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => setPlainUpload((v) => !v)}>
+            {plainUpload ? (designKind ? t('design.useStudio') : t('crop.useCropper')) : designKind ? t('design.orUpload') : t('crop.orUpload')}
+          </button>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="container-page pt-6 sm:pt-8 lg:pb-8">
@@ -382,28 +431,7 @@ export default function ProductPage() {
             </CardContent>
           </Card>
 
-          {(product.requiresUpload || product.acceptedFileTypes.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {t('product.upload')}{' '}
-                  {!needsUpload && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
-                </CardTitle>
-                {l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>}
-              </CardHeader>
-              <CardContent>
-                {principal ? (
-                  <FileUploader productId={product._id} accepted={product.acceptedFileTypes} files={files} onChange={setFiles} />
-                ) : (
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link to="/login" state={{ from: location.pathname }}>
-                      <IconLock /> {t('product.signInToUpload')}
-                    </Link>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {(product.requiresUpload || product.acceptedFileTypes.length > 0 || designKind) && uploadCard}
 
           <Card>
             <CardHeader>

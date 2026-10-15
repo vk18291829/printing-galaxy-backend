@@ -19,6 +19,10 @@ const OrdersPage = lazy(() => import('@/pages/account/orders-page'));
 const OrderDetailPage = lazy(() => import('@/pages/account/order-detail-page'));
 const ProfilePage = lazy(() => import('@/pages/account/profile-page'));
 const InstitutionDashboardPage = lazy(() => import('@/pages/institution/dashboard-page'));
+const TemplatesPage = lazy(() => import('@/pages/institution/templates-page'));
+const TemplateEditorPage = lazy(() => import('@/pages/institution/template-editor-page'));
+const BulkUploadPage = lazy(() => import('@/pages/institution/bulk-upload-page'));
+const BulkJobPage = lazy(() => import('@/pages/institution/bulk-job-page'));
 const NotFoundPage = lazy(() => import('@/pages/not-found-page'));
 
 const page = (node: ReactNode) => <Suspense fallback={<PageLoader />}>{node}</Suspense>;
@@ -44,6 +48,10 @@ export const router = createBrowserRouter([
       { path: 'account/orders/:id', element: page(<RequireAuth><OrderDetailPage /></RequireAuth>) },
       { path: 'account/profile', element: page(<RequireAuth><ProfilePage /></RequireAuth>) },
       { path: 'institution', element: page(<RequireAuth kind="institution"><InstitutionDashboardPage /></RequireAuth>) },
+      { path: 'institution/templates', element: page(<RequireAuth kind="institution"><TemplatesPage /></RequireAuth>) },
+      { path: 'institution/templates/:id', element: page(<RequireAuth kind="institution"><TemplateEditorPage /></RequireAuth>) },
+      { path: 'institution/bulk/new', element: page(<RequireAuth kind="institution"><BulkUploadPage /></RequireAuth>) },
+      { path: 'institution/bulk/:id', element: page(<RequireAuth kind="institution"><BulkJobPage /></RequireAuth>) },
 
       { path: '*', element: page(<NotFoundPage />) },
     ],

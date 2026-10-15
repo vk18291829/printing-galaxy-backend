@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { OfflineBanner } from '@/features/pwa/pwa';
 import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
 
@@ -15,6 +16,7 @@ export function MainLayout() {
   return (
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
+      <OfflineBanner />
       <SiteHeader />
       <main className="flex-1">
         <Outlet />

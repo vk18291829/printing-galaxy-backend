@@ -7,7 +7,7 @@ export const logger = pino({
     paths: ['req.headers.authorization', 'req.headers.cookie', '*.password', '*.code'],
     censor: '[redacted]',
   },
-  transport: isProd
+  transport: isProd || env.NODE_ENV === 'test'
     ? undefined
     : { target: 'pino-pretty', options: { colorize: true, translateTime: 'HH:MM:ss' } },
 });

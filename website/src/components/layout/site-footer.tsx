@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Logo } from '@/components/common/logo';
 import { useCategories } from '@/features/catalog/api';
+import { InstallAppButton } from '@/features/pwa/pwa';
 import { usePublicSettings } from '@/features/settings/api';
 import { useLocalized } from '@/lib/i18n';
 
@@ -90,6 +91,7 @@ export function SiteFooter() {
       <div className="border-t">
         <div className="container-page flex flex-col items-center justify-between gap-2 py-5 text-xs text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} Printing Galaxy. {t('footer.rights')}</p>
+          <InstallAppButton />
           <p>{t('common.tagline')}</p>
         </div>
       </div>

@@ -4,8 +4,11 @@ import {
   IconCircleCheck,
   IconClockHour4,
   IconDiscount2,
+  IconFileSpreadsheet,
+  IconId,
   IconPackage,
   IconSchool,
+  IconUpload,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -16,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { authApi } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { useBulkJobs, useTemplates } from '@/features/institution/api';
 import { useMyOrders } from '@/features/orders/api';
 import { OrderList } from '@/features/orders/components/order-list';
 import { usePublicSettings } from '@/features/settings/api';
@@ -41,6 +45,8 @@ export default function InstitutionDashboardPage() {
   const setPrincipal = useAuthStore((s) => s.setPrincipal);
   const { data: orders } = useMyOrders();
   const { data: settings } = usePublicSettings();
+  const { data: jobs } = useBulkJobs();
+  const { data: templates } = useTemplates();
 
   // Refresh the account so a fresh approval shows without signing in again.
   const me = useQuery({ queryKey: ['me'], queryFn: authApi.me, staleTime: 0 });
@@ -95,6 +101,62 @@ export default function InstitutionDashboardPage() {
         <StatCard icon={<IconPackage />} label={t('institutionDashboard.orders')} value={orders?.total ?? 0} />
         <StatCard icon={<IconClockHour4 />} label={t('institutionDashboard.openOrders')} value={open} />
         <StatCard icon={<IconDiscount2 />} label={t('institutionDashboard.discount')} value={`${institution.extraDiscountPercent}%`} />
+      </div>
+
+      <div className="mb-8 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>{t('bulk.cardTitle')}</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">{t('bulk.cardDesc')}</p>
+            </div>
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+              <IconFileSpreadsheet className="size-5" />
+            </span>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {jobs && jobs.length > 0 && (
+              <ul className="divide-y rounded-xl border">
+                {jobs.slice(0, 4).map((j) => (
+                  <li key={j._id}>
+                    <Link to={`/institution/bulk/${j._id}`} className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-accent/50">
+                      <span className="min-w-0 truncate">
+                        {t(`templates.kinds.${j.kind}`)} · {t('bulk.rowsShort', { count: j.report.rows })}
+                      </span>
+                      <span className={j.status === 'needs_fixes' || j.status === 'failed' ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+                        {t(`bulk.status.${j.status}`)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button variant="brand" asChild>
+              <Link to="/institution/bulk/new">
+                <IconUpload /> {t('bulk.newTitle')}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>{t('templates.title')}</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">{t('templates.cardDesc', { count: templates?.length ?? 0 })}</p>
+            </div>
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+              <IconId className="size-5" />
+            </span>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/institution/templates">{t('templates.manage')}</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/institution/templates/new">+ {t('templates.new')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

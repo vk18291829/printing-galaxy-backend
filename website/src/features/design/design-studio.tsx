@@ -181,7 +181,7 @@ export function DesignStudio({
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+    <div className="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
       <div className="space-y-4">
         {spec.photo === 'required' && (
           <div className="space-y-1.5">
@@ -271,7 +271,7 @@ export function DesignStudio({
         )}
       </div>
 
-      <div className="space-y-3 lg:sticky lg:top-24 lg:self-start">
+      <div className="space-y-3 xl:sticky xl:top-24 xl:self-start">
         <p className="text-sm font-semibold">{t('design.preview')}</p>
         <div ref={boxRef} className="grid min-h-40 place-items-center rounded-2xl bg-linear-to-br from-muted to-muted/40 p-4">
           <canvas

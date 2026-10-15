@@ -3,8 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { AppProviders } from '@/app/providers';
 import { router } from '@/app/router';
+import { registerServiceWorker } from '@/features/pwa/pwa';
 import '@/lib/i18n';
 import '@/styles/globals.css';
+
+registerServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

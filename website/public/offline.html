@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1d6cf0" />
+    <title>Offline · Printing Galaxy</title>
+    <style>
+      :root { color-scheme: light dark; --bg: #f6f8fb; --card: #fff; --fg: #131a2b; --muted: #5d6779; --brand: #1d6cf0; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #0d1220; --card: #151c2e; --fg: #eef2f8; --muted: #9aa5b8; --brand: #4f93ff; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', 'Noto Sans Devanagari', sans-serif; }
+      main { width: 100%; max-width: 440px; background: var(--card); border-radius: 12px; padding: 28px 24px; box-shadow: 0 10px 30px rgb(0 0 0 / 0.08); }
+      .strip { height: 4px; border-radius: 4px; margin-bottom: 20px; background: linear-gradient(90deg, #12b5ea 0 25%, #d9138a 25% 50%, #ffc20e 50% 75%, #131a2b 75%); }
+      img { width: 56px; height: 56px; }
+      h1 { font-size: 22px; margin: 12px 0 4px; }
+      p { margin: 0 0 12px; color: var(--muted); }
+      .counter { border: 1px dashed color-mix(in srgb, var(--muted) 40%, transparent); border-radius: 10px; padding: 14px; margin: 16px 0; }
+      .counter strong { color: var(--fg); display: block; margin-bottom: 4px; }
+      a { color: var(--brand); font-weight: 600; }
+      button { margin-top: 8px; width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--brand); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="strip"></div>
+      <img src="/logo.png" alt="" />
+      <h1 data-en="You are offline" data-hi="आप ऑफ़लाइन हैं">You are offline</h1>
+      <p data-en="Check your internet connection. Your cart is saved on this phone." data-hi="अपना इंटरनेट कनेक्शन जाँचें। आपका कार्ट इस फ़ोन पर सेव है।">
+        Check your internet connection. Your cart is saved on this phone.
+      </p>
+      <div class="counter" id="counter" hidden>
+        <strong data-en="You can still order at our counter" data-hi="आप हमारी दुकान के काउंटर पर ऑर्डर कर सकते हैं">You can still order at our counter</strong>
+        <span id="shop"></span>
+      </div>
+      <button onclick="location.reload()" data-en="Try again" data-hi="फिर से कोशिश करें">Try again</button>
+    </main>
+    <script>
+      // Language and shop details saved by the website on the last visit.
+      try {
+        var lang = localStorage.getItem('pg-lang') === 'hi' ? 'hi' : 'en';
+        document.documentElement.lang = lang;
+        document.querySelectorAll('[data-' + lang + ']').forEach(function (el) { el.textContent = el.getAttribute('data-' + lang); });
+        var shop = JSON.parse(localStorage.getItem('pg-shop') || 'null');
+        if (shop && (shop.address || shop.phone)) {
+          var parts = [];
+          if (shop.address) parts.push(shop.address);
+          if (shop.hours) parts.push(shop.hours);
+          var el = document.getElementById('shop');
+          el.textContent = parts.join(' · ');
+          if (shop.phone) {
+            var a = document.createElement('a');
+            a.href = 'tel:+91' + shop.phone;
+            a.textContent = ' +91 ' + shop.phone;
+            el.appendChild(document.createElement('br'));
+            el.appendChild(a);
+          }
+          document.getElementById('counter').hidden = false;
+        }
+      } catch (e) {}
+    </script>
+  </body>
+</html>

@@ -3,6 +3,7 @@ import {
   IconBuildingStore,
   IconClockHour4,
   IconCreditCard,
+  IconFileInvoice,
   IconFileText,
   IconMapPin,
   IconX,
@@ -37,6 +38,7 @@ import { usePublicSettings } from '@/features/settings/api';
 import { openFile } from '@/features/uploads/upload-file';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { getErrorMessage } from '@/lib/api-client';
+import { fetchFile } from '@/lib/download';
 import { formatDate, formatFileSize, formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import type { UploadedFile } from '@/types/api';
@@ -97,6 +99,18 @@ export default function OrderDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {!['quote_pending', 'cancelled'].includes(order.status) && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                void fetchFile(`/orders/${order._id}/invoice`, { fallbackName: `${order.orderNumber}.pdf`, mode: 'open' }).catch((e) =>
+                  toast.error(getErrorMessage(e)),
+                )
+              }
+            >
+              <IconFileInvoice /> {t('orders.invoice')}
+            </Button>
+          )}
           {canPay && (
             <Button variant="brand" onClick={() => void pay()} disabled={paying}>
               {paying ? <Spinner className="size-4 text-current" /> : <IconCreditCard />}

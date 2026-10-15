@@ -47,7 +47,7 @@ interface PresignResponse {
  */
 export async function uploadFile(
   file: File,
-  opts: { productId?: string; purpose?: 'order' | 'logo'; onProgress?: (percent: number) => void } = {},
+  opts: { productId?: string; purpose?: 'order' | 'logo' | 'bulk'; onProgress?: (percent: number) => void } = {},
 ) {
   const mimeType = resolveMime(file);
   const { data: presign } = await api.post<PresignResponse>('/uploads/presign', {
