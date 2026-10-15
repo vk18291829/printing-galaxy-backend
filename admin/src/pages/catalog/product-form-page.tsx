@@ -1,7 +1,8 @@
-import { IconArrowLeft, IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
 import { useEffect, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
+import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { toast } from 'sonner';
 import { DynamicIcon, ICON_NAMES } from '@/components/common/dynamic-icon';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
@@ -108,6 +109,7 @@ export default function ProductFormPage() {
   const { data: product, isLoading, error } = useAdminProduct(isNew ? undefined : id);
   const save = useSaveProduct();
   const remove = useDeleteProduct();
+  useBreadcrumbLabel(isNew ? null : en(product?.name));
 
   const form = useForm<ProductFormValues>({ defaultValues: toForm() });
   const { register, control, handleSubmit, reset, setValue, getValues } = form;
@@ -135,12 +137,7 @@ export default function ProductFormPage() {
   return (
     <form onSubmit={onSubmit} className="space-y-6 pb-20">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link to="/products" className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-            <IconArrowLeft className="size-4" /> Products
-          </Link>
-          <h1 className="text-2xl font-bold">{isNew ? 'New product' : en(product?.name)}</h1>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">{isNew ? 'New product' : en(product?.name)}</h1>
         <div className="flex gap-2">
           {!isNew && (
             <Button
@@ -168,7 +165,7 @@ export default function ProductFormPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
+      <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           <Card>
             <CardHeader>

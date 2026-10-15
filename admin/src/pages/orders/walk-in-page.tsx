@@ -206,7 +206,7 @@ export default function WalkInPage() {
   return (
     <div>
       <PageHeader title="Walk-in order" description="Enter counter orders so every job lives in one system. Uses individual prices." />
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1fr_340px]">
+      <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[1fr_340px]">
         <div className="space-y-6">
           <Card>
             <CardHeader>

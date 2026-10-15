@@ -108,7 +108,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-6 *:min-w-0 xl:grid-cols-[1.6fr_1fr]">
         <Card>
           <CardHeader>
             <CardTitle>Revenue · last 14 days</CardTitle>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-6 *:min-w-0 xl:grid-cols-[1.6fr_1fr]">
         <Card className="gap-0 pb-0">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle>Recent orders</CardTitle>

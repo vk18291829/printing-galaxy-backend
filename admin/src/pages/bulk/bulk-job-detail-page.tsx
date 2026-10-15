@@ -1,7 +1,6 @@
 import {
   IconAlertCircle,
   IconAlertTriangle,
-  IconArrowLeft,
   IconDownload,
   IconEye,
   IconFileTypePdf,
@@ -11,6 +10,7 @@ import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
+import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -67,6 +67,7 @@ export default function BulkJobDetailPage() {
   const { id = '' } = useParams();
   const { data: job, isLoading, error, refetch } = useBulkJob(id);
   const rerun = useRerunBulkJob(id);
+  useBreadcrumbLabel(job?.institution?.name);
 
   if (isLoading) return <PageLoader />;
   if (error || !job) return <ErrorState error={error} onRetry={() => void refetch()} />;
@@ -82,13 +83,10 @@ export default function BulkJobDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/bulk-jobs" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> Bulk card lists
-      </Link>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold">{job.institution?.name}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{job.institution?.name}</h1>
             <BulkStatusBadge status={job.status} />
             {busy && <Spinner className="size-4" />}
           </div>

@@ -1,6 +1,7 @@
-import { IconArrowLeft, IconBan, IconCheck, IconX } from '@tabler/icons-react';
+import { IconBan, IconCheck, IconX } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
+import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { toast } from 'sonner';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { InstitutionStatusBadge, OrderStatusBadge } from '@/components/common/status-badge';
@@ -31,6 +32,7 @@ export default function InstitutionDetailPage() {
   const review = useReviewInstitution(id);
   const [reason, setReason] = useState('');
   const [discount, setDiscount] = useState<string | null>(null);
+  useBreadcrumbLabel(data?.name);
 
   if (isLoading) return <PageLoader />;
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />;
@@ -54,15 +56,12 @@ export default function InstitutionDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/institutions" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> Institutions
-      </Link>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{data.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{data.name}</h1>
         <InstitutionStatusBadge status={data.status} />
       </div>
 
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card>
             <CardHeader>

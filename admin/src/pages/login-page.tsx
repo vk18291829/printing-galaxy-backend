@@ -38,7 +38,7 @@ export default function LoginPage() {
           <span className="mb-4 grid size-16 place-items-center rounded-2xl bg-white shadow-xl">
             <img src="/logo.png" alt="" className="size-12 object-contain" />
           </span>
-          <h1 className="text-2xl font-bold">Printing Galaxy Admin</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Printing Galaxy Admin</h1>
           <p className="mt-1 text-sm text-white/60">Staff and owner sign in</p>
         </div>
         <Card className="overflow-hidden pt-0">

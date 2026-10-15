@@ -76,7 +76,7 @@ export default function SettingsPage() {
           </Button>
         }
       />
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-2">
+      <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Shop</CardTitle>
