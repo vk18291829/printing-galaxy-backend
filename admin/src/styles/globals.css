@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 @import '@fontsource-variable/noto-sans-devanagari';
 
 @custom-variant dark (&:is(.dark *));
@@ -85,6 +86,7 @@
 @theme inline {
   --font-sans: 'Geist Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Geist Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 
   --radius-xs: 3px;
   --radius-sm: 4px;

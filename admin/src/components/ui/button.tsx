@@ -8,13 +8,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
-        destructive: 'bg-destructive text-white shadow-sm hover:bg-destructive/90',
+        // Disabled solid buttons turn neutral instead of fading, so their label stays readable.
+        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
+        destructive: 'bg-destructive text-white shadow-sm hover:bg-destructive/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
         outline: 'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 hover:underline',
-        brand: 'bg-primary text-primary-foreground shadow-sm ring-1 ring-white/10 ring-inset hover:bg-primary/90',
+        brand: 'bg-primary text-primary-foreground shadow-sm ring-1 ring-white/10 ring-inset hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none disabled:ring-0',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',
