@@ -284,6 +284,14 @@ export default function ProductPage() {
     setDesign(null);
   };
 
+  const signInButton = (
+    <Button variant="outline" className="w-full" asChild>
+      <Link to="/login" state={{ from: location.pathname }}>
+        <IconLock /> {t('product.signInToUpload')}
+      </Link>
+    </Button>
+  );
+
   const uploadCard = (
     <Card>
       <CardHeader>
@@ -298,14 +306,17 @@ export default function ProductPage() {
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {!principal ? (
-          <Button variant="outline" className="w-full" asChild>
-            <Link to="/login" state={{ from: location.pathname }}>
-              <IconLock /> {t('product.signInToUpload')}
-            </Link>
-          </Button>
-        ) : useStudio && designKind ? (
-          <DesignStudio kind={designKind} productId={product._id} options={options} attached={design} onAttach={setDesign} />
+        {useStudio && designKind ? (
+          <DesignStudio
+            kind={designKind}
+            productId={product._id}
+            options={options}
+            attached={design}
+            onAttach={setDesign}
+            signIn={principal ? undefined : signInButton}
+          />
+        ) : !principal ? (
+          signInButton
         ) : useCropper ? (
           <CardCropUploader productId={product._id} files={files} onChange={setFiles} />
         ) : (

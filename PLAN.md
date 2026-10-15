@@ -70,7 +70,7 @@ Monorepo with three apps:
 - [x] Orders: create from cart (re-prices on server), list mine, detail, cancel, proof approve / request changes
 - [x] Payments: Razorpay order, signature verify, webhook (raw body + HMAC), COD / pay at counter
 - [x] Notifications: WhatsApp Cloud API for status messages (console fallback), MSG91 for OTP SMS, fired on every status change, logged
-- [ ] WhatsApp approved message templates (needed outside the 24-hour session window) and SMS fallback for status updates
+- [x] WhatsApp approved message templates (needed outside the 24-hour session window) and SMS fallback for status updates (MSG91 flow on send failure, and once more if the delivery-receipt webhook reports a failure)
 - [x] Admin APIs: dashboard stats, orders (filter, status change, assign, proof upload, quote, record cash payment, walk-in order), categories CRUD, products CRUD, institutions approve / reject / suspend, customers, staff, settings, audit log
 - [x] Audit log on status / price / product / institution changes
 - [x] Seed script with the full catalogue from the requirements doc, both price books, and an admin user
@@ -105,29 +105,35 @@ Monorepo with three apps:
 - [x] API smoke test (40 checks): every acceptance criterion from the requirements doc, OTP + refresh rotation, both price books, quote workflow, status rules, payments, audit
 - [x] Upload test against S3-compatible storage: presign → PUT → server counts 120 PDF pages → order priced from counted pages; signed links; cross-customer access denied
 - [x] All three apps typecheck and build; pages screenshotted in light/dark, desktop/mobile, English/Hindi
-- [ ] Razorpay checkout with real test keys (code is in place; needs keys in `backend/.env`)
-- [ ] Automated test suite (Vitest + Supertest) in CI
+- [ ] Razorpay checkout with real test keys (code is in place; needs keys in `backend/.env`) — **blocked on the owner's keys**
+- [x] Automated test suite (Vitest + Supertest, 42 tests against a real MongoDB, in-memory S3 fake) in CI (`.github/workflows/ci.yml`: typecheck, tests, builds)
 
 ## Phase 2 — PVC cards, gifts, proofs, invoices
 - [x] Sensitive-file flag and retention-based auto-delete job (runs hourly in the API process)
-- [ ] Client-side crop tool to the 8.6 × 5.4 cm template (front / back)
-- [ ] Design preview canvas for key chains, name slips, frames, visiting cards
-- [ ] Printable invoice / receipt PDF with GST fields (`pdf-lib`)
-- [ ] Low-stock material tracking + admin alert
+- [x] Client-side crop tool to the 8.6 × 5.4 cm template (front / back): photos or PDFs (password-protected e-Aadhaar supported), pan / pinch / zoom / rotate, 300 DPI output
+- [x] Design preview canvas for key chains, name slips, frames, visiting cards (live Canvas preview incl. Hindi text; preview + cropped photo / logo attached to the cart item; usable before sign-in)
+- [x] Printable invoice / receipt PDF with GST fields (`pdf-lib`): sequential numbers per financial year, CGST + SGST or IGST by place of supply, HSN/SAC, amount in words
+- [x] Low-stock material tracking + admin alert (stock in / used / wasted / counted, history, dashboard + sidebar alert, one WhatsApp alert per dip below the threshold)
 
 ## Phase 3 — Institution bulk jobs
-- [ ] Saved institution templates (logo, colours, layout) for ID card / out pass / fee card
-- [ ] CSV / Excel + photos ZIP upload, background validation report (missing photo, duplicate roll no., image size)
-- [ ] Background job queue (BullMQ + Redis) generating print-ready PDF sheets at exact 86 × 54 mm with bleed
-- [ ] Teacher ID flow on a separate template; medals / shields / ties / belts with proof approval
+- [x] Saved institution templates (logo, colours, layout) for ID card / out pass / fee card, with live preview and a real sample PDF
+- [x] CSV / Excel + photos ZIP upload, background validation report (missing photo, duplicate roll no., image size, missing columns, minimum order, unknown columns, phone / blood group checks)
+- [x] Background job queue (BullMQ + Redis; in-process fallback without Redis) generating print-ready PDF sheets at exact 86 × 54 mm with 3 mm bleed, crop marks, duplex-mirrored backs
+- [x] Teacher ID flow on a separate template; medals / shields / ties / belts with proof approval (bulk orders arrive with the generated sheet as the proof)
 
 ## Phase 4 — Reports and polish
-- [ ] Reports: daily / monthly sales, top products, pending payments, per-institution totals, staff workload, CSV export
-- [ ] Delivery person app view (assigned deliveries, mark done)
-- [ ] Certificate services (only after the owner answers the open question)
-- [ ] Hindi copy review by a native speaker, PWA install + offline counter note
+- [x] Reports: daily / monthly sales, top products, pending payments, per-institution totals, staff workload, CSV export
+- [x] Delivery person app view (assigned deliveries, start / delivered with cash collection / could not deliver)
+- [ ] Certificate services (only after the owner answers the open question) — **blocked on the owner**
+- [x] PWA install + offline counter note (manifest, service worker, offline page and banner pointing to the shop counter)
+- [ ] Hindi copy review by a native speaker — **needs a person**; new strings since the last review: `crop`, `design`, `templates`, `bulk`, `pwa` sections and `orders.invoice` in `website/src/locales/hi.json`
 
 ## Open questions still owed by the owner
 Copied from the requirements doc: certificate workflow, passport-photo minimum unit, largest
 tie/belt size, delivery vs pickup, GST registration, the real price sheet, printer file formats.
 Prices in the seed are **placeholders** and must be replaced in the admin panel.
+
+Also needed from the owner now: the shop's GST state and SAC code (Admin → Settings) for invoices,
+WhatsApp template approvals in Meta Business Manager, and a DLT-registered MSG91 status template.
+Hindi text on generated ID-card sheets is not typeset yet (standard PDF fonts); rows with Hindi
+are flagged in the validation report so staff can set them by hand.

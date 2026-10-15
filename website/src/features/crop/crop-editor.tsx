@@ -49,7 +49,8 @@ export function CropEditor({
 }) {
   const { t } = useTranslation();
   const aspect = output.heightMm / output.widthMm;
-  const frameRef = useRef<HTMLDivElement>(null);
+  // Callback ref: the dialog mounts its content after the first effects run.
+  const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null);
   const [frameW, setFrameW] = useState(0);
   const [view, setView] = useState<View>(INITIAL);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -58,12 +59,11 @@ export function CropEditor({
   useEffect(() => setView(INITIAL), [source.url]);
 
   useEffect(() => {
-    const el = frameRef.current;
-    if (!el) return;
+    if (!frameEl) return;
     const ro = new ResizeObserver(([entry]) => setFrameW(entry!.contentRect.width));
-    ro.observe(el);
+    ro.observe(frameEl);
     return () => ro.disconnect();
-  }, []);
+  }, [frameEl]);
 
   const turned = view.rotation % 180 !== 0;
   const rw = turned ? source.height : source.width;
@@ -141,7 +141,7 @@ export function CropEditor({
 
         <div className="rounded-xl bg-[repeating-conic-gradient(var(--muted)_0_25%,transparent_0_50%)] bg-size-[16px_16px] p-3 sm:p-6">
           <div
-            ref={frameRef}
+            ref={setFrameEl}
             className="relative mx-auto w-full touch-none overflow-hidden rounded-[3.5%/5.6%] bg-white shadow-lg ring-2 ring-primary select-none"
             style={{ aspectRatio: `${output.widthMm} / ${output.heightMm}`, cursor: 'grab' }}
             onPointerDown={onPointerDown}

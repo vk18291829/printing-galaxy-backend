@@ -183,7 +183,8 @@ const visitingCard: DesignSpec = {
         d.rect(6, 6, 22, 22, '#fff', 3);
         d.image(img.logo, 7.5, 7.5, 19, 19, 'contain');
       } else {
-        d.text(company.slice(0, 2).toUpperCase(), 17, 21, { size: 9, weight: 700, color: '#fff', align: 'center' });
+        const initials = company.split(/\s+/).filter(Boolean).map((word) => [...word][0]).join('').slice(0, 2).toUpperCase();
+        d.text(initials, 17, 21, { size: 9, weight: 700, color: '#fff', align: 'center' });
       }
       d.text(company, 17, 38, { size: 2.6, weight: 700, color: '#fff', align: 'center', maxW: 28 });
       d.text(name, 40, 17, { size: 5, weight: 700, color: '#fff', maxW: 46 });
@@ -285,10 +286,10 @@ const keychain: DesignSpec = {
     ctx.fillStyle = gloss;
     ctx.fillRect(0, 0, w * k, h * k);
     ctx.restore();
-    // Ring hole
-    const holeY = v.shape === 'heart' ? h * 0.22 : 3.2;
+    // Ring hole: top centre, or the top of the left lobe on a heart (the centre is a dip).
+    const [holeX, holeY] = v.shape === 'heart' ? [w * 0.27, h * 0.1] : [w / 2, 3.2];
     ctx.beginPath();
-    ctx.arc((w / 2) * k, holeY * k, 1.6 * k, 0, Math.PI * 2);
+    ctx.arc(holeX * k, holeY * k, 1.6 * k, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fill();
     ctx.lineWidth = 0.5 * k;

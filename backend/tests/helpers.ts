@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { PDFDocument } from 'pdf-lib';
+import type { Response as SuperagentResponse } from 'superagent';
 import request from 'supertest';
 import { createApp } from '@/app';
 import { env } from '@/config/env';
@@ -141,6 +142,13 @@ export async function customerToken(phone: string) {
 }
 
 export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+/** supertest parser that keeps PDF responses as a Buffer. */
+export function binary(res: SuperagentResponse, cb: (err: Error | null, body: Buffer) => void) {
+  const chunks: Buffer[] = [];
+  res.on('data', (c: Buffer) => chunks.push(c));
+  res.on('end', () => cb(null, Buffer.concat(chunks)));
+}
 
 /** Presign → "browser" PUT → complete, exactly like the frontends. */
 export async function upload(

@@ -1,5 +1,5 @@
 import { IconCheck, IconCrop, IconPaperclip, IconPhotoPlus, IconX } from '@tabler/icons-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/common/states';
@@ -54,7 +54,10 @@ export function DesignStudio({
   options,
   attached,
   onAttach,
+  signIn,
 }: {
+  /** For guests: shown instead of the attach button (attaching uploads files, which needs an account). */
+  signIn?: ReactNode;
   kind: DesignKind;
   productId: string;
   /** The product options chosen on the page (size, frame type…), which change the preview. */
@@ -284,7 +287,9 @@ export function DesignStudio({
         <p className="text-center text-xs text-muted-foreground">
           {Math.round(size.w) / 10} × {Math.round(size.h) / 10} cm · {t('design.proofNote')}
         </p>
-        {attached ? (
+        {signIn ? (
+          signIn
+        ) : attached ? (
           <p className="flex items-center justify-center gap-2 rounded-xl bg-success/10 px-3 py-2 text-sm font-medium text-success">
             <IconCheck className="size-4" /> {t('design.attached')}
           </p>

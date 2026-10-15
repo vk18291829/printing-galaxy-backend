@@ -20,9 +20,9 @@ export default defineConfig({
       WHATSAPP_TOKEN: '',
       MSG91_AUTH_KEY: '',
     },
-    // One database, so files run one after another.
+    // One database, so files run one after another, each in a fresh process (Mongoose models
+    // are registered once per process).
     pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 30_000,

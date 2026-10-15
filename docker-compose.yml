@@ -17,6 +17,14 @@ services:
     volumes:
       - s3-data:/data
 
+  # Optional: background job queue (BullMQ). Set REDIS_URL=redis://localhost:6379 to use it;
+  # without it, jobs run inside the API process.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    profiles: ["queue"]
+
 volumes:
   mongo-data:
   s3-data:

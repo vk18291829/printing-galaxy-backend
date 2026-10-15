@@ -1,5 +1,4 @@
 import {
-  IconArrowLeft,
   IconCash,
   IconDownload,
   IconFileInvoice,
@@ -34,8 +33,10 @@ import {
   useSaveNote,
   useSendProof,
 } from '@/features/orders/api';
+import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { getErrorMessage } from '@/lib/api-client';
 import { fetchFile } from '@/lib/download';
+import { cn } from '@/lib/utils';
 import { formatDate, formatFileSize, formatINR, formatNumber } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 import type { AdminOrder } from '@/types/admin';
@@ -436,17 +437,19 @@ export default function OrderDetailPage() {
   if (isLoading) return <PageLoader />;
   if (error || !order) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
+  return <OrderDetail order={order} />;
+}
+
+function OrderDetail({ order }: { order: AdminOrder }) {
+  useBreadcrumbLabel(order.orderNumber);
   const address = order.fulfilment.address;
 
   return (
     <div className="space-y-6">
-      <Link to="/orders" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> Orders
-      </Link>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-mono text-2xl font-bold">{order.orderNumber}</h1>
+            <h1 className="font-mono text-2xl font-semibold tracking-tight">{order.orderNumber}</h1>
             <OrderStatusBadge status={order.status} />
             <Badge variant="outline">{order.audience === 'institution' ? 'Institution' : 'Individual'}</Badge>
             {order.source === 'walk_in' && <Badge variant="outline">Walk-in</Badge>}
@@ -467,7 +470,7 @@ export default function OrderDetailPage() {
         )}
       </div>
 
-      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
           {order.status === 'quote_pending' && <QuoteCard order={order} />}
           <Card>
@@ -481,70 +484,73 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {order.customerNote && (
+          <Card className="gap-0 py-0">
+            <div className="grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+              <div className="space-y-1.5 p-4 text-sm sm:p-5">
+                <p className="text-xs font-medium text-muted-foreground">Customer</p>
+                <p className="font-semibold">{order.contact.name || '—'}</p>
+                {order.contact.phone && (
+                  <a href={`tel:+91${order.contact.phone}`} className="flex items-center gap-2 text-primary hover:underline">
+                    <IconPhone className="size-4" /> +91 {order.contact.phone}
+                  </a>
+                )}
+                {order.institution && (
+                  <Link to={`/institutions/${order.institution._id}`} className="block text-primary hover:underline">
+                    {order.institution.name}
+                  </Link>
+                )}
+              </div>
+              <div className="space-y-1.5 p-4 text-sm sm:p-5">
+                <p className="text-xs font-medium text-muted-foreground">{order.fulfilment.method === 'delivery' ? 'Delivery' : 'Pickup'}</p>
+                <p className="flex items-start gap-2">
+                  {order.fulfilment.method === 'delivery' ? (
+                    <>
+                      <IconMapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      {[address?.line1, address?.line2, address?.city, address?.state, address?.pincode].filter(Boolean).join(', ')}
+                    </>
+                  ) : (
+                    <>
+                      <IconBuildingStore className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> Pickup from shop
+                    </>
+                  )}
+                </p>
+                {order.deliveryPerson && <p className="text-muted-foreground">Rider: {order.deliveryPerson.name}</p>}
+              </div>
+            </div>
+            {order.customerNote && (
+              <div className="border-t p-4 text-sm sm:p-5">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Customer note</p>
+                <p>{order.customerNote}</p>
+              </div>
+            )}
+          </Card>
+
+          <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Customer note</CardTitle>
+                <CardTitle>History</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm">{order.customerNote}</CardContent>
+              <CardContent>
+                <ol className="relative space-y-4 border-l pl-5">
+                  {[...(order.statusHistory ?? [])].reverse().map((h, i) => (
+                    <li key={i} className="relative text-sm">
+                      <span className={cn('absolute top-1 -left-6.25 size-2.5 rounded-full ring-4 ring-card', i === 0 ? 'bg-primary' : 'bg-muted-foreground/40')} />
+                      <p className="font-medium">{ORDER_STATUS_LABEL[h.status]}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(h.at, 'en', true)}</p>
+                      {h.note && <p className="mt-0.5 text-xs text-muted-foreground">“{h.note}”</p>}
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
             </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ol className="space-y-3 border-l pl-4">
-                {[...(order.statusHistory ?? [])].reverse().map((h, i) => (
-                  <li key={i} className="relative text-sm">
-                    <span className="absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-background bg-primary" />
-                    <p className="font-medium">{ORDER_STATUS_LABEL[h.status]}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(h.at, 'en', true)}</p>
-                    {h.note && <p className="text-xs text-muted-foreground">“{h.note}”</p>}
-                  </li>
-                ))}
-              </ol>
-            </CardContent>
-          </Card>
+            <NoteCard order={order} />
+          </div>
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="font-semibold">{order.contact.name || '—'}</p>
-              {order.contact.phone && (
-                <a href={`tel:+91${order.contact.phone}`} className="flex items-center gap-2 text-primary hover:underline">
-                  <IconPhone className="size-4" /> +91 {order.contact.phone}
-                </a>
-              )}
-              {order.institution && (
-                <Link to={`/institutions/${order.institution._id}`} className="block text-primary hover:underline">
-                  {order.institution.name}
-                </Link>
-              )}
-              <Separator className="my-2" />
-              <p className="flex items-start gap-2">
-                {order.fulfilment.method === 'delivery' ? (
-                  <>
-                    <IconMapPin className="mt-0.5 size-4 shrink-0" />
-                    {[address?.line1, address?.line2, address?.city, address?.state, address?.pincode].filter(Boolean).join(', ')}
-                  </>
-                ) : (
-                  <>
-                    <IconBuildingStore className="mt-0.5 size-4 shrink-0" /> Pickup from shop
-                  </>
-                )}
-              </p>
-            </CardContent>
-          </Card>
           <StatusCard order={order} />
           <PaymentCard order={order} />
           <AssignCard order={order} />
-          <NoteCard order={order} />
         </div>
       </div>
     </div>

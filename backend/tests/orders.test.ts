@@ -2,7 +2,7 @@ import { PDFDocument } from 'pdf-lib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OrderModel } from '@/modules/orders/order.model';
 import { FileModel } from '@/modules/uploads/file.model';
-import { api, bearer, connectTestDb, customerToken, disconnectTestDb, pdfWithPages, seedBasics, staffToken, upload } from './helpers';
+import { api, bearer, binary, connectTestDb, customerToken, disconnectTestDb, pdfWithPages, seedBasics, staffToken, upload } from './helpers';
 
 let seed: Awaited<ReturnType<typeof seedBasics>>;
 let customer: string;
@@ -17,13 +17,6 @@ beforeAll(async () => {
   admin = await staffToken('owner@test.in');
 });
 afterAll(disconnectTestDb);
-
-/** supertest buffers PDFs as binary when told to. */
-const binary = (res: { on: (e: string, cb: (c?: Buffer) => void) => void } & NodeJS.ReadableStream, cb: (err: Error | null, body: Buffer) => void) => {
-  const chunks: Buffer[] = [];
-  res.on('data', (c?: Buffer) => chunks.push(c!));
-  res.on('end', () => cb(null, Buffer.concat(chunks)));
-};
 
 describe('orders', () => {
   let orderId: string;

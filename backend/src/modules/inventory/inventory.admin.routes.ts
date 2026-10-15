@@ -137,7 +137,8 @@ adminInventoryRouter.delete('/:id', requireAdmin, validate({ params: idParams })
 
 adminInventoryRouter.get('/:id/movements', validate({ params: idParams }), async (req, res) => {
   const items = await StockMovementModel.find({ material: req.params.id })
-    .sort({ createdAt: -1 })
+    // _id breaks ties between changes recorded in the same millisecond.
+    .sort({ createdAt: -1, _id: -1 })
     .limit(50)
     .populate('by', 'name')
     .lean();

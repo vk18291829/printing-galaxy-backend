@@ -55,7 +55,9 @@ approves it in Admin → Institutions.
 
 - **Individuals:** phone + OTP (MSG91 when configured).
 - **Institutions:** email + password, separate register/login pages, owner approval.
-- **Staff:** email + password on the admin panel, roles `admin`, `staff`, `delivery`.
+- **Staff:** email + password on the admin panel, roles `admin`, `staff`, `delivery`. Delivery riders
+  only see "My deliveries" (phone-friendly: call, open in Maps, start, delivered with cash collected,
+  could not deliver).
 
 Access tokens (15 min) are kept in memory; refresh tokens rotate on every use and are stored hashed,
 in httpOnly cookies. The website and admin use separate cookies.
@@ -69,7 +71,17 @@ switch on when their keys are set:
 | --- | --- | --- |
 | Razorpay | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Only pay-at-counter is offered |
 | OTP SMS (MSG91) | `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID` | Code returned to the browser in development |
-| WhatsApp updates | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | Messages are logged to the console |
+| WhatsApp updates | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_*` | Messages are logged to the console |
+| WhatsApp delivery receipts | `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | Failures after sending are not noticed |
+| Status SMS fallback (MSG91) | `MSG91_AUTH_KEY`, `MSG91_STATUS_TEMPLATE_ID` | No SMS when WhatsApp fails |
+| Job queue (Redis / BullMQ) | `REDIS_URL` | Bulk jobs run one at a time inside the API process |
+
+**WhatsApp templates.** Outside the 24-hour customer-service window WhatsApp only delivers approved
+templates. Create three *Utility* templates in Meta Business Manager and put their names in `.env`:
+order status `Your order {{1}} {{2}}. {{3}}` (in English and Hindi), account update
+`Printing Galaxy: {{1}} {{2}}`, staff alert `Printing Galaxy alert: {{1}}`. Point the WhatsApp webhook at
+`/api/v1/notifications/whatsapp/webhook` (field `messages`): if a message later fails to deliver, it is
+re-sent once by SMS. The MSG91 status flow receives the same values as `var1`, `var2`, `var3`.
 
 Razorpay webhook URL: `POST /api/v1/payments/razorpay/webhook` (events `payment.captured`,
 `order.paid`, `payment.failed`).
@@ -84,6 +96,29 @@ straight to S3 with presigned URLs. Keep "Block public access" on for the privat
 Identity documents (PVC card products marked *sensitive*) get 60-second download links, are visible
 only to the owner and staff, and are deleted after the retention period set in Admin → Settings.
 
+## Institution bulk ID cards
+
+1. The institution saves a **card template** (student ID, teacher ID, out pass, fee card): logo, colours,
+   orientation and which details to print. "Sample print PDF" renders the real sheet with dummy people.
+2. It uploads the **list** (`.xlsx` or `.csv`, one person per row; common headings like "Roll No.",
+   "Father's Name", "Emp Code" are recognised) and a **photos ZIP** named by roll no. / employee ID or
+   listed in a Photo column.
+3. A background job checks every row and photo (missing columns and values, duplicate IDs, missing or
+   tiny photos, the product's minimum order) and reports problems with Excel row numbers.
+4. A clean list becomes a print-ready PDF: exact trim size (86 × 54 mm; fee cards A6) plus 3 mm bleed,
+   ganged on A4 with crop marks, backs mirrored for long-edge duplex.
+5. Placing the order attaches that sheet as the **proof**; nothing is printed until it is approved.
+
+Staff see every upload in Admin → Bulk card lists and can re-check or rebuild a sheet. Lists and photos
+are private and deleted after the retention period once the order is completed. With `REDIS_URL` set,
+`npm run worker -w backend` runs extra job workers.
+
+## Tests
+
+`npm test` runs the API suite (Vitest + Supertest) against a throwaway database
+(`printing-galaxy-test` on the local MongoDB, or `TEST_MONGODB_URI`); object storage is replaced by an
+in-memory fake. CI (`.github/workflows/ci.yml`) runs typecheck, tests and builds on every push.
+
 ## Project layout
 
 ```
@@ -91,7 +126,9 @@ backend/src
   config/        env validation, logger, db
   middleware/    auth, validation, errors, rate limits
   modules/<feature>/   *.model.ts  *.schema.ts  *.service.ts  *.routes.ts  *.admin.routes.ts
-  jobs/          file retention
+  jobs/          file retention, job queue (BullMQ or in-process)
+  worker.ts      standalone job worker (Redis only)
+backend/tests    API tests and helpers
 website/src, admin/src
   app/           router, providers
   components/    ui (shadcn), layout, common
@@ -105,5 +142,6 @@ website/src, admin/src
 | Command | What it does |
 | --- | --- |
 | `npm run typecheck` | Type-checks all three apps |
+| `npm test` | API tests (needs MongoDB) |
 | `npm run build` | Production builds (`backend/dist`, `website/dist`, `admin/dist`) |
 | `npm run seed` | Re-runnable: upserts the catalogue by slug |

@@ -15,6 +15,7 @@
     "seed": "npm run seed -w backend",
     "build": "npm run build -w backend && npm run build -w website && npm run build -w admin",
     "typecheck": "npm run typecheck -w backend && npm run typecheck -w website && npm run typecheck -w admin",
+    "test": "npm run test -w backend",
     "format": "prettier --write ."
   },
   "devDependencies": {
