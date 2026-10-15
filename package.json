@@ -1,0 +1,27 @@
+{
+  "name": "printing-galaxy",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Printing Galaxy — print and customization shop platform (website, admin panel, backend)",
+  "workspaces": [
+    "backend",
+    "website",
+    "admin"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:website": "npm run dev -w website",
+    "dev:admin": "npm run dev -w admin",
+    "seed": "npm run seed -w backend",
+    "build": "npm run build -w backend && npm run build -w website && npm run build -w admin",
+    "typecheck": "npm run typecheck -w backend && npm run typecheck -w website && npm run typecheck -w admin",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.12"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

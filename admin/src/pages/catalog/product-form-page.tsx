@@ -1,0 +1,433 @@
+import { IconArrowLeft, IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
+import { useEffect, type ReactNode } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { Link, useNavigate, useParams } from 'react-router';
+import { toast } from 'sonner';
+import { DynamicIcon, ICON_NAMES } from '@/components/common/dynamic-icon';
+import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  useAdminCategories,
+  useAdminProduct,
+  useDeleteProduct,
+  useSaveProduct,
+  type AdminProduct,
+  type ProductInput,
+} from '@/features/catalog/api';
+import { OptionsEditor } from '@/features/catalog/components/options-editor';
+import { PriceBookEditor } from '@/features/catalog/components/price-book-editor';
+import { FILE_TYPES, type ProductFormValues } from '@/features/catalog/components/product-form-types';
+import { getErrorMessage } from '@/lib/api-client';
+import { en } from '@/lib/l10n';
+import { cn } from '@/lib/utils';
+
+const loc = (v?: { en?: string; hi?: string }) => ({ en: v?.en ?? '', hi: v?.hi ?? '' });
+
+function toForm(p?: AdminProduct & { category: string | { _id: string } }): ProductFormValues {
+  return {
+    name: loc(p?.name),
+    slug: p?.slug ?? '',
+    category: typeof p?.category === 'string' ? p.category : (p?.category?._id ?? ''),
+    shortDescription: loc(p?.shortDescription),
+    description: loc(p?.description),
+    icon: p?.icon ?? 'printer',
+    unit: p?.unit ?? 'piece',
+    workflow: p?.workflow ?? 'standard',
+    specsText: p?.specs.join(', ') ?? '',
+    tagsText: p?.tags?.join(', ') ?? '',
+    requiresUpload: p?.requiresUpload ?? false,
+    acceptedFileTypes: p?.acceptedFileTypes ?? ['pdf', 'jpg', 'png'],
+    uploadHint: loc(p?.uploadHint),
+    sensitive: p?.sensitive ?? false,
+    options:
+      p?.options.map((o) => ({
+        key: o.key,
+        label: loc(o.label),
+        required: o.required,
+        values: o.values.map((v) => ({
+          value: v.value,
+          label: loc(v.label),
+          unitDelta: v.unitDelta ?? 0,
+          fixedFee: v.fixedFee ?? 0,
+          minCopies: v.minCopies ?? null,
+          isDefault: v.isDefault,
+        })),
+      })) ?? [],
+    pricing: {
+      retail: p?.pricing.retail ?? { enabled: true, minQty: 1, tiers: [{ minQty: 1, unitPrice: 0 }] },
+      institution: p?.pricing.institution ?? { enabled: true, minQty: 50, tiers: [{ minQty: 50, unitPrice: 0 }] },
+    },
+    leadTimeDays: p?.leadTimeDays ?? 1,
+    isFeatured: p?.isFeatured ?? false,
+    isActive: p?.isActive ?? true,
+    sortOrder: p?.sortOrder ?? 0,
+  };
+}
+
+function toInput(v: ProductFormValues): ProductInput {
+  const split = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+  return {
+    ...v,
+    specs: split(v.specsText),
+    tags: split(v.tagsText),
+    images: [],
+    options: v.options.map((o) => ({
+      ...o,
+      values: o.values.map((val) => ({ ...val, minCopies: val.minCopies ?? undefined })),
+    })),
+  } as unknown as ProductInput;
+}
+
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+function Field({ label, children, hint, className }: { label: string; children: ReactNode; hint?: string; className?: string }) {
+  return (
+    <div className={cn('space-y-1.5', className)}>
+      <Label>{label}</Label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+export default function ProductFormPage() {
+  const { id } = useParams();
+  const isNew = !id || id === 'new';
+  const navigate = useNavigate();
+  const { data: categories } = useAdminCategories();
+  const { data: product, isLoading, error } = useAdminProduct(isNew ? undefined : id);
+  const save = useSaveProduct();
+  const remove = useDeleteProduct();
+
+  const form = useForm<ProductFormValues>({ defaultValues: toForm() });
+  const { register, control, handleSubmit, reset, setValue, getValues } = form;
+
+  useEffect(() => {
+    if (product) reset(toForm(product));
+  }, [product, reset]);
+
+  if (!isNew && isLoading) return <PageLoader />;
+  if (!isNew && error) return <ErrorState error={error} />;
+
+  const onSubmit = handleSubmit((values) =>
+    save.mutate(
+      { id: isNew ? undefined : id, data: toInput(values) },
+      {
+        onSuccess: () => {
+          toast.success('Product saved');
+          navigate('/products');
+        },
+        onError: (e) => toast.error(getErrorMessage(e)),
+      },
+    ),
+  );
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-6 pb-20">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link to="/products" className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <IconArrowLeft className="size-4" /> Products
+          </Link>
+          <h1 className="text-2xl font-bold">{isNew ? 'New product' : en(product?.name)}</h1>
+        </div>
+        <div className="flex gap-2">
+          {!isNew && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-destructive"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (!confirm('Delete this product? Products with orders can only be hidden.')) return;
+                remove.mutate(id!, {
+                  onSuccess: () => {
+                    toast.success('Product deleted');
+                    navigate('/products');
+                  },
+                  onError: (e) => toast.error(getErrorMessage(e)),
+                });
+              }}
+            >
+              <IconTrash /> Delete
+            </Button>
+          )}
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? <Spinner className="size-4 text-current" /> : <IconDeviceFloppy />} Save product
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Basics</CardTitle>
+              <CardDescription>Write both English and Hindi — customers switch language on the website.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <Field label="Name (English)">
+                <Input
+                  {...register('name.en', {
+                    required: true,
+                    onBlur: (e) => {
+                      if (!getValues('slug')) setValue('slug', slugify(e.target.value));
+                    },
+                  })}
+                />
+              </Field>
+              <Field label="नाम (Hindi)">
+                <Input {...register('name.hi')} />
+              </Field>
+              <Field label="URL slug" hint="Lowercase letters, numbers and dashes">
+                <Input {...register('slug', { required: true })} />
+              </Field>
+              <Field label="Category">
+                <Controller
+                  control={control}
+                  name="category"
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories?.map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            {en(c.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <Field label="Short description (English)">
+                <Textarea className="min-h-16" {...register('shortDescription.en')} />
+              </Field>
+              <Field label="छोटा विवरण (Hindi)">
+                <Textarea className="min-h-16" {...register('shortDescription.hi')} />
+              </Field>
+              <Field label="Long description (English)">
+                <Textarea {...register('description.en')} />
+              </Field>
+              <Field label="विस्तृत विवरण (Hindi)">
+                <Textarea {...register('description.hi')} />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Pricing</CardTitle>
+              <CardDescription>
+                Price per unit drops as quantity crosses each tier. Institution prices apply only to approved institution accounts.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 lg:grid-cols-2">
+              <PriceBookEditor audience="retail" control={control} register={register} title="Individuals" description="Students, families, walk-in customers" />
+              <PriceBookEditor audience="institution" control={control} register={register} title="Institutions" description="Schools, colleges, businesses (bulk)" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Options</CardTitle>
+              <CardDescription>Size, paper, binding… each choice can change the price.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OptionsEditor control={control} register={register} />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>How it's sold</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Field label="Unit" hint="Page-based products price by pages × copies">
+                <Controller
+                  control={control}
+                  name="unit"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['page', 'piece', 'card', 'copy', 'set', 'photo'].map((u) => (
+                          <SelectItem key={u} value={u} className="capitalize">
+                            {u}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <Field label="Workflow">
+                <Controller
+                  control={control}
+                  name="workflow"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard — instant price</SelectItem>
+                        <SelectItem value="design">Design — proof approval</SelectItem>
+                        <SelectItem value="identity">Identity — sensitive PVC card</SelectItem>
+                        <SelectItem value="quote">Quote — staff sets price</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <Field label="Icon">
+                <Controller
+                  control={control}
+                  name="icon"
+                  render={({ field }) => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {ICON_NAMES.map((name) => (
+                        <button
+                          type="button"
+                          key={name}
+                          title={name}
+                          onClick={() => field.onChange(name)}
+                          className={cn(
+                            'grid size-9 place-items-center rounded-lg border transition-colors',
+                            field.value === name ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-accent',
+                          )}
+                        >
+                          <DynamicIcon name={name} className="size-4" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                />
+              </Field>
+              <Field label="Ready in (days)" hint="0 = same day">
+                <Input type="number" min={0} {...register('leadTimeDays', { valueAsNumber: true })} />
+              </Field>
+              <Field label="Specs" hint="Comma separated, e.g. 8.6 × 5.4 cm, 300 GSM">
+                <Input {...register('specsText')} />
+              </Field>
+              <Field label="Search tags" hint="Comma separated">
+                <Input {...register('tagsText')} />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Uploads</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Controller
+                control={control}
+                name="requiresUpload"
+                render={({ field }) => (
+                  <label className="flex items-center justify-between text-sm">
+                    Customer must upload a file
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </label>
+                )}
+              />
+              <Controller
+                control={control}
+                name="sensitive"
+                render={({ field }) => (
+                  <label className="flex items-center justify-between gap-3 text-sm">
+                    <span>
+                      Identity documents
+                      <span className="block text-xs text-muted-foreground">Private, staff-only, auto-deleted after delivery</span>
+                    </span>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </label>
+                )}
+              />
+              <Field label="Accepted file types">
+                <Controller
+                  control={control}
+                  name="acceptedFileTypes"
+                  render={({ field }) => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {FILE_TYPES.map((t) => {
+                        const on = field.value.includes(t);
+                        return (
+                          <button
+                            type="button"
+                            key={t}
+                            onClick={() => field.onChange(on ? field.value.filter((x) => x !== t) : [...field.value, t])}
+                            className={cn(
+                              'rounded-md border px-2 py-1 text-xs font-semibold uppercase',
+                              on ? 'border-primary bg-primary/10 text-primary' : 'text-muted-foreground',
+                            )}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                />
+              </Field>
+              <Field label="Upload hint (English)">
+                <Input {...register('uploadHint.en')} />
+              </Field>
+              <Field label="अपलोड संकेत (Hindi)">
+                <Input {...register('uploadHint.hi')} />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Visibility</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Controller
+                control={control}
+                name="isActive"
+                render={({ field }) => (
+                  <label className="flex items-center justify-between text-sm">
+                    Visible on website
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </label>
+                )}
+              />
+              <Controller
+                control={control}
+                name="isFeatured"
+                render={({ field }) => (
+                  <label className="flex items-center justify-between text-sm">
+                    Featured on home page
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </label>
+                )}
+              />
+              <Field label="Sort order" hint="Lower numbers show first">
+                <Input type="number" {...register('sortOrder', { valueAsNumber: true })} />
+              </Field>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </form>
+  );
+}

@@ -1,0 +1,89 @@
+import { z } from 'zod';
+import { addressInput, indianPhone, objectId } from '@/common/validation';
+import { ORDER_STATUSES, PAYMENT_METHODS } from './order.model';
+
+export const orderItemInput = z.object({
+  productId: objectId,
+  options: z.record(z.string()).default({}),
+  quantity: z.coerce.number().int().min(0).max(1_000_000).optional(),
+  pageCount: z.coerce.number().int().min(0).max(100_000).optional(),
+  copies: z.coerce.number().int().min(1).max(10_000).optional(),
+  notes: z.string().trim().max(1000).optional(),
+  fileIds: z.array(objectId).max(20).default([]),
+});
+
+export const createOrderSchema = z
+  .object({
+    items: z.array(orderItemInput).min(1, 'Your cart is empty').max(50),
+    fulfilment: z.object({
+      method: z.enum(['pickup', 'delivery']),
+      address: addressInput.optional(),
+    }),
+    paymentMethod: z.enum(PAYMENT_METHODS),
+    customerNote: z.string().trim().max(1000).optional(),
+    contactName: z.string().trim().max(80).optional(),
+  })
+  .refine((v) => v.fulfilment.method === 'pickup' || v.fulfilment.address, {
+    message: 'Delivery address is required',
+    path: ['fulfilment', 'address'],
+  });
+
+export const walkInOrderSchema = z.object({
+  customer: z.object({ name: z.string().trim().min(1).max(80), phone: indianPhone }),
+  items: z.array(orderItemInput).min(1).max(50),
+  fulfilment: z.object({
+    method: z.enum(['pickup', 'delivery']),
+    address: addressInput.optional(),
+  }),
+  amountPaid: z.coerce.number().min(0).default(0),
+  paymentProvider: z.enum(['cash', 'upi_counter']).default('cash'),
+  internalNote: z.string().trim().max(2000).optional(),
+});
+
+export const proofResponseSchema = z.object({
+  decision: z.enum(['approved', 'changes_requested']),
+  comment: z.string().trim().max(1000).optional(),
+});
+
+export const statusChangeSchema = z.object({
+  status: z.enum(ORDER_STATUSES),
+  note: z.string().trim().max(500).optional(),
+  notify: z.boolean().default(true),
+});
+
+export const assignSchema = z.object({
+  assignedTo: objectId.nullable().optional(),
+  deliveryPerson: objectId.nullable().optional(),
+});
+
+export const quoteItemsSchema = z.object({
+  items: z
+    .array(z.object({ itemId: objectId, lineTotal: z.coerce.number().min(0) }))
+    .min(1),
+  note: z.string().trim().max(500).optional(),
+});
+
+export const sendProofSchema = z.object({
+  fileId: objectId,
+  message: z.string().trim().max(500).optional(),
+});
+
+export const recordPaymentSchema = z.object({
+  amount: z.coerce.number().positive(),
+  provider: z.enum(['cash', 'upi_counter']),
+  note: z.string().trim().max(300).optional(),
+});
+
+export const adminOrderListQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(ORDER_STATUSES).optional(),
+  audience: z.enum(['retail', 'institution']).optional(),
+  paymentStatus: z.enum(['pending', 'partial', 'paid', 'refunded', 'failed']).optional(),
+  assignedTo: objectId.optional(),
+  q: z.string().trim().max(100).optional(),
+  active: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
+});

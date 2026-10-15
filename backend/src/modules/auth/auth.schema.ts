@@ -1,0 +1,44 @@
+import { z } from 'zod';
+import { addressInput, indianPhone } from '@/common/validation';
+import { INSTITUTION_TYPES } from '@/modules/institutions/institution.model';
+
+export const otpRequestSchema = z.object({ phone: indianPhone });
+
+export const otpVerifySchema = z.object({
+  phone: indianPhone,
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+  name: z.string().trim().max(80).optional(),
+});
+
+const password = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(72)
+  .regex(/[A-Za-z]/, 'Password must contain a letter')
+  .regex(/\d/, 'Password must contain a number');
+
+export const institutionRegisterSchema = z.object({
+  name: z.string().trim().min(3).max(150),
+  type: z.enum(INSTITUTION_TYPES),
+  contactName: z.string().trim().min(2).max(80),
+  designation: z.string().trim().max(80).optional(),
+  email: z.string().trim().toLowerCase().email(),
+  phone: indianPhone,
+  password,
+  address: addressInput,
+  gstin: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, 'Enter a valid GSTIN')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  size: z.coerce.number().int().min(0).max(1_000_000).optional(),
+});
+
+export const passwordLoginSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(1, 'Enter your password'),
+});
+
+export { password as passwordSchema };

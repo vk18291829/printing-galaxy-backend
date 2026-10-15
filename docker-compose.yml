@@ -1,0 +1,22 @@
+# Local development services: MongoDB and SeaweedFS (S3-compatible object storage).
+# In production, point the backend's S3_* variables at AWS S3 or any S3-compatible service.
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  s3:
+    image: chrislusf/seaweedfs:latest
+    # Single-node master + volume + filer + S3 gateway. No credentials configured = open access, dev only.
+    command: ["server", "-s3", "-s3.port=8333", "-dir=/data", "-volume.max=0", "-master.volumeSizeLimitMB=1024"]
+    ports:
+      - "8333:8333"
+    volumes:
+      - s3-data:/data
+
+volumes:
+  mongo-data:
+  s3-data:
