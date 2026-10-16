@@ -1,3 +1,4 @@
+import { SafeImage } from '@/components/common/safe-image';
 import type { Banner } from '@/types/api';
 import { cn } from '@/lib/utils';
 
@@ -18,7 +19,7 @@ export function BannerBackground({ banner, className }: { banner: Banner; classN
     <div className={cn('absolute inset-0', THEME_CLASS[banner.theme] ?? THEME_CLASS.blue, className)} aria-hidden>
       {banner.imageUrl ? (
         <>
-          <img src={banner.imageUrl} alt="" className="size-full object-cover" />
+          <SafeImage src={banner.imageUrl} alt="" className="size-full object-cover" fallback={null} />
           <div className="absolute inset-0 bg-linear-to-r from-black/75 via-black/40 to-black/5" />
         </>
       ) : (

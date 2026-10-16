@@ -15,6 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { SafeImage } from '@/components/common/safe-image';
 import { Rail, Section } from '@/components/common/section';
 import { StarRating } from '@/components/common/star-rating';
 import { Badge } from '@/components/ui/badge';
@@ -233,13 +234,17 @@ function CategoryCircles() {
               ...(data ?? []).map((c) => (
                 <Link key={c._id} to={`/products?category=${c.slug}`} className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2.5 text-center sm:w-28 lg:w-auto">
                   <span className="relative aspect-square w-full overflow-hidden rounded-full border-2 border-transparent bg-muted ring-1 ring-border transition-all group-hover:border-primary group-hover:shadow-md">
-                    {c.imageUrl ? (
-                      <img src={c.imageUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    ) : (
-                      <span className="grid size-full place-items-center bg-primary/8 text-primary">
-                        <DynamicIcon name={c.icon} className="size-9" stroke={1.5} />
-                      </span>
-                    )}
+                    <SafeImage
+                      src={c.imageUrl}
+                      alt=""
+                      loading="lazy"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fallback={
+                        <span className="grid size-full place-items-center bg-primary/8 text-primary">
+                          <DynamicIcon name={c.icon} className="size-9" stroke={1.5} />
+                        </span>
+                      }
+                    />
                   </span>
                   <span className="text-xs leading-tight font-medium sm:text-sm">{l(c.name)}</span>
                 </Link>

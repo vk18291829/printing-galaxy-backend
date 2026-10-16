@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { PrefixedInput } from '@/components/common/prefixed-input';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -222,19 +223,16 @@ export default function InstitutionRegisterPage() {
               <Input id="designation" className="h-11" placeholder={t('auth.designationPlaceholder')} {...form.register('designation')} />
             </Field>
             <Field label={t('auth.phone')} error={errors.phone?.message} htmlFor="phone">
-              <div className="flex">
-                <span className="inline-flex h-11 items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground">+91</span>
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={10}
-                  autoComplete="tel-national"
-                  className="h-11 rounded-l-none"
-                  aria-invalid={!!errors.phone}
-                  {...form.register('phone')}
-                />
-              </div>
+              <PrefixedInput
+                prefix="+91"
+                id="phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                autoComplete="tel-national"
+                aria-invalid={!!errors.phone}
+                {...form.register('phone')}
+              />
             </Field>
             <Field label={t('auth.org.workEmail')} error={errors.email?.message} htmlFor="email">
               <Input id="email" type="email" autoComplete="email" className="h-11" aria-invalid={!!errors.email} {...form.register('email')} />

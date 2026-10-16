@@ -289,9 +289,9 @@ export default function ReviewsPage() {
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Average rating" value={stats ? (stats.averageRating ? `${stats.averageRating.toFixed(1)} ★` : '—') : '…'} hint="Published reviews" />
-        <StatTile label="Awaiting approval" value={stats?.pending ?? '…'} active={status === 'pending'} onClick={() => pickStatus('pending')} />
-        <StatTile label="Published" value={stats?.approved ?? '…'} active={status === 'approved'} onClick={() => pickStatus('approved')} />
-        <StatTile label="Rejected" value={stats?.rejected ?? '…'} active={status === 'rejected'} onClick={() => pickStatus('rejected')} />
+        <StatTile label="Awaiting approval" value={stats?.pending ?? '…'} hint="Need a decision" active={status === 'pending'} onClick={() => pickStatus('pending')} />
+        <StatTile label="Published" value={stats?.approved ?? '…'} hint="Shown on the website" active={status === 'approved'} onClick={() => pickStatus('approved')} />
+        <StatTile label="Rejected" value={stats?.rejected ?? '…'} hint="Hidden from customers" active={status === 'rejected'} onClick={() => pickStatus('rejected')} />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">

@@ -428,7 +428,21 @@
     "files_one": "{{count}} file",
     "files_other": "{{count}} files",
     "invalid": "Some items need attention before checkout.",
-    "quoteItems": "Includes items priced on request."
+    "quoteItems": "Includes items priced on request.",
+    "itemsCount_one": "{{count}} item",
+    "itemsCount_other": "{{count}} items",
+    "changeOptions": "Change options",
+    "removeTitle": "Remove “{{name}}” from your cart?",
+    "removeDesc": "You can add it again any time.",
+    "removeDescFiles": "The files you uploaded for it are removed from the cart too.",
+    "freeDeliveryLeft": "Add {{amount}} more for free delivery",
+    "freeDeliveryUnlocked": "You've unlocked free delivery",
+    "atCheckout": "Calculated at checkout",
+    "trust": [
+      "Secure UPI and card payments",
+      "Proof approval before personalised printing",
+      "Pick up at the shop or home delivery"
+    ]
   },
   "checkout": {
     "title": "Checkout",
@@ -543,7 +557,43 @@
     "email": "Email",
     "visit": "Visit the shop",
     "hours": "Opening hours",
-    "directions": "Get directions"
+    "directions": "Get directions",
+    "eyebrow": "We're here to help",
+    "callNow": "Call now",
+    "chatNow": "Chat on WhatsApp",
+    "writeEmail": "Write an email",
+    "hoursNote": "Online orders are open 24×7.",
+    "helpTrack": "Track an order",
+    "helpTrackDesc": "Status, proofs and invoices for every order.",
+    "helpBulk": "Bulk & institutions",
+    "helpBulkDesc": "ID cards, diaries and more at institution prices.",
+    "helpPrices": "Price list",
+    "helpPricesDesc": "Every product with its quantity discounts.",
+    "faqTitle": "Common questions",
+    "faqs": [
+      {
+        "q": "How long does printing take?",
+        "a": "Most notes and PVC cards are ready the same day. Personalised items take 2–7 days after you approve the proof; each product page shows its lead time."
+      },
+      {
+        "q": "Can I see the design before you print?",
+        "a": "Yes. For personalised items we send a proof to your order page. Nothing is printed until you approve it."
+      },
+      {
+        "q": "Do you deliver?",
+        "a": "Yes, home delivery is available at checkout, free above the amount shown in your cart. You can also pick up from the shop."
+      },
+      {
+        "q": "How do I pay?",
+        "a": "Pay online with UPI or card at checkout, or pay at the counter when you collect."
+      },
+      {
+        "q": "Are my ID documents safe?",
+        "a": "Identity documents are stored privately, seen only by our staff and deleted automatically after your order is completed."
+      }
+    ],
+    "ctaTitle": "Ready to print?",
+    "ctaDesc": "Upload your file, see the price instantly and pick up or get it delivered."
   },
   "footer": {
     "about": "A print and customisation shop for students, families, schools and local businesses.",

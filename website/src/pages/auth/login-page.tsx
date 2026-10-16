@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { PrefixedInput } from '@/components/common/prefixed-input';
 import { Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -109,20 +110,18 @@ export default function LoginPage() {
         <form onSubmit={submitPhone} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="phone">{t('auth.phone')}</Label>
-            <div className="flex">
-              <span className="flex h-12 items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm font-medium text-muted-foreground">+91</span>
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                autoFocus
-                placeholder={t('auth.phonePlaceholder')}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))}
-                className="h-12 rounded-l-none text-lg tracking-wide"
-              />
-            </div>
+            <PrefixedInput
+              prefix="+91"
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              autoFocus
+              placeholder={t('auth.phonePlaceholder')}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))}
+              className="h-12 [&_input]:text-lg [&_input]:tracking-wide"
+            />
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <IconShieldCheck className="size-3.5 text-success" /> {t('auth.person.privacy')}
             </p>

@@ -2,18 +2,24 @@ import { IconAlertCircle, IconPaperclip, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { SafeImage } from '@/components/common/safe-image';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import type { Quote } from '@/types/api';
 import type { CartItem } from '../cart-store';
 
 export function CartThumb({ item, className = 'size-14' }: { item: Pick<CartItem, 'image' | 'icon'>; className?: string }) {
-  return item.image ? (
-    <img src={item.image} alt="" className={`${className} shrink-0 rounded-lg border object-cover`} />
-  ) : (
-    <span className={`${className} grid shrink-0 place-items-center rounded-lg bg-primary/10 text-primary`}>
-      <DynamicIcon name={item.icon} className="size-7" stroke={1.6} />
-    </span>
+  return (
+    <SafeImage
+      src={item.image}
+      alt=""
+      className={`${className} shrink-0 rounded-lg border object-cover`}
+      fallback={
+        <span className={`${className} grid shrink-0 place-items-center rounded-lg bg-primary/10 text-primary`}>
+          <DynamicIcon name={item.icon} className="size-7" stroke={1.6} />
+        </span>
+      }
+    />
   );
 }
 

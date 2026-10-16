@@ -26,7 +26,7 @@ import {
   IconUsers,
   type Icon,
 } from '@tabler/icons-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { ThemeToggle } from '@/components/common/theme-toggle';
@@ -352,6 +352,12 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const user = useAuthStore((s) => s.user);
   const { pathname } = useLocation();
+  const scroller = useRef<HTMLDivElement>(null);
+
+  // The content column is the scroll container, so reset it (not the window) on navigation.
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 0 });
+  }, [pathname]);
 
   const toggle = () =>
     setCollapsed((c) => {
@@ -368,17 +374,18 @@ export function AdminLayout() {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-dvh">
+      {/* App shell: the sidebar stays put and only the content column scrolls. */}
+      <div className="flex h-dvh overflow-hidden">
         <aside
           className={cn(
-            'sticky top-0 hidden h-dvh shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:block',
+            'hidden h-full shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:block',
             collapsed ? 'w-16' : 'w-64',
           )}
         >
           <SidebarBody collapsed={collapsed} onToggle={toggle} />
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div ref={scroller} className="flex min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
           <header className="sticky top-0 z-30 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
             <div className="page-container flex h-14 items-center gap-2">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

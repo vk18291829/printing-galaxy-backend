@@ -98,7 +98,7 @@ export default function ProductsPage() {
       {/* The one filter bar: categories and sort. Sticks under the header while scrolling. */}
       <div className="sticky top-16 z-30 border-b bg-background/90 backdrop-blur-xl">
         <div className="container-page flex items-center gap-3 py-3">
-          <div className="scrollbar-none -ml-1 flex min-w-0 flex-1 gap-2 overflow-x-auto py-0.5 pl-1">
+          <div className="scrollbar-none -ml-1 flex min-w-0 flex-1 gap-2 overflow-x-auto py-0.5 pr-8 pl-1 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)]">
             <button type="button" onClick={() => setParam('category')} className={cn(CHIP, !category ? CHIP_ON : CHIP_OFF)} aria-pressed={!category}>
               {t('products.all')}
             </button>

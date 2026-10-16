@@ -1,6 +1,7 @@
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState } from 'react';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { SafeImage } from '@/components/common/safe-image';
 import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/api';
@@ -24,7 +25,16 @@ export function ProductGallery({ product, className }: { product: Product; class
   return (
     <div className={cn('space-y-2', className)}>
       <div className="group relative aspect-4/3 overflow-hidden rounded-xl border bg-muted">
-        <img src={current} alt={l(product.name)} className="size-full object-cover" />
+        <SafeImage
+          src={current}
+          alt={l(product.name)}
+          className="size-full object-cover"
+          fallback={
+            <div className="grid size-full place-items-center text-primary">
+              <DynamicIcon name={product.icon} className="size-16" stroke={1.25} />
+            </div>
+          }
+        />
         {images.length > 1 && (
           <>
             <button
@@ -63,7 +73,7 @@ export function ProductGallery({ product, className }: { product: Product; class
                 i === index ? 'border-primary' : 'border-transparent opacity-70 hover:opacity-100',
               )}
             >
-              <img src={src} alt="" loading="lazy" className="size-full object-cover" />
+              <SafeImage src={src} alt="" loading="lazy" className="size-full object-cover" fallback={<span className="block size-full bg-muted" />} />
             </button>
           ))}
         </div>

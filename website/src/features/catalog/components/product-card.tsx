@@ -2,6 +2,7 @@ import { IconArrowRight, IconClock } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { SafeImage } from '@/components/common/safe-image';
 import { RatingChip } from '@/components/common/star-rating';
 import { Badge } from '@/components/ui/badge';
 import { useAudience } from '@/features/auth/auth-store';
@@ -18,13 +19,18 @@ export function startingPrice(product: Product, audience: 'retail' | 'institutio
 /** Product image, or the product icon on a quiet tile when no photo has been added yet. */
 export function ProductImage({ product, className }: { product: Pick<Product, 'images' | 'icon' | 'name'>; className?: string }) {
   const l = useLocalized();
-  const src = product.images?.[0];
-  return src ? (
-    <img src={src} alt={l(product.name)} loading="lazy" className={className ?? 'size-full object-cover'} />
-  ) : (
-    <div className="grid size-full place-items-center bg-muted text-primary">
-      <DynamicIcon name={product.icon} className="size-10" stroke={1.5} />
-    </div>
+  return (
+    <SafeImage
+      src={product.images?.[0]}
+      alt={l(product.name)}
+      loading="lazy"
+      className={className ?? 'size-full object-cover'}
+      fallback={
+        <div className="grid size-full place-items-center bg-muted text-primary">
+          <DynamicIcon name={product.icon} className="size-10" stroke={1.5} />
+        </div>
+      }
+    />
   );
 }
 
