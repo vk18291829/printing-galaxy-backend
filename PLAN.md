@@ -43,7 +43,7 @@ Monorepo with three apps:
 ## Phase 0 — Foundation
 
 - [x] Root workspace (`npm` workspaces), `.gitignore`, `.editorconfig`, Prettier config, README
-- [x] `docker-compose.yml` for local MongoDB + SeaweedFS (S3-compatible) so no cloud account is needed in dev; buckets + CORS auto-created in development
+- [x] Local MongoDB + SeaweedFS (S3-compatible, single binary) so no cloud account is needed in dev; buckets + CORS auto-created in development
 - [x] Backend skeleton: env validation (Zod), Mongo connection, Pino logger, Helmet, CORS, rate limit, cookie parser
 - [x] Feature-module folder layout (`modules/<feature>/{model,schema,service,controller,routes}`)
 - [x] Central error handling (`ApiError`, Zod → 422, Mongoose duplicate key → 409), `asyncHandler`, `validate` middleware
@@ -106,7 +106,7 @@ Monorepo with three apps:
 - [x] Upload test against S3-compatible storage: presign → PUT → server counts 120 PDF pages → order priced from counted pages; signed links; cross-customer access denied
 - [x] All three apps typecheck and build; pages screenshotted in light/dark, desktop/mobile, English/Hindi
 - [ ] Razorpay checkout with real test keys (code is in place; needs keys in `backend/.env`) — **blocked on the owner's keys**
-- [x] Automated test suite (Vitest + Supertest, 42 tests against a real MongoDB, in-memory S3 fake) in CI (`.github/workflows/ci.yml`: typecheck, tests, builds)
+- [x] Automated test suite (Vitest + Supertest, 47 tests against a real MongoDB, in-memory S3 fake), run locally with `npm test`
 
 ## Phase 2 — PVC cards, gifts, proofs, invoices
 - [x] Sensitive-file flag and retention-based auto-delete job (runs hourly in the API process)

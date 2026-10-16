@@ -13,20 +13,26 @@ The delivery plan and what is done vs. still open is in [PLAN.md](PLAN.md).
 
 ## Quick start
 
-Requirements: Node.js 22+, Docker (for MongoDB and local S3 storage).
+Requirements: Node.js 22+, MongoDB 7 on `localhost:27017` (e.g. the Windows MongoDB service) and
+S3-compatible object storage for uploads.
+
+For local storage, run [SeaweedFS](https://github.com/seaweedfs/seaweedfs/releases) from its single
+binary — in development the API creates the buckets and CORS rules itself:
+
+```bash
+weed server -s3 -s3.port=8333 -dir=./.s3-data -volume.max=0 -master.volumeSizeLimitMB=1024
+```
+
+Or point the `S3_*` variables in `backend/.env` at AWS S3, Cloudflare R2 or any S3-compatible service.
 
 ```bash
 npm install                      # installs all three workspaces
-docker compose up -d             # MongoDB :27017 + SeaweedFS S3 :8333
 cp backend/.env.example backend/.env   # then set the two JWT secrets
 npm run seed                     # catalogue, settings, owner + demo institution
 npm run dev:backend              # terminal 1
 npm run dev:website              # terminal 2
 npm run dev:admin                # terminal 3
 ```
-
-Already running MongoDB locally (e.g. the Windows MongoDB service)? Start only storage:
-`docker compose up -d s3`. Running both on port 27017 splits your data between two databases.
 
 ### Seeded accounts (development only — change them)
 
@@ -117,7 +123,7 @@ are private and deleted after the retention period once the order is completed. 
 
 `npm test` runs the API suite (Vitest + Supertest) against a throwaway database
 (`printing-galaxy-test` on the local MongoDB, or `TEST_MONGODB_URI`); object storage is replaced by an
-in-memory fake. CI (`.github/workflows/ci.yml`) runs typecheck, tests and builds on every push.
+in-memory fake. Before pushing, run `npm run typecheck`, `npm test` and `npm run build`.
 
 ## Project layout
 

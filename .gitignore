@@ -11,3 +11,6 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 *.tsbuildinfo
+
+# Local SeaweedFS data (weed server -dir=./.s3-data)
+.s3-data/
