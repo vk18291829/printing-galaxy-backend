@@ -17,6 +17,8 @@ import {
   IconReceipt,
   IconReportAnalytics,
   IconSettings,
+  IconSpeakerphone,
+  IconStars,
   IconSun,
   IconTags,
   IconTruckDelivery,
@@ -26,6 +28,7 @@ import {
 } from '@tabler/icons-react';
 import { Fragment, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { ThemeToggle } from '@/components/common/theme-toggle';
 import { useTheme } from '@/components/theme-provider';
 import { Badge } from '@/components/ui/badge';
@@ -59,7 +62,7 @@ interface NavItem {
   label: string;
   icon: Icon;
   adminOnly?: boolean;
-  badge?: 'orders' | 'institutions' | 'stock';
+  badge?: 'orders' | 'institutions' | 'stock' | 'reviews';
   end?: boolean;
 }
 
@@ -80,6 +83,13 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { to: '/products', label: 'Products & prices', icon: IconTags, adminOnly: true },
       { to: '/categories', label: 'Categories', icon: IconCategory, adminOnly: true },
+    ],
+  },
+  {
+    section: 'Marketing',
+    items: [
+      { to: '/banners', label: 'Banners & offers', icon: IconSpeakerphone, adminOnly: true },
+      { to: '/reviews', label: 'Ratings & reviews', icon: IconStars, badge: 'reviews' },
     ],
   },
   {
@@ -138,7 +148,12 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed?: boolean; onNavigate
   const isRider = role === 'delivery';
   const { data } = useDashboard(!isRider);
   const openOrders = Object.values(data?.openByStatus ?? {}).reduce((a, b) => a + (b ?? 0), 0);
-  const badges = { orders: openOrders, institutions: data?.pendingInstitutions ?? 0, stock: data?.lowStock?.length ?? 0 };
+  const badges = {
+    orders: openOrders,
+    institutions: data?.pendingInstitutions ?? 0,
+    stock: data?.lowStock?.length ?? 0,
+    reviews: data?.pendingReviews ?? 0,
+  };
 
   return (
     <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
@@ -252,7 +267,13 @@ function UserMenu({ collapsed }: { collapsed?: boolean }) {
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}>
+        <DropdownMenuItem variant="destructive" onSelect={() =>
+            void confirmAction({
+              title: 'Sign out of the admin panel?',
+              description: 'You will need your email and password to sign in again.',
+              confirmLabel: 'Sign out',
+            }).then((ok) => ok && logout.mutate(undefined, { onSettled: () => navigate('/login') }))
+          }>
           <IconLogout /> Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -358,7 +379,8 @@ export function AdminLayout() {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6">
+          <header className="sticky top-0 z-30 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+            <div className="page-container flex h-14 items-center gap-2">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
                 <IconMenu2 className="size-5" />
@@ -376,6 +398,7 @@ export function AdminLayout() {
                 </a>
               </Button>
               <ThemeToggle />
+            </div>
             </div>
           </header>
 

@@ -1,14 +1,14 @@
-import { IconArrowLeft, IconId, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconId, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageNav } from '@/components/common/page-nav';
 import { EmptyState, ErrorState, PageLoader } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CardPreview } from '@/features/institution/card-preview';
 import { useCardKinds, useDeleteTemplate, useTemplates } from '@/features/institution/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatDate } from '@/lib/format';
 
 export default function TemplatesPage() {
@@ -22,12 +22,10 @@ export default function TemplatesPage() {
 
   return (
     <div className="container-page py-10">
-      <Link to="/institution" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> {t('nav.dashboard')}
-      </Link>
+      <PageNav items={[{ label: t('nav.dashboard'), to: '/institution' }, { label: t('templates.title') }]} />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('templates.title')}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('templates.title')}</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">{t('templates.subtitle')}</p>
         </div>
         <Button variant="brand" asChild>
@@ -97,10 +95,16 @@ export default function TemplatesPage() {
                       size="icon"
                       aria-label={t('common.remove')}
                       disabled={remove.isPending}
-                      onClick={() => {
-                        if (!window.confirm(t('templates.deleteConfirm', { name: tpl.name }))) return;
-                        remove.mutate(tpl._id, { onError: (e) => toast.error(getErrorMessage(e)) });
-                      }}
+                      onClick={() =>
+                        void confirmAction({
+                          tone: 'danger',
+                          title: t('templates.deleteConfirm', { name: tpl.name }),
+                          description: t('confirm.templateDeleteDesc'),
+                          confirmLabel: t('confirm.deleteTemplate'),
+                          action: () => remove.mutateAsync(tpl._id),
+                          successTitle: t('confirm.templateDeleted'),
+                        })
+                      }
                     >
                       <IconTrash />
                     </Button>

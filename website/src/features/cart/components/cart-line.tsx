@@ -7,6 +7,16 @@ import { useLocalized } from '@/lib/i18n';
 import type { Quote } from '@/types/api';
 import type { CartItem } from '../cart-store';
 
+export function CartThumb({ item, className = 'size-14' }: { item: Pick<CartItem, 'image' | 'icon'>; className?: string }) {
+  return item.image ? (
+    <img src={item.image} alt="" className={`${className} shrink-0 rounded-lg border object-cover`} />
+  ) : (
+    <span className={`${className} grid shrink-0 place-items-center rounded-lg bg-primary/10 text-primary`}>
+      <DynamicIcon name={item.icon} className="size-7" stroke={1.6} />
+    </span>
+  );
+}
+
 export function CartLine({
   item,
   quote,
@@ -29,9 +39,7 @@ export function CartLine({
 
   return (
     <div className="flex gap-4 py-4">
-      <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-        <DynamicIcon name={item.icon} className="size-7" stroke={1.6} />
-      </span>
+      <CartThumb item={item} />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-3">
           <Link to={`/products/${item.slug}`} className="leading-snug font-semibold hover:text-primary">

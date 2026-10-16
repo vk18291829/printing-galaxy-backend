@@ -1,6 +1,6 @@
 import { IconPencil, IconUserPlus } from '@tabler/icons-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useSaveStaff, useStaff } from '@/features/management/api';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatDate } from '@/lib/format';
 import type { StaffMember } from '@/types/admin';
 
@@ -30,20 +29,26 @@ function StaffDialog({ member, onClose }: { member: StaffMember | 'new'; onClose
   const [password, setPassword] = useState('');
   const [isActive, setActive] = useState(isNew ? true : member.isActive);
 
-  const submit = () => {
+  const submit = async () => {
     const data: Record<string, unknown> = isNew
       ? { name, email, role, password, ...(phone ? { phone } : {}) }
       : { name, role, isActive, ...(password ? { password } : {}) };
-    save.mutate(
-      { id: isNew ? undefined : member._id, data },
-      {
-        onSuccess: () => {
-          toast.success(isNew ? 'Staff member added' : 'Saved');
-          onClose();
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    );
+    const disabling = !isNew && member.isActive && !isActive;
+    const ok = await confirmAction({
+      tone: disabling ? 'danger' : 'default',
+      title: isNew ? `Add ${name || 'this person'} as ${role}?` : `Save changes to ${member.name}?`,
+      description: isNew
+        ? `They can sign in to the admin panel with ${email || 'their email'} and the password you set.`
+        : disabling
+          ? 'Their account is switched off and they are signed out of the admin panel.'
+          : password
+            ? 'Their password is changed; they need the new one next time they sign in.'
+            : 'Their name and role are updated straight away.',
+      confirmLabel: isNew ? 'Add staff member' : 'Save changes',
+      action: () => save.mutateAsync({ id: isNew ? undefined : member._id, data }),
+      successTitle: isNew ? 'Staff member added' : 'Changes saved',
+    });
+    if (ok) onClose();
   };
 
   return (
@@ -101,7 +106,7 @@ function StaffDialog({ member, onClose }: { member: StaffMember | 'new'; onClose
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={save.isPending || !name || (isNew && (!email || !password))}>
+          <Button onClick={() => void submit()} disabled={save.isPending || !name || (isNew && (!email || !password))}>
             {save.isPending && <Spinner className="size-4 text-current" />} Save
           </Button>
         </DialogFooter>

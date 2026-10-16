@@ -1,5 +1,5 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useAuthStore } from '@/features/auth/auth-store';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useAudience, useAuthStore } from '@/features/auth/auth-store';
 import { api } from '@/lib/api-client';
 import type { Audience, Category, Product, Quote } from '@/types/api';
 
@@ -58,5 +58,29 @@ export function useQuote(input: QuoteInput | null) {
     enabled: Boolean(input?.productId),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
+  });
+}
+
+export type ProductSort = 'popular' | 'newest' | 'price-asc' | 'price-desc' | 'rating';
+export const PRODUCT_SORTS: ProductSort[] = ['popular', 'newest', 'price-asc', 'price-desc', 'rating'];
+
+interface BrowsePage {
+  items: Product[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+/** Paged product list for infinite scroll; prices are sorted by the visitor's own price book. */
+export function useBrowseProducts(params: { category?: string; q?: string; sort?: ProductSort; limit?: number }) {
+  const audience = useAudience();
+  return useInfiniteQuery({
+    queryKey: ['products-browse', audience, params],
+    queryFn: async ({ pageParam }) =>
+      (await api.get<BrowsePage>('/products/browse', { params: { ...params, audience, page: pageParam, limit: params.limit ?? 12 } })).data,
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.pages ? last.page + 1 : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
   });
 }

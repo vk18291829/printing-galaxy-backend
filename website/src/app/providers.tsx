@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, type ReactNode } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
+import { ConfirmHost } from '@/components/common/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { refreshSession } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -20,6 +21,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <SessionBootstrap />
         {children}
         <Toaster />
+        <ConfirmHost />
       </QueryClientProvider>
     </ThemeProvider>
   );

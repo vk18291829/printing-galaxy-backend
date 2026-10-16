@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { router } from '@/app/router';
 import { ThemeProvider } from '@/components/theme-provider';
+import { ConfirmHost } from '@/components/common/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { refreshSession } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
         <SessionBootstrap />
         <RouterProvider router={router} />
         <Toaster />
+        <ConfirmHost />
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,

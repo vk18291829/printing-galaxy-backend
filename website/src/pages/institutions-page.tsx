@@ -32,10 +32,10 @@ export default function InstitutionsPage() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-navy via-[#16213a] to-[#1b2f5e] text-white">
+      <section className="relative overflow-hidden bg-zinc-950 text-white">
         <div className="absolute inset-0 bg-grid opacity-15" />
         <div className="absolute -top-24 right-0 size-96 rounded-full bg-brand-blue/30 blur-3xl" />
-        <div className="container-page relative py-20 lg:py-28">
+        <div className="container-page relative py-16 lg:py-20">
           <div className="max-w-3xl space-y-6">
             <Badge className="border-white/15 bg-white/10 px-3 py-1 text-white">
               <IconBuildingCommunity /> {t('institutions.badge')}
@@ -44,14 +44,14 @@ export default function InstitutionsPage() {
             <p className="text-lg text-white/75">{t('institutions.subtitle')}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               {isInstitution ? (
-                <Button size="lg" className="bg-white text-brand-navy hover:bg-white/90" asChild>
+                <Button size="lg" className="bg-white text-zinc-950 hover:bg-white/90" asChild>
                   <Link to="/institution">
                     {t('nav.dashboard')} <IconArrowRight />
                   </Link>
                 </Button>
               ) : (
                 <>
-                  <Button size="lg" className="bg-white text-brand-navy hover:bg-white/90" asChild>
+                  <Button size="lg" className="bg-white text-zinc-950 hover:bg-white/90" asChild>
                     <Link to="/institutions/register">
                       {t('institutions.register')} <IconArrowRight />
                     </Link>
@@ -67,11 +67,11 @@ export default function InstitutionsPage() {
         <div className="h-1 cmyk-strip" />
       </section>
 
-      <section className="container-page py-20">
-        <h2 className="mb-10 text-center text-3xl font-bold">{t('institutions.benefitsTitle')}</h2>
+      <section className="container-page py-16">
+        <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight sm:text-3xl">{t('institutions.benefitsTitle')}</h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="rounded-2xl border bg-card p-6">
+            <div key={title} className="rounded-xl border bg-card p-6">
               <span className="mb-4 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
                 <Icon className="size-6" />
               </span>
@@ -82,12 +82,12 @@ export default function InstitutionsPage() {
         </div>
       </section>
 
-      <section className="bg-muted/40 py-20">
+      <section className="bg-muted/40 py-16">
         <div className="container-page">
-          <h2 className="mb-10 text-center text-3xl font-bold">{t('institutions.stepsTitle')}</h2>
+          <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight sm:text-3xl">{t('institutions.stepsTitle')}</h2>
           <ol className="mx-auto grid max-w-4xl gap-5 md:grid-cols-3">
             {steps.map((step, i) => (
-              <li key={step} className="flex gap-4 rounded-2xl border bg-card p-6 md:flex-col">
+              <li key={step} className="flex gap-4 rounded-xl border bg-card p-6 md:flex-col">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-bold text-white">
                   {i + 1}
                 </span>
@@ -98,9 +98,9 @@ export default function InstitutionsPage() {
         </div>
       </section>
 
-      <section className="container-page py-20">
+      <section className="container-page py-16">
         <div className="mb-8 flex items-end justify-between">
-          <h2 className="text-3xl font-bold">{t('institutions.productsTitle')}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('institutions.productsTitle')}</h2>
           <Button variant="ghost" asChild>
             <Link to="/pricing">
               {t('nav.pricing')} <IconArrowRight />

@@ -1,6 +1,6 @@
 import { IconAlertTriangle, IconBoxSeam, IconHistory, IconPencil, IconPlus, IconTransferIn } from '@tabler/icons-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import {
   useSaveMaterial,
   type MaterialInput,
 } from '@/features/operations/api';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatDate, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Material, MaterialUnit, MovementReason } from '@/types/admin';
@@ -54,17 +53,16 @@ function MaterialDialog({ material, onClose }: { material: Material | 'new'; onC
   const set = <K extends keyof MaterialInput>(key: K, value: MaterialInput[K]) => setForm((f) => ({ ...f, [key]: value }));
   const num = (v: string) => (v === '' ? undefined : Number(v));
 
-  const submit = () =>
-    save.mutate(
-      { id: isNew ? undefined : material._id, data: form },
-      {
-        onSuccess: () => {
-          toast.success(isNew ? 'Material added' : 'Saved');
-          onClose();
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    );
+  const submit = async () => {
+    const ok = await confirmAction({
+      title: isNew ? `Add “${form.name || 'this material'}” to stock?` : `Save changes to “${form.name}”?`,
+      description: isNew ? 'It starts tracking stock from the quantity you entered.' : 'Name, unit and alert levels are updated. Use “Record stock” to change the quantity.',
+      confirmLabel: isNew ? 'Add material' : 'Save changes',
+      action: () => save.mutateAsync({ id: isNew ? undefined : material._id, data: form }),
+      successTitle: isNew ? 'Material added' : 'Changes saved',
+    });
+    if (ok) onClose();
+  };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -126,14 +124,17 @@ function MaterialDialog({ material, onClose }: { material: Material | 'new'; onC
               variant="ghost"
               className="text-destructive"
               disabled={archive.isPending}
-              onClick={() =>
-                archive.mutate(material._id, {
-                  onSuccess: () => {
-                    toast.success('Material archived');
-                    onClose();
-                  },
-                })
-              }
+              onClick={async () => {
+                const ok = await confirmAction({
+                  tone: 'danger',
+                  title: `Archive “${material.name}”?`,
+                  description: 'It disappears from the stock list and low-stock alerts. Its stock history is kept.',
+                  confirmLabel: 'Archive material',
+                  action: () => archive.mutateAsync(material._id),
+                  successTitle: 'Material archived',
+                });
+                if (ok) onClose();
+              }}
             >
               Archive
             </Button>
@@ -144,7 +145,7 @@ function MaterialDialog({ material, onClose }: { material: Material | 'new'; onC
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={submit} disabled={save.isPending || !form.name.trim()}>
+            <Button onClick={() => void submit()} disabled={save.isPending || !form.name.trim()}>
               {save.isPending && <Spinner className="size-4 text-current" />} Save
             </Button>
           </div>
@@ -207,18 +208,17 @@ function MovementDialog({ material, onClose }: { material: Material; onClose: ()
           </Button>
           <Button
             disabled={record.isPending || quantity === '' || (reason !== 'correction' && qty === 0)}
-            onClick={() =>
-              record.mutate(
-                { id: material._id, quantity: reason === 'correction' ? qty : Math.abs(qty), reason, note: note || undefined },
-                {
-                  onSuccess: () => {
-                    toast.success('Stock updated');
-                    onClose();
-                  },
-                  onError: (e) => toast.error(getErrorMessage(e)),
-                },
-              )
-            }
+            onClick={async () => {
+              const amount = reason === 'correction' ? qty : Math.abs(qty);
+              const ok = await confirmAction({
+                title: `Record ${reason === 'correction' ? 'a correction' : reason} for “${material.name}”?`,
+                description: `Stock goes from ${formatNumber(material.quantity)} to ${formatNumber(after)} ${material.unit}. This is added to the stock history.`,
+                confirmLabel: 'Record stock',
+                action: () => record.mutateAsync({ id: material._id, quantity: amount, reason, note: note || undefined }),
+                successTitle: 'Stock updated',
+              });
+              if (ok) onClose();
+            }}
           >
             {record.isPending && <Spinner className="size-4 text-current" />} Save
           </Button>

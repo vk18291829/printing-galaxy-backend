@@ -10,6 +10,9 @@
     "start": "node --env-file-if-exists=.env dist/server.js",
     "worker": "node --env-file-if-exists=.env dist/worker.js",
     "seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
+    "seed:banners": "tsx --env-file-if-exists=.env scripts/seed-banners.ts",
+    "seed:catalog": "tsx --env-file-if-exists=.env scripts/seed-catalog.ts",
+    "sample-images": "tsx --env-file-if-exists=.env scripts/sample-images.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -1,12 +1,23 @@
-import { IconBuildingStore, IconCash, IconCreditCard, IconInfoCircle, IconTruckDelivery } from '@tabler/icons-react';
+import {
+  IconArrowLeft,
+  IconArrowRight,
+  IconBuildingStore,
+  IconCash,
+  IconCreditCard,
+  IconInfoCircle,
+  IconTruckDelivery,
+} from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageNav } from '@/components/common/page-nav';
 import { PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCartStore } from '@/features/cart/cart-store';
 import { CartLine } from '@/features/cart/components/cart-line';
+import { OrderReview } from '@/features/cart/components/order-review';
 import { useCartQuotes } from '@/features/cart/use-cart-quotes';
 import { useCreateOrder } from '@/features/orders/api';
 import { payWithRazorpay } from '@/features/orders/razorpay';
@@ -85,6 +97,13 @@ export default function CheckoutPage() {
   const [contactName, setContactName] = useState('');
   const [note, setNote] = useState('');
   const [paying, setPaying] = useState(false);
+  const [step, setStep] = useState<'details' | 'review'>('details');
+  const [confirmed, setConfirmed] = useState(false);
+  const goTo = (next: 'details' | 'review') => {
+    setStep(next);
+    setConfirmed(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   if (isLoading || !settings) return <PageLoader />;
   if (items.length === 0 && !createOrder.isSuccess) return <Navigate to="/cart" replace />;
@@ -100,9 +119,22 @@ export default function CheckoutPage() {
   const addressValid =
     method === 'pickup' || (address.line1.trim().length >= 3 && address.city.trim() && /^\d{6}$/.test(address.pincode));
   const nameValid = !needsName || contactName.trim().length > 0;
-  const canSubmit = !invalid && addressValid && nameValid && !createOrder.isPending && !paying;
+  const canReview = !invalid && addressValid && nameValid;
+  const canSubmit = canReview && confirmed && !createOrder.isPending && !paying;
+  const contact =
+    principal?.kind === 'institution'
+      ? { name: `${principal.institution.contactName} (${principal.institution.name})`, phone: principal.institution.phone, email: principal.institution.email }
+      : { name: principal?.user.name || contactName, phone: principal?.user.phone, email: principal?.user.email };
 
-  const placeOrder = () => {
+  const placeOrder = async () => {
+    const ok = await confirmAction({
+      title: t('confirm.placeOrderTitle'),
+      description: hasQuoteItems
+        ? t('confirm.placeOrderQuote')
+        : t('confirm.placeOrderDesc', { total: formatINR(total), count: items.length, method: method === 'delivery' ? t('checkout.delivery') : t('checkout.pickup') }),
+      confirmLabel: paymentMethod === 'online' ? t('checkout.placeAndPay') : t('checkout.placeOrder'),
+    });
+    if (!ok) return;
     createOrder.mutate(
       {
         items: items.map((i) => ({
@@ -147,8 +179,47 @@ export default function CheckoutPage() {
 
   return (
     <div className="container-page py-10">
-      <h1 className="mb-8 text-3xl font-bold">{t('checkout.title')}</h1>
-      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+      <PageNav items={[{ label: t('cart.title'), to: '/cart' }, { label: t('checkout.title') }]} />
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{step === 'review' ? t('checkout.reviewTitle') : t('checkout.title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{step === 'review' ? t('checkout.reviewHint') : t('checkout.detailsHint')}</p>
+        </div>
+        <ol className="flex items-center gap-2 text-sm" aria-label={t('checkout.title')}>
+          {(['details', 'review'] as const).map((s, i) => (
+            <li key={s} className="flex items-center gap-2">
+              {i > 0 && <span className="h-px w-6 bg-border" />}
+              <button
+                type="button"
+                disabled={s === 'review' && !canReview}
+                onClick={() => goTo(s)}
+                aria-current={step === s ? 'step' : undefined}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-medium transition-colors disabled:opacity-50',
+                  step === s ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <span className={cn('grid size-5 place-items-center rounded-full text-xs', step === s ? 'bg-primary text-primary-foreground' : 'bg-muted')}>{i + 1}</span>
+                {t(`checkout.steps.${s}`)}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {step === 'review' ? (
+          <OrderReview
+            lines={lines}
+            method={method}
+            address={address}
+            payment={paymentMethod}
+            note={note}
+            contact={contact}
+            settings={settings}
+            onEditItems={() => navigate('/cart')}
+            onEditDetails={() => goTo('details')}
+          />
+        ) : (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -249,8 +320,9 @@ export default function CheckoutPage() {
             </CardContent>
           </Card>
         </div>
+        )}
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="lg:sticky lg:top-32 lg:self-start">
           <Card>
             <CardHeader>
               <CardTitle>{t('cart.summary')}</CardTitle>
@@ -289,14 +361,36 @@ export default function CheckoutPage() {
                   <dd className="text-2xl font-bold tabular-nums">{formatINR(total)}</dd>
                 </div>
               </dl>
-              <Button size="lg" variant="brand" className="w-full" disabled={!canSubmit} onClick={placeOrder}>
-                {(createOrder.isPending || paying) && <Spinner className="size-4 text-current" />}
-                {createOrder.isPending
-                  ? t('checkout.placing')
-                  : paymentMethod === 'online'
-                    ? t('checkout.placeAndPay', { amount: formatINR(total) })
-                    : t('checkout.placeOrder')}
-              </Button>
+              {step === 'details' ? (
+                <>
+                  <Button size="lg" variant="brand" className="w-full" disabled={!canReview} onClick={() => goTo('review')}>
+                    {t('checkout.reviewOrder')} <IconArrowRight />
+                  </Button>
+                  {!canReview && (
+                    <p className="text-center text-sm text-destructive">
+                      {invalid ? t('cart.invalid') : !nameValid ? t('checkout.needName') : t('checkout.needAddress')}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <label htmlFor="confirm" className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-3 text-sm">
+                    <Checkbox id="confirm" checked={confirmed} onCheckedChange={(v) => setConfirmed(v === true)} className="mt-0.5" />
+                    {t('checkout.confirmCheck')}
+                  </label>
+                  <Button size="lg" variant="brand" className="w-full" disabled={!canSubmit} onClick={() => void placeOrder()}>
+                    {(createOrder.isPending || paying) && <Spinner className="size-4 text-current" />}
+                    {createOrder.isPending
+                      ? t('checkout.placing')
+                      : paymentMethod === 'online'
+                        ? t('checkout.placeAndPay', { amount: formatINR(total) })
+                        : t('checkout.placeOrder')}
+                  </Button>
+                  <Button variant="ghost" className="w-full" onClick={() => goTo('details')}>
+                    <IconArrowLeft /> {t('checkout.backToDetails')}
+                  </Button>
+                </>
+              )}
               <p className="text-center text-xs text-muted-foreground">{t('cart.estimatedNote')}</p>
             </CardContent>
           </Card>

@@ -8,7 +8,7 @@ import { useDocumentTitle } from '@/hooks/use-document-title';
 
 function ContactCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <div className="flex gap-4 rounded-2xl border bg-card p-6">
+    <div className="flex gap-4 rounded-xl border bg-card p-6">
       <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-6">{icon}</span>
       <div className="space-y-1">
         <p className="font-semibold">{title}</p>
@@ -26,7 +26,7 @@ export default function ContactPage() {
   const { shop } = data;
 
   return (
-    <div className="container-page max-w-4xl py-12">
+    <div className="container-page py-12">
       <div className="mb-10 text-center">
         <h1 className="text-4xl font-bold">{t('contact.title')}</h1>
         <p className="mt-3 text-muted-foreground">{t('contact.subtitle')}</p>

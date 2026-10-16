@@ -5,7 +5,7 @@ function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
-      className={cn('flex flex-col gap-5 rounded-2xl border bg-card py-5 text-card-foreground shadow-xs', className)}
+      className={cn('flex flex-col gap-4 rounded-xl border bg-card py-4 text-card-foreground shadow-xs', className)}
       {...props}
     />
   );
@@ -16,7 +16,7 @@ function CardHeader({ className, ...props }: ComponentProps<'div'>) {
     <div
       data-slot="card-header"
       className={cn(
-        '@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-5 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-5',
+        '@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] sm:px-5 [.border-b]:pb-4',
         className,
       )}
       {...props}
@@ -25,7 +25,7 @@ function CardHeader({ className, ...props }: ComponentProps<'div'>) {
 }
 
 function CardTitle({ className, ...props }: ComponentProps<'div'>) {
-  return <div data-slot="card-title" className={cn('leading-tight font-semibold', className)} {...props} />;
+  return <div data-slot="card-title" className={cn('text-[15px] leading-tight font-semibold', className)} {...props} />;
 }
 
 function CardDescription({ className, ...props }: ComponentProps<'div'>) {
@@ -43,11 +43,11 @@ function CardAction({ className, ...props }: ComponentProps<'div'>) {
 }
 
 function CardContent({ className, ...props }: ComponentProps<'div'>) {
-  return <div data-slot="card-content" className={cn('px-5', className)} {...props} />;
+  return <div data-slot="card-content" className={cn('px-4 sm:px-5', className)} {...props} />;
 }
 
 function CardFooter({ className, ...props }: ComponentProps<'div'>) {
-  return <div data-slot="card-footer" className={cn('flex items-center px-5 [.border-t]:pt-5', className)} {...props} />;
+  return <div data-slot="card-footer" className={cn('flex items-center px-4 sm:px-5 [.border-t]:pt-4', className)} {...props} />;
 }
 
 export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };

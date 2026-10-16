@@ -84,7 +84,7 @@ export function OfflineBanner() {
 
   if (online) return null;
   return (
-    <div role="status" className="sticky top-0 z-50 bg-brand-navy px-4 py-2.5 text-sm text-white">
+    <div role="status" className="sticky top-0 z-50 bg-zinc-950 px-4 py-2.5 text-sm text-white">
       <div className="container-page flex items-start gap-2 px-0">
         <IconWifiOff className="mt-0.5 size-4 shrink-0" />
         <p>

@@ -10,7 +10,9 @@ import {
 } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, useNavigate } from 'react-router';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { LanguageSwitcher } from '@/components/common/language-switcher';
 import { Logo } from '@/components/common/logo';
 import { ThemeToggle } from '@/components/common/theme-toggle';
@@ -27,6 +29,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useLogout } from '@/features/auth/api';
 import { useAuthStore, useDisplayName } from '@/features/auth/auth-store';
 import { useCartCount } from '@/features/cart/cart-store';
+import { useCategories } from '@/features/catalog/api';
+import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -44,7 +48,7 @@ function CartButton() {
       <Link to="/cart" aria-label={t('nav.cart')}>
         <IconShoppingBag className="size-[19px]" />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full bg-brand-magenta px-1 text-[10px] leading-[18px] font-bold text-white">
+          <span className="bg-brand-magenta absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-white">
             {count}
           </span>
         )}
@@ -62,9 +66,16 @@ function AccountMenu() {
 
   if (!principal) {
     return (
-      <Button size="sm" className="h-9 px-4" asChild>
-        <Link to="/login">{t('common.signIn')}</Link>
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="sm" className="hidden h-9 px-3 xl:inline-flex" asChild>
+          <Link to="/institutions/login">
+            <IconBuildingCommunity /> {t('nav.institutionLogin')}
+          </Link>
+        </Button>
+        <Button size="sm" className="h-9 px-4" asChild>
+          <Link to="/login">{t('common.signIn')}</Link>
+        </Button>
+      </div>
     );
   }
 
@@ -73,11 +84,15 @@ function AccountMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="size-9" aria-label={t('nav.account')}>
-          {isInstitution ? <IconBuildingCommunity className="size-5" /> : <IconUserCircle className="size-5" />}
+          {isInstitution ? (
+            <IconBuildingCommunity className="size-5" />
+          ) : (
+            <IconUserCircle className="size-5" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="truncate text-sm text-foreground">{name}</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-foreground truncate text-sm">{name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isInstitution && (
           <DropdownMenuItem onSelect={() => navigate('/institution')}>
@@ -91,7 +106,16 @@ function AccountMenu() {
           <IconUser /> {t('nav.profile')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={() => logout.mutate(undefined, { onSettled: () => navigate('/') })}>
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() =>
+            void confirmAction({
+              title: t('confirm.signOutTitle'),
+              description: t('confirm.signOutDesc'),
+              confirmLabel: t('common.signOut'),
+            }).then((ok) => ok && logout.mutate(undefined, { onSettled: () => navigate('/') }))
+          }
+        >
           <IconLogout /> {t('common.signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -99,13 +123,46 @@ function AccountMenu() {
   );
 }
 
-export function SiteHeader() {
+/** Second header row on tablets and up: every category, one tap away (like a shop's aisle signs). */
+function CategoryBar() {
+  const l = useLocalized();
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const principal = useAuthStore((s) => s.principal);
+  const { pathname } = useLocation();
+  const { data } = useCategories();
+  // The products page has its own category filter; showing both would duplicate it.
+  if (!data?.length || pathname === '/products') return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+    <div className="border-border/60 hidden border-t md:block">
+      <div className="container-page">
+        <nav
+          aria-label={t('nav.categories')}
+          className="-mx-2.5 flex h-11 scrollbar-none items-center gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,#000_92%,transparent)]"
+        >
+          {data.map((c) => (
+            <Link
+              key={c._id}
+              to={`/products?category=${c.slug}`}
+              className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium transition-colors"
+            >
+              <DynamicIcon name={c.icon} className="size-4" /> {l(c.name)}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+export function SiteHeader() {
+  const { t } = useTranslation();
+  const l = useLocalized();
+  const [open, setOpen] = useState(false);
+  const principal = useAuthStore((s) => s.principal);
+  const { data: categories } = useCategories();
+
+  return (
+    <header className="border-border/60 bg-background/80 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-40 border-b backdrop-blur-xl">
       <div className="container-page flex h-16 items-center gap-2 sm:gap-4">
         <Logo />
 
@@ -116,7 +173,7 @@ export function SiteHeader() {
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                  'text-muted-foreground hover:bg-accent hover:text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isActive && 'text-foreground',
                 )
               }
@@ -139,7 +196,12 @@ export function SiteHeader() {
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-9 lg:hidden" aria-label={t('nav.menu')}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9 lg:hidden"
+                aria-label={t('nav.menu')}
+              >
                 <IconMenu2 className="size-5" />
               </Button>
             </SheetTrigger>
@@ -148,7 +210,7 @@ export function SiteHeader() {
                 <SheetTitle className="text-left">{t('nav.menu')}</SheetTitle>
               </SheetHeader>
               <div className="flex items-center justify-between border-b px-4 py-2 min-[380px]:hidden">
-                <span className="text-sm text-muted-foreground">{t('nav.theme')}</span>
+                <span className="text-muted-foreground text-sm">{t('nav.theme')}</span>
                 <ThemeToggle />
               </div>
               <nav className="flex flex-col p-3" onClick={() => setOpen(false)}>
@@ -158,24 +220,36 @@ export function SiteHeader() {
                     to={item.to}
                     end
                     className={({ isActive }) =>
-                      cn('rounded-lg px-3 py-3 text-base font-medium hover:bg-accent', isActive && 'bg-accent text-primary')
+                      cn(
+                        'hover:bg-accent rounded-lg px-3 py-3 text-base font-medium',
+                        isActive && 'bg-accent text-primary',
+                      )
                     }
                   >
                     {t(item.key)}
                   </NavLink>
                 ))}
-                <div className="my-3 h-px bg-border" />
+                <div className="bg-border my-3 h-px" />
                 {principal ? (
                   <>
                     {principal.kind === 'institution' && (
-                      <NavLink to="/institution" className="rounded-lg px-3 py-3 font-medium hover:bg-accent">
+                      <NavLink
+                        to="/institution"
+                        className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
+                      >
                         {t('nav.dashboard')}
                       </NavLink>
                     )}
-                    <NavLink to="/account/orders" className="rounded-lg px-3 py-3 font-medium hover:bg-accent">
+                    <NavLink
+                      to="/account/orders"
+                      className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
+                    >
                       {t('nav.myOrders')}
                     </NavLink>
-                    <NavLink to="/account/profile" className="rounded-lg px-3 py-3 font-medium hover:bg-accent">
+                    <NavLink
+                      to="/account/profile"
+                      className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
+                    >
                       {t('nav.profile')}
                     </NavLink>
                   </>
@@ -187,13 +261,34 @@ export function SiteHeader() {
                     <Button variant="outline" asChild>
                       <Link to="/institutions/login">{t('nav.institutionLogin')}</Link>
                     </Button>
+                    <Button variant="ghost" asChild>
+                      <Link to="/institutions/register">{t('nav.institutionRegister')}</Link>
+                    </Button>
                   </div>
+                )}
+                {categories && categories.length > 0 && (
+                  <>
+                    <div className="bg-border my-3 h-px" />
+                    <p className="text-muted-foreground px-3 pb-1 text-xs font-medium">
+                      {t('nav.categories')}
+                    </p>
+                    {categories.map((c) => (
+                      <Link
+                        key={c._id}
+                        to={`/products?category=${c.slug}`}
+                        className="hover:bg-accent flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium"
+                      >
+                        <DynamicIcon name={c.icon} className="text-primary size-4" /> {l(c.name)}
+                      </Link>
+                    ))}
+                  </>
                 )}
               </nav>
             </SheetContent>
           </Sheet>
         </div>
       </div>
+      <CategoryBar />
     </header>
   );
 }

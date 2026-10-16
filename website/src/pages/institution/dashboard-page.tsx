@@ -66,7 +66,7 @@ export default function InstitutionDashboardPage() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-primary">{t(`auth.types.${institution.type}`)}</p>
-          <h1 className="text-3xl font-bold">{t('institutionDashboard.welcome', { name: institution.name })}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('institutionDashboard.welcome', { name: institution.name })}</h1>
         </div>
         <Button variant="brand" asChild>
           <Link to="/products?category=school-works">

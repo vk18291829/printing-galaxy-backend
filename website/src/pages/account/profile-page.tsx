@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useUpdateAccount } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useDocumentTitle } from '@/hooks/use-document-title';
-import { getErrorMessage } from '@/lib/api-client';
 import type { Address, Institution, User } from '@/types/api';
 
 const EMPTY: Address = { line1: '', line2: '', city: '', state: '', pincode: '' };
@@ -55,20 +54,19 @@ function UserProfile({ user }: { user: User }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const hasAddress = address.line1.trim() && address.city.trim() && /^\d{6}$/.test(address.pincode);
-    update.mutate(
-      { name: name.trim(), email: email.trim(), language, addresses: hasAddress ? [address] : [] },
-      {
-        onSuccess: () => {
-          toast.success(t('account.saved'));
-          if (language !== i18n.language) void i18n.changeLanguage(language);
-        },
-        onError: (err) => toast.error(getErrorMessage(err)),
-      },
-    );
+    void confirmAction({
+      title: t('confirm.profileTitle'),
+      description: t('confirm.profileDesc'),
+      confirmLabel: t('confirm.saveChanges'),
+      action: () => update.mutateAsync({ name: name.trim(), email: email.trim(), language, addresses: hasAddress ? [address] : [] }),
+      successTitle: t('account.saved'),
+    }).then((ok) => {
+      if (ok && language !== i18n.language) void i18n.changeLanguage(language);
+    });
   };
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>{t('account.profile')}</CardTitle>
@@ -109,7 +107,7 @@ function UserProfile({ user }: { user: User }) {
           <AddressFields value={address} onChange={setAddress} />
         </CardContent>
       </Card>
-      <Button type="submit" disabled={update.isPending}>
+      <Button type="submit" className="w-fit lg:col-span-2" disabled={update.isPending}>
         {update.isPending && <Spinner className="size-4 text-current" />} {t('common.save')}
       </Button>
     </form>
@@ -126,14 +124,17 @@ function InstitutionProfile({ institution }: { institution: Institution }) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    update.mutate(
-      { contactName, designation, phone, address },
-      { onSuccess: () => toast.success(t('account.saved')), onError: (err) => toast.error(getErrorMessage(err)) },
-    );
+    void confirmAction({
+      title: t('confirm.profileTitle'),
+      description: t('confirm.profileDesc'),
+      confirmLabel: t('confirm.saveChanges'),
+      action: () => update.mutateAsync({ contactName, designation, phone, address }),
+      successTitle: t('account.saved'),
+    });
   };
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>{institution.name}</CardTitle>
@@ -168,7 +169,7 @@ function InstitutionProfile({ institution }: { institution: Institution }) {
           <AddressFields value={address} onChange={setAddress} />
         </CardContent>
       </Card>
-      <Button type="submit" disabled={update.isPending}>
+      <Button type="submit" className="w-fit lg:col-span-2" disabled={update.isPending}>
         {update.isPending && <Spinner className="size-4 text-current" />} {t('common.save')}
       </Button>
     </form>
@@ -181,7 +182,8 @@ export default function ProfilePage() {
   const principal = useAuthStore((s) => s.principal);
   if (!principal) return null;
   return (
-    <div className="container-page max-w-3xl py-10">
+    <div className="container-page py-10">
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight sm:text-3xl">{t('account.profile')}</h1>
       {principal.kind === 'user' ? (
         <UserProfile user={principal.user} />
       ) : (

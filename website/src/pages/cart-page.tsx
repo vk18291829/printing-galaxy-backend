@@ -21,7 +21,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="container-page max-w-2xl py-16">
+      <div className="container-page py-16">
         <EmptyState
           icon={<IconShoppingBag />}
           title={t('cart.empty')}
@@ -38,7 +38,7 @@ export default function CartPage() {
 
   return (
     <div className="container-page py-10">
-      <h1 className="mb-8 text-3xl font-bold">{t('cart.title')}</h1>
+      <h1 className="mb-8 text-2xl font-semibold tracking-tight sm:text-3xl">{t('cart.title')}</h1>
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <Card className="py-2">
           <CardContent className="divide-y">
@@ -48,7 +48,7 @@ export default function CartPage() {
           </CardContent>
         </Card>
 
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{t('cart.summary')}</CardTitle>

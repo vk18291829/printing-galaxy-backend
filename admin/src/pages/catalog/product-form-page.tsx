@@ -2,8 +2,8 @@ import { IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
 import { useEffect, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
-import { toast } from 'sonner';
 import { DynamicIcon, ICON_NAMES } from '@/components/common/dynamic-icon';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -21,10 +21,10 @@ import {
   type AdminProduct,
   type ProductInput,
 } from '@/features/catalog/api';
+import { ImageListEditor } from '@/features/catalog/components/image-list-editor';
 import { OptionsEditor } from '@/features/catalog/components/options-editor';
 import { PriceBookEditor } from '@/features/catalog/components/price-book-editor';
 import { FILE_TYPES, type ProductFormValues } from '@/features/catalog/components/product-form-types';
-import { getErrorMessage } from '@/lib/api-client';
 import { en } from '@/lib/l10n';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +38,7 @@ function toForm(p?: AdminProduct & { category: string | { _id: string } }): Prod
     shortDescription: loc(p?.shortDescription),
     description: loc(p?.description),
     icon: p?.icon ?? 'printer',
+    images: p?.images ?? [],
     unit: p?.unit ?? 'piece',
     workflow: p?.workflow ?? 'standard',
     specsText: p?.specs.join(', ') ?? '',
@@ -77,7 +78,6 @@ function toInput(v: ProductFormValues): ProductInput {
     ...v,
     specs: split(v.specsText),
     tags: split(v.tagsText),
-    images: [],
     options: v.options.map((o) => ({
       ...o,
       values: o.values.map((val) => ({ ...val, minCopies: val.minCopies ?? undefined })),
@@ -121,18 +121,16 @@ export default function ProductFormPage() {
   if (!isNew && isLoading) return <PageLoader />;
   if (!isNew && error) return <ErrorState error={error} />;
 
-  const onSubmit = handleSubmit((values) =>
-    save.mutate(
-      { id: isNew ? undefined : id, data: toInput(values) },
-      {
-        onSuccess: () => {
-          toast.success('Product saved');
-          navigate('/products');
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    ),
-  );
+  const onSubmit = handleSubmit(async (values) => {
+    const ok = await confirmAction({
+      title: isNew ? `Create “${values.name.en}”?` : `Save changes to “${values.name.en}”?`,
+      description: values.isActive ? 'New prices and details apply to the website straight away. Orders already placed keep their prices.' : 'The product stays hidden from the website until you switch it on.',
+      confirmLabel: isNew ? 'Create product' : 'Save changes',
+      action: () => save.mutateAsync({ id: isNew ? undefined : id, data: toInput(values) }),
+      successTitle: isNew ? 'Product created' : 'Product updated',
+    });
+    if (ok) navigate('/products');
+  });
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 pb-20">
@@ -145,15 +143,16 @@ export default function ProductFormPage() {
               variant="ghost"
               className="text-destructive"
               disabled={remove.isPending}
-              onClick={() => {
-                if (!confirm('Delete this product? Products with orders can only be hidden.')) return;
-                remove.mutate(id!, {
-                  onSuccess: () => {
-                    toast.success('Product deleted');
-                    navigate('/products');
-                  },
-                  onError: (e) => toast.error(getErrorMessage(e)),
+              onClick={async () => {
+                const ok = await confirmAction({
+                  tone: 'danger',
+                  title: `Delete “${en(product?.name)}”?`,
+                  description: 'This cannot be undone. Products that already have orders can only be hidden, not deleted.',
+                  confirmLabel: 'Delete product',
+                  action: () => remove.mutateAsync(id!),
+                  successTitle: 'Product deleted',
                 });
+                if (ok) navigate('/products');
               }}
             >
               <IconTrash /> Delete
@@ -222,6 +221,20 @@ export default function ProductFormPage() {
               <Field label="विस्तृत विवरण (Hindi)">
                 <Textarea {...register('description.hi')} />
               </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Images</CardTitle>
+              <CardDescription>Photos of the finished product or samples. Shown on the website card and product page.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Controller
+                control={control}
+                name="images"
+                render={({ field }) => <ImageListEditor value={field.value} onChange={field.onChange} max={5} />}
+              />
             </CardContent>
           </Card>
 

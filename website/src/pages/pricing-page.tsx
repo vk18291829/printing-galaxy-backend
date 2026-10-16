@@ -65,7 +65,7 @@ function PriceBookView({ audience }: { audience: Audience }) {
           );
           if (items.length === 0) return null;
           return (
-            <section key={category._id} className="overflow-hidden rounded-2xl border bg-card">
+            <section key={category._id} className="overflow-hidden rounded-xl border bg-card">
               <header className="flex items-center gap-3 border-b bg-muted/40 px-5 py-4">
                 <span className="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary">
                   <DynamicIcon name={category.icon} className="size-5" />
@@ -145,7 +145,7 @@ export default function PricingPage() {
         </TabsContent>
 
         <TabsContent value="institution" className="space-y-8">
-          <div className="grid gap-6 rounded-3xl bg-gradient-to-br from-brand-navy to-[#1b2f5e] p-7 text-white md:grid-cols-[1fr_auto] md:items-center">
+          <div className="grid gap-6 rounded-2xl bg-zinc-950 p-7 ring-1 ring-white/10 text-white md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <h2 className="text-xl font-bold">{t('pricing.compareTitle')}</h2>
               <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
@@ -158,7 +158,7 @@ export default function PricingPage() {
               <p className="mt-4 text-xs text-white/60">{t('pricing.approvedOnly')}</p>
             </div>
             {audience !== 'institution' && (
-              <Button size="lg" className="bg-white text-brand-navy hover:bg-white/90" asChild>
+              <Button size="lg" className="bg-white text-zinc-950 hover:bg-white/90" asChild>
                 <Link to="/institutions/register">
                   {t('pricing.registerCta')} <IconArrowRight />
                 </Link>

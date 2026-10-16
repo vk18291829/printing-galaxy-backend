@@ -2,6 +2,7 @@ import { IconCheck, IconEye, IconPencil } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,13 +21,13 @@ export function ProofReview({ orderId, item }: { orderId: string; item: OrderIte
   const fileId = typeof proof.file === 'string' ? proof.file : proof.file._id;
 
   const submit = (decision: 'approved' | 'changes_requested') =>
-    respond.mutate(
-      { itemId: item._id, decision, comment: comment.trim() || undefined },
-      {
-        onSuccess: () => toast.success(decision === 'approved' ? t('orders.approved') : t('orders.changesSent')),
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    );
+    void confirmAction({
+      title: decision === 'approved' ? t('confirm.proofApproveTitle') : t('confirm.proofChangesTitle'),
+      description: decision === 'approved' ? t('confirm.proofApproveDesc') : t('confirm.proofChangesDesc'),
+      confirmLabel: decision === 'approved' ? t('confirm.approve') : t('confirm.sendChanges'),
+      action: () => respond.mutateAsync({ itemId: item._id, decision, comment: comment.trim() || undefined }),
+      successTitle: decision === 'approved' ? t('orders.approved') : t('orders.changesSent'),
+    });
 
   return (
     <div className="space-y-3 rounded-xl border border-warning/50 bg-warning/8 p-4">

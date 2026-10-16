@@ -184,7 +184,7 @@ export function DesignStudio({
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
+    <div className="grid gap-6 *:min-w-0 xl:grid-cols-[1fr_1.1fr]">
       <div className="space-y-4">
         {spec.photo === 'required' && (
           <div className="space-y-1.5">

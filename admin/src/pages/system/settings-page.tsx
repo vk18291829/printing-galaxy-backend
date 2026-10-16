@@ -1,7 +1,7 @@
 import { IconDeviceFloppy } from '@tabler/icons-react';
 import { useEffect, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useSaveSettings, useSettings } from '@/features/management/api';
-import { getErrorMessage } from '@/lib/api-client';
 import type { Settings } from '@/types/admin';
 
 type FormValues = Omit<Settings, '_id'>;
@@ -53,16 +52,20 @@ export default function SettingsPage() {
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
   const onSubmit = handleSubmit((values) =>
-    save.mutate(
-      {
-        shop: values.shop,
-        tax: values.tax,
-        delivery: values.delivery,
-        payments: values.payments,
-        sensitiveRetentionDays: values.sensitiveRetentionDays,
-      },
-      { onSuccess: () => toast.success('Settings saved'), onError: (e) => toast.error(getErrorMessage(e)) },
-    ),
+    confirmAction({
+      title: 'Save shop settings?',
+      description: 'Shop details, tax, delivery and payment options change on the website and on new invoices straight away. Existing orders keep their totals.',
+      confirmLabel: 'Save settings',
+      action: () =>
+        save.mutateAsync({
+          shop: values.shop,
+          tax: values.tax,
+          delivery: values.delivery,
+          payments: values.payments,
+          sensitiveRetentionDays: values.sensitiveRetentionDays,
+        }),
+      successTitle: 'Settings saved',
+    }),
   );
 
   return (

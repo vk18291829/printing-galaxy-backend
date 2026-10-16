@@ -92,6 +92,11 @@ const productSchema = new Schema(
     leadTimeDays: { type: Number, default: 1, min: 0 },
     tags: { type: [String], default: [] },
     isFeatured: { type: Boolean, default: false, index: true },
+    /** Approved-review average, kept in step by the reviews module. */
+    rating: {
+      average: { type: Number, default: 0 },
+      count: { type: Number, default: 0 },
+    },
     isActive: { type: Boolean, default: true, index: true },
     sortOrder: { type: Number, default: 0 },
   },

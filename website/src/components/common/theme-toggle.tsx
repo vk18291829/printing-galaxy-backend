@@ -1,41 +1,19 @@
-import { IconDeviceDesktop, IconMoon, IconSun } from '@tabler/icons-react';
+import { IconMoon, IconSun } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useTheme, type Theme } from '@/components/theme-provider';
+import { useTheme } from '@/components/theme-provider';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
+/** One click switches between light and dark. */
 export function ThemeToggle() {
   const { t } = useTranslation();
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
+  const label = dark ? t('nav.switchToLight') : t('nav.switchToDark');
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-9" aria-label={t('nav.theme')}>
-          {resolvedTheme === 'dark' ? <IconMoon className="size-[18px]" /> : <IconSun className="size-[18px]" />}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>{t('nav.theme')}</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>
-          <DropdownMenuRadioItem value="light">
-            <IconSun /> {t('nav.light')}
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">
-            <IconMoon /> {t('nav.dark')}
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system">
-            <IconDeviceDesktop /> {t('nav.system')}
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button variant="ghost" size="icon" className="relative size-9" onClick={() => setTheme(dark ? 'light' : 'dark')} aria-label={label} title={label}>
+      <IconSun className="size-4.5 scale-100 rotate-0 transition-all duration-300 dark:scale-0 dark:-rotate-90" />
+      <IconMoon className="absolute size-4.5 scale-0 rotate-90 transition-all duration-300 dark:scale-100 dark:rotate-0" />
+    </Button>
   );
 }

@@ -8,7 +8,7 @@ import { validate } from '@/middleware/validate';
 import { resolvePricingContext } from '@/modules/institutions/institution.service';
 import { quoteProduct } from '@/modules/pricing/pricing.service';
 import { CategoryModel } from './category.model';
-import { productListQuery } from './catalog.schema';
+import { productBrowseQuery, productListQuery } from './catalog.schema';
 import { ProductModel, type Product } from './product.model';
 
 export const catalogRouter = Router();
@@ -29,7 +29,8 @@ catalogRouter.get('/products', validate({ query: productListQuery }), async (_re
 
   if (category) {
     const cat = await CategoryModel.findOne({ slug: category, isActive: true }).select('_id').lean();
-    if (!cat) throw ApiError.notFound('Category');
+    // Unknown or hidden category (old link, typo): an empty list, not an error page.
+    if (!cat) return void res.json([]);
     filter.category = cat._id;
   }
   if (audience) filter[`pricing.${audience}.enabled`] = true;
@@ -44,6 +45,61 @@ catalogRouter.get('/products', validate({ query: productListQuery }), async (_re
     .populate('category', 'name slug icon')
     .lean();
   res.json(products);
+});
+
+const BROWSE_SORT: Record<z.infer<typeof productBrowseQuery>['sort'], Record<string, 1 | -1>> = {
+  popular: { isFeatured: -1, 'rating.count': -1, sortOrder: 1, _id: 1 },
+  newest: { createdAt: -1, _id: 1 },
+  'price-asc': { minPrice: 1, _id: 1 },
+  'price-desc': { minPrice: -1, _id: 1 },
+  rating: { 'rating.average': -1, 'rating.count': -1, _id: 1 },
+};
+
+/** Paged, sortable product list for the catalogue page's infinite scroll. */
+catalogRouter.get('/products/browse', validate({ query: productBrowseQuery }), async (_req, res) => {
+  const { category, audience, q, sort, page, limit } = res.locals.query as z.infer<typeof productBrowseQuery>;
+  const match: FilterQuery<Product> = { isActive: true };
+
+  if (category) {
+    const cat = await CategoryModel.findOne({ slug: category, isActive: true }).select('_id').lean();
+    if (!cat) {
+      res.json({ items: [], total: 0, page, pages: 0 });
+      return;
+    }
+    match.category = cat._id;
+  }
+  if (q) {
+    const rx = new RegExp(escapeRegex(q), 'i');
+    match.$or = [{ 'name.en': rx }, { 'name.hi': rx }, { tags: rx }, { 'shortDescription.en': rx }];
+  }
+
+  // Sort by the cheapest tier of the visitor's price book; products without one sort last.
+  const priceField = `$pricing.${audience}.tiers.unitPrice`;
+  const [result] = await ProductModel.aggregate<{ items: Product[]; total: { n: number }[] }>([
+    { $match: match },
+    {
+      $addFields: {
+        minPrice: {
+          $ifNull: [{ $min: priceField }, { $ifNull: [{ $min: '$pricing.retail.tiers.unitPrice' }, sort === 'price-desc' ? -1 : 1e12] }],
+        },
+      },
+    },
+    { $sort: BROWSE_SORT[sort] },
+    {
+      $facet: {
+        items: [
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          { $lookup: { from: 'categories', localField: 'category', foreignField: '_id', as: 'category', pipeline: [{ $project: { name: 1, slug: 1, icon: 1 } }] } },
+          { $unwind: '$category' },
+          { $project: { minPrice: 0, __v: 0 } },
+        ],
+        total: [{ $count: 'n' }],
+      },
+    },
+  ]);
+  const total = result?.total[0]?.n ?? 0;
+  res.json({ items: result?.items ?? [], total, page, pages: Math.ceil(total / limit) });
 });
 
 catalogRouter.get('/products/:slug', async (req, res) => {

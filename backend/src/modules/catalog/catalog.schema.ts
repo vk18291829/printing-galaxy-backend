@@ -60,7 +60,7 @@ export const productInputSchema = z.object({
   category: objectId,
   shortDescription: localizedOptional.optional(),
   description: localizedOptional.optional(),
-  images: z.array(z.string().url()).max(10).default([]),
+  images: z.array(z.string().url()).max(5, 'Up to 5 images per product').default([]),
   icon: z.string().trim().max(60).optional(),
   unit: z.enum(PRODUCT_UNITS),
   workflow: z.enum(PRODUCT_WORKFLOWS),
@@ -86,4 +86,15 @@ export const productListQuery = z.object({
     .optional()
     .transform((v) => (v === undefined ? undefined : v === 'true')),
   q: z.string().trim().max(100).optional(),
+});
+
+export const PRODUCT_SORTS = ['popular', 'newest', 'price-asc', 'price-desc', 'rating'] as const;
+
+export const productBrowseQuery = z.object({
+  category: z.string().trim().optional(),
+  audience: z.enum(AUDIENCES).default('retail'),
+  q: z.string().trim().max(100).optional(),
+  sort: z.enum(PRODUCT_SORTS).default('popular'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(48).default(12),
 });

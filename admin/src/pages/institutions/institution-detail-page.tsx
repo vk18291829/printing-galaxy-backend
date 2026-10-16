@@ -1,6 +1,7 @@
 import { IconBan, IconCheck, IconX } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { toast } from 'sonner';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
@@ -12,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsAdmin } from '@/features/auth/auth-store';
 import { useInstitution, useReviewInstitution } from '@/features/management/api';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatDate, formatINR } from '@/lib/format';
 import type { InstitutionStatus } from '@/types/api';
 
@@ -42,16 +42,24 @@ export default function InstitutionDetailPage() {
       toast.error('Please write a reason — the institution will see it.');
       return;
     }
-    review.mutate(
-      { status, reason: reason.trim() || undefined, extraDiscountPercent: discount === null ? undefined : Number(discount) },
-      {
-        onSuccess: () => {
-          toast.success(`Institution ${status}`);
-          setReason('');
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
+    const copy: Record<InstitutionStatus, { title: string; description: string; label: string; danger?: boolean }> = {
+      approved: { title: `Approve ${data.name}?`, description: 'They get institution prices and bulk ordering straight away, and are notified.', label: 'Approve' },
+      rejected: { title: `Reject ${data.name}?`, description: `They will see your reason: “${reason.trim()}”.`, label: 'Reject', danger: true },
+      suspended: { title: `Suspend ${data.name}?`, description: `They lose institution prices and bulk ordering. Reason shown to them: “${reason.trim()}”.`, label: 'Suspend', danger: true },
+      pending: { title: `Move ${data.name} back to pending?`, description: 'They keep individual prices until approved again.', label: 'Move to pending' },
+    };
+    const c = copy[status];
+    void confirmAction({
+      tone: c.danger ? 'danger' : 'default',
+      title: c.title,
+      description: c.description,
+      confirmLabel: c.label,
+      action: async () => {
+        await review.mutateAsync({ status, reason: reason.trim() || undefined, extraDiscountPercent: discount === null ? undefined : Number(discount) });
+        setReason('');
       },
-    );
+      successTitle: `Institution ${status}`,
+    });
   };
 
   return (

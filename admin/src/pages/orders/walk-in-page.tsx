@@ -2,7 +2,7 @@ import { IconPlus, IconReceipt, IconTrash } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageHeader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { quoteRetail, useAdminProducts, type AdminProduct } from '@/features/catalog/api';
 import { useCreateWalkIn } from '@/features/orders/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatINR } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 
@@ -175,33 +174,36 @@ export default function WalkInPage() {
   const allValid = active.length > 0 && active.every((l) => totals[l.key] !== null && totals[l.key] !== undefined);
   const phoneValid = /^[6-9]\d{9}$/.test(phone);
 
-  const submit = () =>
-    create.mutate(
-      {
-        customer: { name: name.trim(), phone },
-        items: active.map((l) => {
-          const product = products.find((p) => p._id === l.productId)!;
-          return {
-            productId: l.productId,
-            options: l.options,
-            ...(product.unit === 'page' ? { pageCount: l.pageCount, copies: l.copies } : { quantity: l.quantity }),
-            notes: l.notes || undefined,
-            fileIds: [],
-          };
-        }),
-        fulfilment: { method: 'pickup' },
-        amountPaid: Number(paid) || 0,
-        paymentProvider: provider,
-        internalNote: note || undefined,
+  const submit = async () => {
+    let orderId = '';
+    const ok = await confirmAction({
+      title: `Create a walk-in order for ${name.trim() || `+91 ${phone}`}?`,
+      description: `${active.length} item${active.length > 1 ? 's' : ''}, total ${formatINR(total)}, ${Number(paid) > 0 ? `${formatINR(Number(paid))} paid now` : 'nothing paid yet'}.`,
+      confirmLabel: 'Create order',
+      action: async () => {
+        const order = await create.mutateAsync({
+          customer: { name: name.trim(), phone },
+          items: active.map((l) => {
+            const product = products.find((p) => p._id === l.productId)!;
+            return {
+              productId: l.productId,
+              options: l.options,
+              ...(product.unit === 'page' ? { pageCount: l.pageCount, copies: l.copies } : { quantity: l.quantity }),
+              notes: l.notes || undefined,
+              fileIds: [],
+            };
+          }),
+          fulfilment: { method: 'pickup' },
+          amountPaid: Number(paid) || 0,
+          paymentProvider: provider,
+          internalNote: note || undefined,
+        });
+        orderId = order._id;
       },
-      {
-        onSuccess: (order) => {
-          toast.success(`Order ${order.orderNumber} created`);
-          navigate(`/orders/${order._id}`);
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    );
+      successTitle: 'Order created',
+    });
+    if (ok && orderId) navigate(`/orders/${orderId}`);
+  };
 
   return (
     <div>
@@ -282,7 +284,7 @@ export default function WalkInPage() {
               <Label>Internal note</Label>
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} className="min-h-16" />
             </div>
-            <Button className="w-full" size="lg" disabled={!name.trim() || !phoneValid || !allValid || create.isPending} onClick={submit}>
+            <Button className="w-full" size="lg" disabled={!name.trim() || !phoneValid || !allValid || create.isPending} onClick={() => void submit()}>
               {create.isPending ? <Spinner className="size-4 text-current" /> : <IconReceipt />} Create order
             </Button>
             {!phoneValid && phone.length > 0 && <p className="text-xs text-destructive">Enter a valid 10-digit mobile number.</p>}

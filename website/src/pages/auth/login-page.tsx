@@ -1,4 +1,4 @@
-import { IconArrowLeft, IconDeviceMobile, IconInfoCircle } from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconBuildingCommunity, IconInfoCircle, IconShieldCheck } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authApi, useVerifyOtp, type OtpRequestResponse } from '@/features/auth/api';
-import { AuthShell } from '@/features/auth/components/auth-shell';
+import { AuthStepper, OrgAuthLayout, OrgBenefitsInline } from '@/features/auth/components/org-auth-layout';
 import { OtpInput } from '@/features/auth/components/otp-input';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { getErrorMessage } from '@/lib/api-client';
@@ -77,29 +77,40 @@ export default function LoginPage() {
   }, [code]);
 
   return (
-    <AuthShell
-      icon={<IconDeviceMobile />}
+    <OrgAuthLayout
+      audience="individual"
       title={sent ? t('auth.otpTitle') : t('auth.loginTitle')}
       subtitle={sent ? t('auth.otpSent', { phone: cleanPhone }) : t('auth.loginSubtitle')}
       footer={
-        <>
-          <p>
-            {t('auth.institutionPrompt')}{' '}
-            <Link to="/institutions/login" className="font-semibold text-primary hover:underline">
-              {t('nav.institutionLogin')}
+        <div className="flex items-center gap-4 rounded-xl border border-dashed p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+            <IconBuildingCommunity className="size-5" />
+          </span>
+          <p className="min-w-0 flex-1 text-sm">{t('auth.institutionPrompt')}</p>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/institutions/login">
+              {t('nav.institutionLogin')} <IconArrowRight />
             </Link>
-          </p>
-        </>
+          </Button>
+        </div>
       }
     >
+      <AuthStepper
+        step={sent ? 1 : 0}
+        labels={[t('auth.person.stepPhone'), t('auth.person.stepCode')]}
+        onJump={() => {
+          setSent(null);
+          verify.reset();
+        }}
+      />
+      {!sent && <OrgBenefitsInline audience="individual" />}
+
       {!sent ? (
         <form onSubmit={submitPhone} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="phone">{t('auth.phone')}</Label>
             <div className="flex">
-              <span className="flex items-center rounded-l-lg border border-r-0 bg-muted px-3 text-sm font-medium text-muted-foreground">
-                +91
-              </span>
+              <span className="flex h-12 items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm font-medium text-muted-foreground">+91</span>
               <Input
                 id="phone"
                 type="tel"
@@ -112,10 +123,13 @@ export default function LoginPage() {
                 className="h-12 rounded-l-none text-lg tracking-wide"
               />
             </div>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <IconShieldCheck className="size-3.5 text-success" /> {t('auth.person.privacy')}
+            </p>
           </div>
-          <Button type="submit" size="lg" className="w-full" disabled={!phoneValid || request.isPending}>
+          <Button type="submit" size="lg" variant="brand" className="w-full" disabled={!phoneValid || request.isPending}>
             {request.isPending && <Spinner className="size-4 text-current" />}
-            {t('auth.sendOtp')}
+            {t('auth.sendOtp')} {!request.isPending && <IconArrowRight />}
           </Button>
         </form>
       ) : (
@@ -132,9 +146,9 @@ export default function LoginPage() {
             <Label htmlFor="name">
               {t('auth.name')} <span className="font-normal text-muted-foreground">({t('auth.namePlaceholder')})</span>
             </Label>
-            <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
+            <Input id="name" autoComplete="name" className="h-11" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
           </div>
-          <Button type="submit" size="lg" className="w-full" disabled={code.length !== 6 || verify.isPending}>
+          <Button type="submit" size="lg" variant="brand" className="w-full" disabled={code.length !== 6 || verify.isPending}>
             {verify.isPending && <Spinner className="size-4 text-current" />}
             {t('auth.verify')}
           </Button>
@@ -160,6 +174,6 @@ export default function LoginPage() {
           </div>
         </form>
       )}
-    </AuthShell>
+    </OrgAuthLayout>
   );
 }

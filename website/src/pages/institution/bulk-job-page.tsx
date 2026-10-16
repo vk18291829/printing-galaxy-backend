@@ -1,7 +1,6 @@
 import {
   IconAlertCircle,
   IconAlertTriangle,
-  IconArrowLeft,
   IconCheck,
   IconFileTypePdf,
   IconLoader2,
@@ -12,6 +11,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageNav } from '@/components/common/page-nav';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -92,27 +93,28 @@ export default function BulkJobPage() {
   const columns = (job.report.columns ?? []).filter((c) => c !== 'photo');
   const canDeliver = settings?.delivery.enabled && institution?.address;
 
-  const order = () =>
-    place.mutate(
-      {
-        fulfilment: method === 'delivery' && institution ? { method, address: { ...institution.address, name: institution.contactName, phone: institution.phone } } : { method: 'pickup' },
-        paymentMethod: payment,
+  const order = async () => {
+    let orderId = '';
+    const ok = await confirmAction({
+      title: t('confirm.bulkOrderTitle'),
+      description: t('confirm.bulkOrderDesc'),
+      confirmLabel: t('bulk.placeOrder'),
+      action: async () => {
+        const o = await place.mutateAsync({
+          fulfilment: method === 'delivery' && institution ? { method, address: { ...institution.address, name: institution.contactName, phone: institution.phone } } : { method: 'pickup' },
+          paymentMethod: payment,
+        });
+        orderId = o._id;
       },
-      {
-        onSuccess: (o) => {
-          toast.success(t('bulk.ordered'));
-          navigate(`/account/orders/${o._id}`);
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    );
+      successTitle: t('bulk.ordered'),
+    });
+    if (ok && orderId) navigate(`/account/orders/${orderId}`);
+  };
 
   return (
-    <div className="container-page max-w-5xl py-10">
-      <Link to="/institution" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> {t('nav.dashboard')}
-      </Link>
-      <h1 className="text-3xl font-bold">{t('bulk.jobTitle')}</h1>
+    <div className="container-page py-10">
+      <PageNav items={[{ label: t('nav.dashboard'), to: '/institution' }, { label: t('bulk.jobTitle') }]} />
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('bulk.jobTitle')}</h1>
       <p className="mt-1 text-muted-foreground">
         {job.template?.name} · {t(`templates.kinds.${job.kind}`)} · {job.dataFile?.originalName}
       </p>
@@ -251,7 +253,7 @@ export default function BulkJobPage() {
                 </RadioGroup>
               </div>
             </div>
-            <Button size="lg" variant="brand" className="w-full" disabled={place.isPending} onClick={order}>
+            <Button size="lg" variant="brand" className="w-full" disabled={place.isPending} onClick={() => void order()}>
               {place.isPending ? <Spinner className="size-4 text-current" /> : <IconShoppingBag />} {t('bulk.placeOrder')}
             </Button>
           </CardContent>

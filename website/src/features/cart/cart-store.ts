@@ -15,6 +15,8 @@ export interface CartItem {
   slug: string;
   name: LocalizedString;
   icon: string;
+  /** Cover image of the product, if it has one. */
+  image?: string;
   unit: ProductUnit;
   workflow: ProductWorkflow;
   options: Record<string, string>;

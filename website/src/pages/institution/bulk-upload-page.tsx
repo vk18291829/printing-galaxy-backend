@@ -1,8 +1,10 @@
-import { IconArrowLeft, IconDownload, IconFileSpreadsheet, IconFileZip, IconLoader2, IconPlus, IconUpload, IconX } from '@tabler/icons-react';
+import { IconDownload, IconFileSpreadsheet, IconFileZip, IconLoader2, IconPlus, IconUpload, IconX } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageNav } from '@/components/common/page-nav';
 import { EmptyState, PageLoader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -147,23 +149,24 @@ export default function BulkUploadPage() {
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!template || !list) return;
-    create.mutate(
-      { templateId: template._id, dataFileId: list.id, photosFileId: photos?.id },
-      {
-        onSuccess: (job) => navigate(`/institution/bulk/${job._id}`),
-        onError: (e) => toast.error(getErrorMessage(e)),
+    let jobId = '';
+    const ok = await confirmAction({
+      title: t('confirm.bulkCreateTitle'),
+      description: t('confirm.bulkCreateDesc'),
+      confirmLabel: t('confirm.bulkCreate'),
+      action: async () => {
+        jobId = (await create.mutateAsync({ templateId: template._id, dataFileId: list.id, photosFileId: photos?.id }))._id;
       },
-    );
+    });
+    if (ok && jobId) navigate(`/institution/bulk/${jobId}`);
   };
 
   return (
-    <div className="container-page max-w-3xl py-10">
-      <Link to="/institution" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> {t('nav.dashboard')}
-      </Link>
-      <h1 className="text-3xl font-bold">{t('bulk.newTitle')}</h1>
+    <div className="container-page py-10">
+      <PageNav items={[{ label: t('nav.dashboard'), to: '/institution' }, { label: t('bulk.newTitle') }]} />
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('bulk.newTitle')}</h1>
       <p className="mt-1 mb-8 text-muted-foreground">{t('bulk.newSubtitle')}</p>
 
       {!templates?.length ? (
@@ -180,7 +183,7 @@ export default function BulkUploadPage() {
           }
         />
       ) : (
-        <div className="space-y-6">
+        <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>1. {t('bulk.stepTemplate')}</CardTitle>
@@ -247,10 +250,12 @@ export default function BulkUploadPage() {
             </CardContent>
           </Card>
 
-          <Button size="lg" variant="brand" className="w-full" disabled={!template || !list || (needPhotos && !photos) || create.isPending} onClick={submit}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:col-span-3">
+          <Button size="lg" variant="brand" className="w-full sm:w-auto" disabled={!template || !list || (needPhotos && !photos) || create.isPending} onClick={() => void submit()}>
             {create.isPending && <Spinner className="size-4 text-current" />} {t('bulk.check')}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">{t('bulk.privacy')}</p>
+          <p className="text-xs text-muted-foreground">{t('bulk.privacy')}</p>
+          </div>
         </div>
       )}
     </div>

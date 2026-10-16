@@ -9,6 +9,7 @@ import {
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -76,9 +77,12 @@ export default function BulkJobDetailPage() {
   const output = typeof job.output?.file === 'object' ? job.output.file : null;
   const columns = job.report.columns.filter((c) => c !== 'photo');
   const run = (step: 'validate' | 'generate') =>
-    rerun.mutate(step, {
-      onSuccess: () => toast.success(step === 'validate' ? 'Checking the list again' : 'Rebuilding the print sheet'),
-      onError: (e) => toast.error(getErrorMessage(e)),
+    void confirmAction({
+      title: step === 'validate' ? 'Check the list again?' : 'Rebuild the print sheet?',
+      description: step === 'validate' ? 'Every row and photo is checked again. This can take a minute for large lists.' : 'The print-ready file is generated again from the current list and template; the old file is replaced.',
+      confirmLabel: step === 'validate' ? 'Check again' : 'Rebuild',
+      action: () => rerun.mutateAsync(step),
+      successTitle: step === 'validate' ? 'Checking the list again' : 'Rebuilding the print sheet',
     });
 
   return (

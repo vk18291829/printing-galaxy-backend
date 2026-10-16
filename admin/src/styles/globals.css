@@ -156,6 +156,24 @@
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
+  /* Tailwind v4 resets buttons to the default cursor; everything clickable gets the hand. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  [role='option'],
+  [role='menuitem'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='switch'],
+  a[href],
+  label[for],
+  summary,
+  select,
+  input[type='file'],
+  input[type='color'],
+  input[type='range'] {
+    cursor: pointer;
+  }
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
@@ -193,4 +211,14 @@
 /* Content column used by every admin page. */
 @utility page-container {
   @apply mx-auto w-full max-w-7xl;
+}
+
+/* Browser autofill paints inputs light blue; keep them on the theme background instead. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0 1000px var(--background) inset;
+  caret-color: var(--foreground);
+  transition: background-color 9999s;
 }

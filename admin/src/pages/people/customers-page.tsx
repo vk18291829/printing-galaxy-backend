@@ -1,6 +1,6 @@
 import { IconSearch, IconUserOff } from '@tabler/icons-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Pagination } from '@/components/common/pagination';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { Card } from '@/components/ui/card';
@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useIsAdmin } from '@/features/auth/auth-store';
 import { useCustomers, useToggleCustomer } from '@/features/management/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatDate, formatINR } from '@/lib/format';
 
 export default function CustomersPage() {
@@ -75,11 +74,16 @@ export default function CustomersPage() {
                         <Switch
                           checked={c.isActive}
                           disabled={!isAdmin}
+                          aria-label={`${c.name || c.phone} active`}
                           onCheckedChange={(v) =>
-                            toggle.mutate(
-                              { id: c._id, isActive: v },
-                              { onSuccess: () => toast.success(v ? 'Customer enabled' : 'Customer disabled'), onError: (e) => toast.error(getErrorMessage(e)) },
-                            )
+                            void confirmAction({
+                              tone: v ? 'default' : 'danger',
+                              title: v ? `Enable ${c.name || `+91 ${c.phone}`}?` : `Disable ${c.name || `+91 ${c.phone}`}?`,
+                              description: v ? 'They can sign in and place orders again.' : 'They are signed out and cannot sign in or place orders. Their order history is kept.',
+                              confirmLabel: v ? 'Enable customer' : 'Disable customer',
+                              action: () => toggle.mutateAsync({ id: c._id, isActive: v }),
+                              successTitle: v ? 'Customer enabled' : 'Customer disabled',
+                            })
                           }
                         />
                       </TableCell>

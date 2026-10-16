@@ -76,6 +76,9 @@ export interface Product {
   pricing: Record<Audience, PriceBook>;
   leadTimeDays: number;
   isFeatured: boolean;
+  tags?: string[];
+  /** Approved-review average; absent on products created before reviews existed. */
+  rating?: { average: number; count: number };
 }
 
 export type QuoteErrorCode =
@@ -248,3 +251,48 @@ export interface PublicSettings {
   delivery: { enabled: boolean; fee: number; freeAbove: number };
   payments: { onlineEnabled: boolean; counterEnabled: boolean };
 }
+
+export type BannerKind = 'hero' | 'promo' | 'feature' | 'offer';
+export type BannerTheme = 'blue' | 'magenta' | 'sunset' | 'mint' | 'dark';
+
+export interface Banner {
+  _id: string;
+  kind: BannerKind;
+  title: LocalizedString;
+  subtitle?: LocalizedString;
+  ctaLabel?: LocalizedString;
+  link?: string;
+  imageUrl?: string;
+  theme: BannerTheme;
+  badge?: string;
+  couponCode?: string;
+}
+
+export type BannerGroups = Record<BannerKind, Banner[]>;
+
+export interface Review {
+  _id: string;
+  authorName: string;
+  rating: number;
+  title?: string;
+  comment?: string;
+  verifiedPurchase: boolean;
+  reply?: { text?: string; at?: string };
+  status?: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RatingSummary {
+  average: number;
+  count: number;
+  breakdown: [number, number, number, number, number];
+}
+
+export interface ProductReviews {
+  summary: RatingSummary;
+  reviews: Review[];
+  mine: Review | null;
+}
+
+export type ReviewHighlight = Review & { product: Pick<Product, '_id' | 'name' | 'slug' | 'images' | 'icon'> };

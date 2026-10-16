@@ -1,7 +1,7 @@
 import { IconPencil, IconPlus, IconSearch, IconTagsOff } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,6 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdminCategories, useAdminProducts, useToggleProduct, type AdminProduct } from '@/features/catalog/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatINR } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 import type { PriceBook } from '@/types/api';
@@ -43,10 +42,14 @@ export default function ProductsPage() {
   const toggle = useToggleProduct();
 
   const setActive = (p: AdminProduct, isActive: boolean) =>
-    toggle.mutate(
-      { id: p._id, isActive },
-      { onSuccess: () => toast.success(`${en(p.name)} ${isActive ? 'enabled' : 'hidden'}`), onError: (e) => toast.error(getErrorMessage(e)) },
-    );
+    void confirmAction({
+      tone: isActive ? 'default' : 'danger',
+      title: isActive ? `Show “${en(p.name)}” on the website?` : `Hide “${en(p.name)}” from the website?`,
+      description: isActive ? 'Customers will be able to find and order it again.' : 'Customers will no longer see or order it. Existing orders are not affected.',
+      confirmLabel: isActive ? 'Show product' : 'Hide product',
+      action: () => toggle.mutateAsync({ id: p._id, isActive }),
+      successTitle: isActive ? 'Product is live' : 'Product hidden',
+    });
 
   return (
     <div>

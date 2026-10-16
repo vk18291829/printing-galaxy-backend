@@ -1,8 +1,10 @@
-import { IconArrowLeft, IconDeviceFloppy, IconEye, IconPhotoPlus, IconX } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconEye, IconPhotoPlus, IconX } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageNav } from '@/components/common/page-nav';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,27 +109,33 @@ export default function TemplateEditorPage() {
     }
   }
 
-  const submit = () =>
-    save.mutate(
-      { id: isNew ? undefined : id, data: form },
-      {
-        onSuccess: (saved) => {
-          toast.success(t('templates.saved'));
-          if (isNew) navigate(`/institution/templates/${saved._id}`, { replace: true });
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
+  const submit = async () => {
+    let savedId = '';
+    const ok = await confirmAction({
+      title: t('confirm.templateSaveTitle'),
+      description: t('confirm.templateSaveDesc'),
+      confirmLabel: t('common.save'),
+      action: async () => {
+        savedId = (await save.mutateAsync({ id: isNew ? undefined : id, data: form }))._id;
       },
-    );
+      successTitle: t('templates.saved'),
+    });
+    if (ok && isNew && savedId) navigate(`/institution/templates/${savedId}`, { replace: true });
+  };
 
   const tooMany = form.fields.length > MAX_FIELDS;
 
   return (
     <div className="container-page py-10">
-      <Link to="/institution/templates" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> {t('templates.title')}
-      </Link>
+      <PageNav
+        items={[
+          { label: t('nav.dashboard'), to: '/institution' },
+          { label: t('templates.title'), to: '/institution/templates' },
+          { label: isNew ? t('templates.new') : form.name || t('templates.edit') },
+        ]}
+      />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl font-bold">{t(isNew ? 'templates.new' : 'templates.edit')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t(isNew ? 'templates.new' : 'templates.edit')}</h1>
         <div className="flex flex-wrap gap-2">
           {!isNew && (
             <Button
@@ -139,7 +147,7 @@ export default function TemplateEditorPage() {
               <IconEye /> {t('templates.samplePdf')}
             </Button>
           )}
-          <Button variant="brand" onClick={submit} disabled={save.isPending || !form.name.trim() || tooMany}>
+          <Button variant="brand" onClick={() => void submit()} disabled={save.isPending || !form.name.trim() || tooMany}>
             {save.isPending ? <Spinner className="size-4 text-current" /> : <IconDeviceFloppy />} {t('common.save')}
           </Button>
         </div>
@@ -303,7 +311,7 @@ export default function TemplateEditorPage() {
           </Card>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
           <div className="flex gap-1 rounded-xl border bg-card p-1">
             {(['front', 'back'] as const).map((s) => (
               <button

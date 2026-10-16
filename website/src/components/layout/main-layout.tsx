@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { OfferStrip } from '@/features/marketing/offer-strip';
 import { OfflineBanner } from '@/features/pwa/pwa';
 import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
@@ -17,6 +18,7 @@ export function MainLayout() {
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
       <OfflineBanner />
+      <OfferStrip />
       <SiteHeader />
       <main className="flex-1">
         <Outlet />

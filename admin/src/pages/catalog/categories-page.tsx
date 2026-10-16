@@ -1,6 +1,6 @@
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon, ICON_NAMES } from '@/components/common/dynamic-icon';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdminCategories, useDeleteCategory, useSaveCategory, type AdminCategory, type CategoryInput } from '@/features/catalog/api';
-import { getErrorMessage } from '@/lib/api-client';
+import { ImageListEditor } from '@/features/catalog/components/image-list-editor';
 import { cn } from '@/lib/utils';
 
 const EMPTY: CategoryInput = {
@@ -36,6 +36,7 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
           slug: category.slug,
           description: { en: category.description?.en ?? '', hi: category.description?.hi ?? '' },
           icon: category.icon,
+          imageUrl: category.imageUrl ?? '',
           audiences: category.audiences,
           sortOrder: category.sortOrder,
           isActive: category.isActive,
@@ -77,6 +78,10 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
             <Input value={form.description.hi} onChange={(e) => set('description', { ...form.description, hi: e.target.value })} />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
+            <Label>Cover image</Label>
+            <ImageListEditor value={form.imageUrl ? [form.imageUrl] : []} onChange={(urls) => set('imageUrl', urls[0] ?? '')} max={1} />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>Icon</Label>
             <div className="flex flex-wrap gap-1.5">
               {ICON_NAMES.map((name) => (
@@ -111,18 +116,17 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
           </Button>
           <Button
             disabled={save.isPending || !form.name.en || !form.slug}
-            onClick={() =>
-              save.mutate(
-                { id: category === 'new' ? undefined : category._id, data: form },
-                {
-                  onSuccess: () => {
-                    toast.success('Category saved');
-                    onClose();
-                  },
-                  onError: (e) => toast.error(getErrorMessage(e)),
-                },
-              )
-            }
+            onClick={async () => {
+              const isNew = category === 'new';
+              const ok = await confirmAction({
+                title: isNew ? `Create “${form.name.en}”?` : `Save changes to “${form.name.en}”?`,
+                description: form.isActive ? 'It will show on the website menu and home page right away.' : 'It stays hidden from the website until you switch it on.',
+                confirmLabel: isNew ? 'Create category' : 'Save changes',
+                action: () => save.mutateAsync({ id: isNew ? undefined : category._id, data: form }),
+                successTitle: isNew ? 'Category created' : 'Category updated',
+              });
+              if (ok) onClose();
+            }}
           >
             {save.isPending && <Spinner className="size-4 text-current" />} Save
           </Button>
@@ -193,13 +197,17 @@ export default function CategoriesPage() {
                     variant="ghost"
                     size="sm"
                     className="text-destructive"
-                    onClick={() => {
-                      if (!confirm(`Delete “${c.name.en}”?`)) return;
-                      remove.mutate(c._id, {
-                        onSuccess: () => toast.success('Category deleted'),
-                        onError: (e) => toast.error(getErrorMessage(e)),
-                      });
-                    }}
+                    aria-label={`Delete ${c.name.en}`}
+                    onClick={() =>
+                      void confirmAction({
+                        tone: 'danger',
+                        title: `Delete “${c.name.en}”?`,
+                        description: 'This cannot be undone. Categories that still have products cannot be deleted — move or hide those products first.',
+                        confirmLabel: 'Delete category',
+                        action: () => remove.mutateAsync(c._id),
+                        successTitle: 'Category deleted',
+                      })
+                    }
                   >
                     <IconTrash />
                   </Button>

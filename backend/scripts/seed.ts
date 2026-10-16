@@ -10,8 +10,11 @@ import { hashPassword } from '@/modules/auth/auth.service';
 import { CategoryModel } from '@/modules/catalog/category.model';
 import { ProductModel } from '@/modules/catalog/product.model';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
+import { BannerModel } from '@/modules/marketing/banner.model';
 import { getSettings } from '@/modules/settings/settings.model';
 import { UserModel } from '@/modules/users/user.model';
+import { EXTRA_CATEGORIES, EXTRA_PRODUCTS } from './extra-catalog';
+import { STARTER_BANNERS as banners } from './starter-banners';
 
 const L = (en: string, hi: string) => ({ en, hi });
 type Tier = [minQty: number, unitPrice: number];
@@ -142,7 +145,7 @@ const categories = [
   {
     slug: 'business-works',
     name: L('Business Works', 'बिज़नेस वर्क्स'),
-    description: L('Visiting cards, hand bills, wedding cards and stickers.', 'विज़िटिंग कार्ड, हैंडबिल, शादी के कार्ड और स्टिकर।'),
+    description: L('Visiting cards, hand bills, logo key chains and stickers.', 'विज़िटिंग कार्ड, हैंडबिल, लोगो की-चेन और स्टिकर।'),
     icon: 'briefcase',
     audiences: ['retail', 'institution'],
     sortOrder: 5,
@@ -619,7 +622,7 @@ const products: ProductSeed[] = [
   },
   {
     slug: 'wedding-card',
-    category: 'business-works',
+    category: 'wedding-invitations',
     name: L('Wedding Card', 'शादी का कार्ड'),
     shortDescription: L('Custom invitation cards. Minimum 50.', 'आपकी पसंद के निमंत्रण कार्ड। कम से कम 50।'),
     icon: 'heart',
@@ -627,8 +630,10 @@ const products: ProductSeed[] = [
     workflow: 'design',
     options: [],
     pricing: { retail: book(50, [50, 25], [200, 20], [500, 17]), institution: disabled },
+    isFeatured: true,
+    tags: ['wedding', 'shaadi', 'invitation', 'highlight'],
     leadTimeDays: 5,
-    sortOrder: 3,
+    sortOrder: 0,
   },
   {
     slug: 'logo-keychain',
@@ -660,13 +665,13 @@ async function seed() {
   await connectDb();
 
   const categoryIds = new Map<string, unknown>();
-  for (const c of categories) {
+  for (const c of [...categories, ...EXTRA_CATEGORIES]) {
     const doc = await CategoryModel.findOneAndUpdate({ slug: c.slug }, { $set: c }, { upsert: true, new: true });
     categoryIds.set(c.slug, doc._id);
   }
-  console.log(`✔ ${categories.length} categories`);
+  console.log(`✔ ${categories.length + EXTRA_CATEGORIES.length} categories`);
 
-  for (const p of products) {
+  for (const p of [...products, ...EXTRA_PRODUCTS]) {
     const { category, ...rest } = p;
     await ProductModel.findOneAndUpdate(
       { slug: p.slug },
@@ -674,7 +679,7 @@ async function seed() {
       { upsert: true, runValidators: true },
     );
   }
-  console.log(`✔ ${products.length} products`);
+  console.log(`✔ ${products.length + EXTRA_PRODUCTS.length} products`);
 
   const settings = await getSettings();
   if (!settings.shop.phone) {
@@ -691,6 +696,12 @@ async function seed() {
     await settings.save();
   }
   console.log('✔ settings');
+
+  // Starter banners only when none exist, so edits made in the admin panel are never overwritten.
+  if (!(await BannerModel.exists({}))) {
+    await BannerModel.insertMany(banners);
+    console.log(`✔ ${banners.length} banners`);
+  }
 
   const admin = await UserModel.findOne({ email: env.SEED_ADMIN_EMAIL });
   if (!admin) {

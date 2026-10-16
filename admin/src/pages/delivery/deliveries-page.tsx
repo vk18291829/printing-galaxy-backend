@@ -7,7 +7,7 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { OrderStatusBadge } from '@/components/common/status-badge';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCompleteDelivery, useDeliveries, useFailDelivery, useStartDelivery } from '@/features/operations/api';
-import { getErrorMessage } from '@/lib/api-client';
 import { formatDate, formatINR, formatNumber } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 import { cn } from '@/lib/utils';
@@ -78,18 +77,16 @@ function DeliveredDialog({ order, onClose }: { order: DeliveryOrder; onClose: ()
           </Button>
           <Button
             disabled={complete.isPending || value > owed + 0.009}
-            onClick={() =>
-              complete.mutate(
-                { id: order._id, cashCollected: owed > 0 ? value : 0, provider, note: note || undefined },
-                {
-                  onSuccess: () => {
-                    toast.success('Delivered');
-                    onClose();
-                  },
-                  onError: (e) => toast.error(getErrorMessage(e)),
-                },
-              )
-            }
+            onClick={async () => {
+              const ok = await confirmAction({
+                title: `Mark ${order.orderNumber} as delivered?`,
+                description: owed > 0 ? `You collected ${formatINR(value)} by ${provider === 'cash' ? 'cash' : 'UPI'}. The customer is notified.` : 'The customer is notified that the order was delivered.',
+                confirmLabel: 'Mark delivered',
+                action: () => complete.mutateAsync({ id: order._id, cashCollected: owed > 0 ? value : 0, provider, note: note || undefined }),
+                successTitle: 'Delivered',
+              });
+              if (ok) onClose();
+            }}
           >
             {complete.isPending && <Spinner className="size-4 text-current" />} Confirm delivery
           </Button>
@@ -125,18 +122,17 @@ function FailedDialog({ order, onClose }: { order: DeliveryOrder; onClose: () =>
           <Button
             variant="destructive"
             disabled={fail.isPending || note.trim().length < 2}
-            onClick={() =>
-              fail.mutate(
-                { id: order._id, note: note.trim() },
-                {
-                  onSuccess: () => {
-                    toast.success('Shop informed');
-                    onClose();
-                  },
-                  onError: (e) => toast.error(getErrorMessage(e)),
-                },
-              )
-            }
+            onClick={async () => {
+              const ok = await confirmAction({
+                tone: 'danger',
+                title: `Report ${order.orderNumber} as not delivered?`,
+                description: `Reason: “${note.trim()}”. The order goes back to the shop as ready.`,
+                confirmLabel: 'Report failed delivery',
+                action: () => fail.mutateAsync({ id: order._id, note: note.trim() }),
+                successTitle: 'Shop informed',
+              });
+              if (ok) onClose();
+            }}
           >
             {fail.isPending && <Spinner className="size-4 text-current" />} Report
           </Button>
@@ -212,9 +208,12 @@ function DeliveryCard({ order, showRider }: { order: DeliveryOrder; showRider: b
               <Button
                 disabled={start.isPending}
                 onClick={() =>
-                  start.mutate(order._id, {
-                    onSuccess: () => toast.success('On the way — customer notified'),
-                    onError: (e) => toast.error(getErrorMessage(e)),
+                  void confirmAction({
+                    title: `Start delivery of ${order.orderNumber}?`,
+                    description: 'The order is marked “out for delivery” and the customer is told you are on the way.',
+                    confirmLabel: 'Start delivery',
+                    action: () => start.mutateAsync(order._id),
+                    successTitle: 'On the way — customer notified',
                   })
                 }
               >
@@ -251,7 +250,7 @@ export default function DeliveriesPage() {
   const cashToday = data.doneToday.length;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <PageHeader
         title={showRider ? 'Deliveries' : 'My deliveries'}
         description={showRider ? 'All delivery orders that have a rider assigned.' : 'Start a delivery when you leave the shop; customers get a message.'}
@@ -261,7 +260,7 @@ export default function DeliveriesPage() {
           <EmptyState icon={<IconTruckDelivery />} title="Nothing to deliver right now" description="New assignments show up here automatically." />
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="grid items-start gap-4 *:min-w-0 lg:grid-cols-2 2xl:grid-cols-3">
           {data.active.map((o) => (
             <DeliveryCard key={o._id} order={o} showRider={showRider} />
           ))}

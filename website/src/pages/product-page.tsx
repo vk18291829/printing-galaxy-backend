@@ -1,7 +1,6 @@
 import {
   IconAlertCircle,
   IconBuildingCommunity,
-  IconChevronRight,
   IconClock,
   IconLock,
   IconMinus,
@@ -13,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { PageNav } from '@/components/common/page-nav';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,11 +25,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAudience, useAuthStore } from '@/features/auth/auth-store';
 import { useProduct, useQuote, type QuoteInput } from '@/features/catalog/api';
 import { OptionPicker } from '@/features/catalog/components/option-picker';
+import { ProductGallery } from '@/features/catalog/components/product-gallery';
 import { PriceTierTable } from '@/features/catalog/components/price-tier-table';
+import { RelatedProducts } from '@/features/catalog/components/related-products';
 import { useCartStore, type CartFile } from '@/features/cart/cart-store';
 import { CardCropUploader } from '@/features/crop/card-crop-uploader';
 import { DesignStudio, type AttachedDesign } from '@/features/design/design-studio';
 import { DESIGN_FOR_SLUG } from '@/features/design/designs';
+import { ProductReviews, RatingSummaryLink } from '@/features/reviews/product-reviews';
 import { FileUploader } from '@/features/uploads/file-uploader';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useDocumentTitle } from '@/hooks/use-document-title';
@@ -154,7 +157,7 @@ function PriceSummary({
               <Separator className="my-1" />
               <div className="flex items-end justify-between">
                 <dt className="font-semibold">{t('product.subtotal')}</dt>
-                <dd className="text-3xl font-bold tabular-nums">{formatINR(quote.subtotal)}</dd>
+                <dd className="text-2xl font-semibold tracking-tight sm:text-3xl tabular-nums">{formatINR(quote.subtotal)}</dd>
               </div>
             </dl>
           )
@@ -267,6 +270,7 @@ export default function ProductPage() {
       slug: product.slug,
       name: product.name,
       icon: product.icon,
+      image: product.images[0],
       unit: product.unit,
       workflow: product.workflow,
       options,
@@ -333,23 +337,26 @@ export default function ProductPage() {
 
   return (
     <div className="container-page pt-6 sm:pt-8 lg:pb-8">
-      <nav className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-        <Link to="/products" className="hover:text-foreground">{t('nav.products')}</Link>
-        <IconChevronRight className="size-4" />
-        <Link to={`/products?category=${product.category.slug}`} className="hover:text-foreground">
-          {l(product.category.name)}
-        </Link>
-      </nav>
+      <PageNav
+        items={[
+          { label: t('nav.products'), to: '/products' },
+          { label: l(product.category.name), to: `/products?category=${product.category.slug}` },
+          { label: l(product.name) },
+        ]}
+      />
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
-          <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-blue/15 to-brand-cyan/10 text-primary sm:size-20 sm:rounded-3xl">
-              <DynamicIcon name={product.icon} className="size-7 sm:size-10" stroke={1.5} />
-            </span>
+          <header className="grid gap-6 *:min-w-0 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start">
+            <ProductGallery product={product} />
             <div className="space-y-3">
-              <h1 className="text-2xl font-bold min-[400px]:text-3xl sm:text-4xl">{l(product.name)}</h1>
+              <p className="flex items-center gap-2 text-sm font-medium text-primary">
+                <DynamicIcon name={product.icon} className="size-4" /> {l(product.category.name)}
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{l(product.name)}</h1>
+              <RatingSummaryLink slug={product.slug} />
               <p className="text-muted-foreground">{l(product.shortDescription)}</p>
+              {l(product.description) && <p className="text-sm leading-relaxed text-muted-foreground">{l(product.description)}</p>}
               <div className="flex flex-wrap gap-2">
                 {audience === 'institution' && product.pricing.institution.enabled && (
                   <Badge variant="success">
@@ -364,35 +371,33 @@ export default function ProductPage() {
                   {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
                 </Badge>
               </div>
+              {audienceBlocked && (
+                <Alert variant="warning">
+                  <IconAlertCircle />
+                  <AlertDescription className="text-foreground">
+                    <p>{t('product.notAvailable')}</p>
+                    {audience === 'retail' && (
+                      <Link to="/institutions" className="font-semibold text-primary hover:underline">
+                        {t('product.retailNoteCta')} →
+                      </Link>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {product.workflow === 'design' && (
+                <Alert variant="info">
+                  <IconPalette />
+                  <AlertDescription className="text-foreground">{t('product.designNote')}</AlertDescription>
+                </Alert>
+              )}
+              {product.sensitive && (
+                <Alert variant="success">
+                  <IconLock />
+                  <AlertDescription className="text-foreground">{t('product.sensitiveNote')}</AlertDescription>
+                </Alert>
+              )}
             </div>
           </header>
-
-          {audienceBlocked && (
-            <Alert variant="warning">
-              <IconAlertCircle />
-              <AlertDescription className="text-foreground">
-                <p>{t('product.notAvailable')}</p>
-                {audience === 'retail' && (
-                  <Link to="/institutions" className="font-semibold text-primary hover:underline">
-                    {t('product.retailNoteCta')} →
-                  </Link>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {product.workflow === 'design' && (
-            <Alert variant="info">
-              <IconPalette />
-              <AlertDescription className="text-foreground">{t('product.designNote')}</AlertDescription>
-            </Alert>
-          )}
-          {product.sensitive && (
-            <Alert variant="success">
-              <IconLock />
-              <AlertDescription className="text-foreground">{t('product.sensitiveNote')}</AlertDescription>
-            </Alert>
-          )}
 
           {product.options.length > 0 && (
             <Card>
@@ -461,10 +466,9 @@ export default function ProductPage() {
             </CardContent>
           </Card>
 
-          {l(product.description) && <p className="leading-relaxed text-muted-foreground">{l(product.description)}</p>}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
           <PriceSummary
             product={product}
             quote={quote}
@@ -486,6 +490,9 @@ export default function ProductPage() {
           )}
         </aside>
       </div>
+
+      <ProductReviews slug={product.slug} />
+      <RelatedProducts product={product} />
 
       {/* Phones & tablets: keep the price and the add button in reach while choosing options. */}
       <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] backdrop-blur-xl sm:-mx-6 lg:hidden">

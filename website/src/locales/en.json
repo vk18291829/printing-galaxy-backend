@@ -24,7 +24,9 @@
     "register": "Register",
     "somethingWrong": "Something went wrong",
     "comingSoon": "Coming soon",
-    "free": "Free"
+    "free": "Free",
+    "loadMore": "Load more",
+    "clear": "Clear"
   },
   "units": {
     "page_one": "page",
@@ -57,7 +59,11 @@
     "dark": "Dark",
     "system": "System",
     "menu": "Menu",
-    "institutionLogin": "Institution login"
+    "institutionLogin": "Institution login",
+    "categories": "Categories",
+    "institutionRegister": "Register your institution",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
   },
   "home": {
     "badge": "Now taking orders online",
@@ -108,7 +114,28 @@
     "eyebrowAudience": "Two price books",
     "eyebrowCategories": "Catalogue",
     "eyebrowFeatured": "Bestsellers",
-    "eyebrowHow": "How it works"
+    "eyebrowHow": "How it works",
+    "heroLabel": "Featured offers",
+    "shopNow": "Shop now",
+    "tryIt": "Try it",
+    "newBadge": "New",
+    "allProducts": "All products",
+    "featuredSubtitle": "What our customers order most",
+    "reviewsTitle": "What customers say",
+    "reviewsSubtitle": "Real reviews from verified orders",
+    "weddingEyebrow": "Wedding season",
+    "weddingTitle": "Invitations they'll keep",
+    "weddingSubtitle": "Boxed wedding cards, foil names, shagun envelopes and welcome boards — designed with you, proofed before printing.",
+    "weddingCta": "Explore wedding cards",
+    "weddingPoints": [
+      "Free design proof",
+      "Gold & rose-gold foil",
+      "Hindi & English text"
+    ],
+    "highlightsTitle": "Most-loved by our customers",
+    "highlightsSubtitle": "Hand-picked bestsellers across every category",
+    "exploreTitle": "Explore everything",
+    "exploreSubtitle": "Keep scrolling — more products load as you go"
   },
   "products": {
     "title": "All products",
@@ -120,7 +147,24 @@
     "bulk": "Bulk pricing",
     "sameDay": "Same day",
     "leadTime_one": "{{count}} day",
-    "leadTime_other": "{{count}} days"
+    "leadTime_other": "{{count}} days",
+    "heroEyebrow": "Catalogue",
+    "sort": "Sort",
+    "sorts": {
+      "popular": "Most popular",
+      "newest": "Newest",
+      "price-asc": "Price: low to high",
+      "price-desc": "Price: high to low",
+      "rating": "Top rated"
+    },
+    "showing": "{{shown}} of {{total}} products",
+    "loadingMore": "Loading more…",
+    "endOfList": "You've seen everything here",
+    "clearFilters": "Clear filters",
+    "resultsFor": "Results for “{{q}}”",
+    "browseCategories": "Shop by category",
+    "count_one": "{{count}} product",
+    "count_other": "{{count}} products"
   },
   "product": {
     "options": "Options",
@@ -164,7 +208,9 @@
       "NOT_AVAILABLE": "This product is not available right now",
       "UPLOAD_REQUIRED": "Please upload your file",
       "DESIGN_NOT_ATTACHED": "Attach your design first"
-    }
+    },
+    "relatedTitle": "You may also like",
+    "relatedSubtitle": "More from {{category}}"
   },
   "upload": {
     "drop": "Tap to upload or drag files here",
@@ -276,7 +322,65 @@
     "pincode": "PIN code",
     "submitRegister": "Create institution account",
     "registered": "Registration received! We'll review it shortly.",
-    "signInRequired": "Please sign in to continue"
+    "signInRequired": "Please sign in to continue",
+    "org": {
+      "eyebrow": "For institutions",
+      "heroTitle": "Printing for your whole institution, managed in one place",
+      "heroSubtitle": "Bulk ID cards, report cards and stationery at institution prices — with proofs, order tracking and GST invoices.",
+      "benefits": [
+        "Lower tiered prices from 50+ units",
+        "Upload one spreadsheet, get every ID card",
+        "Approve a proof before anything is printed",
+        "GST invoice with every order"
+      ],
+      "howApprovalWorks": "How approval works",
+      "approvalSteps": [
+        "Register in 2 minutes",
+        "We verify your institution",
+        "Institution prices unlock"
+      ],
+      "loginTitle": "Welcome back",
+      "loginSubtitle": "Sign in to your institution account to place and track bulk orders.",
+      "workEmail": "Official email",
+      "emailInvalid": "Enter a valid email address",
+      "passwordRequired": "Enter your password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "needHelp": "Trouble signing in?",
+      "contactUs": "Contact us",
+      "registerPitch": "Bulk prices, proofs and GST invoices.",
+      "stepContact": "Contact & login",
+      "stepOf": "Step {{current}} of {{total}}",
+      "orgNamePlaceholder": "e.g. Galaxy Public School",
+      "strength": [
+        "Weak",
+        "Fair",
+        "Good",
+        "Strong"
+      ],
+      "reviewTitle": "Check your details",
+      "termsNote": "We will call or email to verify your institution. Approval usually takes one working day."
+    },
+    "person": {
+      "eyebrow": "For individuals & students",
+      "heroTitle": "Print anything, straight from your phone",
+      "heroSubtitle": "Notes, PVC cards, photos and gifts — see the price before you order and pick up or get it delivered.",
+      "benefits": [
+        "No password — sign in with an SMS code",
+        "Live prices before you place the order",
+        "Track every order and download invoices",
+        "Pick up at the shop or get home delivery"
+      ],
+      "howApprovalWorks": "How sign-in works",
+      "approvalSteps": [
+        "Enter your mobile number",
+        "Type the 6-digit code we send",
+        "Start ordering — new accounts are created automatically"
+      ],
+      "stepPhone": "Mobile number",
+      "stepCode": "Verify code",
+      "privacy": "We only use your number for order updates. No spam."
+    }
   },
   "status": {
     "institution": {
@@ -353,7 +457,20 @@
     "quoteNotice": "Your order has items priced on request. You'll pay after we confirm the price.",
     "success": "Order placed!",
     "paymentSuccess": "Payment received. Thank you!",
-    "paymentCancelled": "Payment not completed. You can pay later from your order page."
+    "paymentCancelled": "Payment not completed. You can pay later from your order page.",
+    "steps": {
+      "details": "Details",
+      "review": "Review & confirm"
+    },
+    "detailsHint": "Choose pickup or delivery and how you want to pay.",
+    "reviewTitle": "Review your order",
+    "reviewHint": "Check every item, file and address. You can still edit anything before placing the order.",
+    "reviewOrder": "Review order",
+    "backToDetails": "Back to details",
+    "confirmCheck": "I have checked the items, uploaded files, quantities and address.",
+    "contact": "Contact",
+    "needName": "Enter your name to continue.",
+    "needAddress": "Fill in the delivery address (house / street, city and 6-digit PIN) to continue."
   },
   "orders": {
     "title": "My orders",
@@ -660,5 +777,82 @@
     "offline": "You are offline. Pages you opened before still work; orders need a connection.",
     "online": "Back online",
     "counter": "You can still order at our counter: {{address}}."
+  },
+  "offers": {
+    "copied": "Code {{code}} copied",
+    "copyFailed": "Could not copy the code",
+    "copyCode": "Copy code {{code}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "reviews": {
+    "title": "Ratings & reviews",
+    "count_one": "{{count}} review",
+    "count_other": "{{count}} reviews",
+    "beFirst": "No reviews yet — be the first",
+    "verified": "Verified purchase",
+    "write": "Write a review",
+    "edit": "Edit your review",
+    "signInToWrite": "Sign in to write a review",
+    "yourRating": "Your rating",
+    "ratingLabels": [
+      "Poor",
+      "Fair",
+      "Good",
+      "Very good",
+      "Excellent"
+    ],
+    "pickRating": "Choose a star rating",
+    "headline": "Headline",
+    "headlinePlaceholder": "Sum it up in a few words",
+    "comment": "Your review",
+    "commentPlaceholder": "Print quality, finishing, delivery time…",
+    "submit": "Submit review",
+    "submitted": "Thanks! Your review will appear once it is approved.",
+    "moderationNote": "Reviews are checked by our team before they are published.",
+    "you": "You",
+    "shopReply": "Reply from Printing Galaxy",
+    "empty": "No reviews yet",
+    "emptyHint": "Ordered this before? Tell others how it turned out.",
+    "status": {
+      "pending": "Awaiting approval",
+      "rejected": "Not published",
+      "approved": "Published"
+    }
+  },
+  "confirm": {
+    "done": "Done",
+    "failed": "That didn't work",
+    "ok": "OK",
+    "confirm": "Confirm",
+    "saveChanges": "Save changes",
+    "signOutTitle": "Sign out?",
+    "signOutDesc": "Your cart stays on this device. You can sign in again any time.",
+    "cancelOrderTitle": "Cancel order {{number}}?",
+    "keepOrder": "Keep order",
+    "profileTitle": "Save your profile?",
+    "profileDesc": "Your details are used for future orders, delivery and invoices.",
+    "templateDeleteDesc": "This cannot be undone. Card lists already ordered keep their print files.",
+    "deleteTemplate": "Delete template",
+    "templateDeleted": "Template deleted",
+    "templateSaveTitle": "Save this template?",
+    "templateSaveDesc": "New card lists will use this design. Cards already ordered are not changed.",
+    "proofApproveTitle": "Approve this proof?",
+    "proofApproveDesc": "We print exactly what the proof shows. It can't be changed after printing starts.",
+    "approve": "Approve & print",
+    "proofChangesTitle": "Send your changes?",
+    "proofChangesDesc": "We'll update the design and send you a new proof to approve.",
+    "sendChanges": "Send changes",
+    "placeOrderTitle": "Place this order?",
+    "placeOrderDesc": "Total {{total}} · {{count}} item(s) · {{method}}.",
+    "placeOrderQuote": "We'll confirm the price before you pay.",
+    "bulkOrderTitle": "Order these cards?",
+    "bulkOrderDesc": "The print sheet is sent to you as a proof. Nothing is printed until you approve it.",
+    "bulkCreateTitle": "Upload and check this list?",
+    "bulkCreateDesc": "We check every row and photo and show you a preview before anything is ordered.",
+    "bulkCreate": "Upload & check",
+    "reviewTitle": "Submit your review?",
+    "reviewDesc": "It appears on the product page after our team approves it.",
+    "reviewSubmitted": "Review submitted"
   }
 }

@@ -4,11 +4,13 @@ import { queueMode } from '@/jobs/queue';
 import { adminRouter } from '@/modules/admin/admin.routes';
 import { authRouter } from '@/modules/auth/auth.routes';
 import { institutionRouter } from '@/modules/bulk/institution.routes';
+import { marketingRouter } from '@/modules/marketing/marketing.routes';
 import { catalogRouter } from '@/modules/catalog/catalog.routes';
 import { deliveryRouter } from '@/modules/delivery/delivery.routes';
 import { notificationsRouter } from '@/modules/notifications/notifications.routes';
 import { ordersRouter } from '@/modules/orders/orders.routes';
 import { paymentsRouter } from '@/modules/payments/payments.routes';
+import { reviewsRouter } from '@/modules/reviews/reviews.routes';
 import { settingsRouter } from '@/modules/settings/settings.routes';
 import { uploadsRouter } from '@/modules/uploads/uploads.routes';
 import { accountRouter } from '@/modules/users/account.routes';
@@ -26,6 +28,8 @@ apiRouter.get('/health', (_req, res) => {
 
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/', catalogRouter);
+apiRouter.use('/', reviewsRouter);
+apiRouter.use('/marketing', marketingRouter);
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/account', accountRouter);
 apiRouter.use('/uploads', uploadsRouter);

@@ -34,6 +34,7 @@ export interface DashboardData {
   openByStatus: Partial<Record<OrderStatus, number>>;
   pendingPayments: { due: number; orders: number };
   pendingInstitutions: number;
+  pendingReviews?: number;
   daily: { date: string; revenue: number; orders: number }[];
   topProducts: { _id: string; name: LocalizedString; revenue: number; orders: number }[];
   byAudience: Partial<Record<'retail' | 'institution', { revenue: number; orders: number }>>;

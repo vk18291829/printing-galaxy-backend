@@ -7,7 +7,7 @@ export default function NotFoundPage() {
   const { t } = useTranslation();
   useDocumentTitle(t('notFound.title'));
   return (
-    <div className="container-page flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+    <div className="container-page flex min-h-[60vh] flex-col items-center justify-center py-16 text-center">
       <p className="text-8xl font-bold text-brand-gradient">404</p>
       <div className="my-6 h-1.5 w-32 rounded-full cmyk-strip" />
       <h1 className="text-2xl font-bold">{t('notFound.title')}</h1>

@@ -11,6 +11,7 @@ import {
 import { useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { ORDER_STATUS_LABEL, OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
 import { Badge } from '@/components/ui/badge';
@@ -54,8 +55,15 @@ const NEXT_STATUSES: OrderStatus[] = [
   'cancelled',
 ];
 
-const notify = (p: Promise<unknown>, success: string) =>
-  p.then(() => toast.success(success)).catch((e) => toast.error(getErrorMessage(e)));
+/** Asks first, runs the change, then shows the result in the same dialog. Resolves true on success. */
+const ask = (
+  title: string,
+  description: string,
+  confirmLabel: string,
+  action: () => Promise<unknown>,
+  successTitle: string,
+  tone: 'default' | 'danger' = 'default',
+) => confirmAction({ title, description, confirmLabel, action, successTitle, tone });
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -86,7 +94,14 @@ function ProofUpload({ order, item }: { order: AdminOrder; item: OrderItem }) {
           disabled={!file || sendProof.isPending}
           onClick={() =>
             file &&
-            void notify(sendProof.mutateAsync({ itemId: item._id, file, message: message || undefined }), 'Proof sent to customer').then(() => {
+            void ask(
+              'Send this proof to the customer?',
+              `“${file.name}” is sent for approval${message ? ' with your message' : ''}. Printing waits until they approve it.`,
+              'Send proof',
+              () => sendProof.mutateAsync({ itemId: item._id, file, message: message || undefined }),
+              'Proof sent to customer',
+            ).then((ok) => {
+              if (!ok) return;
               setFile(null);
               setMessage('');
             })
@@ -201,8 +216,11 @@ function QuoteCard({ order }: { order: AdminOrder }) {
           className="w-full"
           disabled={!valid || quote.isPending}
           onClick={() =>
-            void notify(
-              quote.mutateAsync({ items: order.items.map((i) => ({ itemId: i._id, lineTotal: Number(prices[i._id]) })) }),
+            void ask(
+              'Confirm this price?',
+              `The order total becomes ${formatINR(order.items.reduce((s, i) => s + (Number(prices[i._id]) || 0), 0))} before delivery and tax, and the customer is asked to pay.`,
+              'Confirm price',
+              () => quote.mutateAsync({ items: order.items.map((i) => ({ itemId: i._id, lineTotal: Number(prices[i._id]) })) }),
               'Price confirmed and customer notified',
             )
           }
@@ -265,10 +283,19 @@ function StatusCard({ order }: { order: AdminOrder }) {
               disabled={!status || change.isPending}
               onClick={() =>
                 status &&
-                void notify(
-                  change.mutateAsync({ status, note: note || undefined, notify: sendMsg }),
+                void ask(
+                  status === 'cancelled' ? `Cancel order ${order.orderNumber}?` : `Mark as “${ORDER_STATUS_LABEL[status]}”?`,
+                  status === 'cancelled'
+                    ? `This cannot be undone.${sendMsg ? ' The customer is told by WhatsApp / SMS.' : ''}`
+                    : sendMsg
+                      ? 'The customer gets a WhatsApp / SMS update.'
+                      : 'No message is sent to the customer.',
+                  status === 'cancelled' ? 'Cancel order' : 'Update status',
+                  () => change.mutateAsync({ status, note: note || undefined, notify: sendMsg }),
                   `Marked as ${ORDER_STATUS_LABEL[status]}`,
-                ).then(() => {
+                  status === 'cancelled' ? 'danger' : 'default',
+                ).then((ok) => {
+                  if (!ok) return;
                   setStatus('');
                   setNote('');
                 })
@@ -299,7 +326,15 @@ function AssignCard({ order }: { order: AdminOrder }) {
           <Label>Handled by</Label>
           <Select
             value={order.assignedTo?._id ?? 'none'}
-            onValueChange={(v) => void notify(assign.mutateAsync({ assignedTo: v === 'none' ? null : v }), 'Assigned')}
+            onValueChange={(v) =>
+              void ask(
+                v === 'none' ? 'Unassign this order?' : `Assign to ${staffers.find((s) => s._id === v)?.name}?`,
+                v === 'none' ? 'Nobody will be responsible for it until you assign someone.' : 'They will see it in their order list.',
+                v === 'none' ? 'Unassign' : 'Assign',
+                () => assign.mutateAsync({ assignedTo: v === 'none' ? null : v }),
+                v === 'none' ? 'Unassigned' : 'Assigned',
+              )
+            }
           >
             <SelectTrigger>
               <SelectValue />
@@ -319,7 +354,15 @@ function AssignCard({ order }: { order: AdminOrder }) {
             <Label>Delivery person</Label>
             <Select
               value={order.deliveryPerson?._id ?? 'none'}
-              onValueChange={(v) => void notify(assign.mutateAsync({ deliveryPerson: v === 'none' ? null : v }), 'Delivery assigned')}
+              onValueChange={(v) =>
+                void ask(
+                  v === 'none' ? 'Remove the delivery person?' : `Give this delivery to ${riders.find((s) => s._id === v)?.name}?`,
+                  v === 'none' ? 'The order leaves their delivery list.' : 'It appears in their delivery list straight away.',
+                  v === 'none' ? 'Remove' : 'Assign rider',
+                  () => assign.mutateAsync({ deliveryPerson: v === 'none' ? null : v }),
+                  v === 'none' ? 'Delivery person removed' : 'Delivery assigned',
+                )
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -395,7 +438,13 @@ function PaymentCard({ order }: { order: AdminOrder }) {
               className="w-full"
               disabled={record.isPending}
               onClick={() =>
-                void notify(record.mutateAsync({ amount: Number(amount) || due, provider }), 'Payment recorded').then(() => setAmount(''))
+                void ask(
+                  `Record ${formatINR(Number(amount) || due)} received?`,
+                  `Paid by ${provider === 'cash' ? 'cash' : 'UPI'} at the counter. This goes on the invoice and cannot be edited later.`,
+                  'Record payment',
+                  () => record.mutateAsync({ amount: Number(amount) || due, provider }),
+                  'Payment recorded',
+                ).then((ok) => ok && setAmount(''))
               }
             >
               <IconCash /> Record {formatINR(Number(amount) || due)}
@@ -421,7 +470,7 @@ function NoteCard({ order }: { order: AdminOrder }) {
           size="sm"
           variant="outline"
           disabled={save.isPending || note === (order.internalNote ?? '')}
-          onClick={() => void notify(save.mutateAsync(note), 'Note saved')}
+          onClick={() => void ask('Save this note?', 'Only staff can see internal notes.', 'Save note', () => save.mutateAsync(note), 'Note saved')}
         >
           Save note
         </Button>

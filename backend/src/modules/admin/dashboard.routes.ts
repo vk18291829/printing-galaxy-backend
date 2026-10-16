@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { LOW_STOCK_FILTER, MaterialModel } from '@/modules/inventory/material.model';
 import { OrderModel, TERMINAL_STATUSES } from '@/modules/orders/order.model';
+import { ReviewModel } from '@/modules/reviews/review.model';
 
 export const dashboardRouter = Router();
 
@@ -28,7 +29,7 @@ dashboardRouter.get('/', async (_req, res) => {
       },
     ]);
 
-  const [todayAgg, monthAgg, byStatus, pendingPayments, pendingInstitutions, daily, topProducts, recent, byAudience, lowStock] =
+  const [todayAgg, monthAgg, byStatus, pendingPayments, pendingInstitutions, daily, topProducts, recent, byAudience, lowStock, pendingReviews] =
     await Promise.all([
       sumRange(today),
       sumRange(monthStart),
@@ -86,6 +87,7 @@ dashboardRouter.get('/', async (_req, res) => {
         .sort({ quantity: 1 })
         .limit(10)
         .lean(),
+      ReviewModel.countDocuments({ status: 'pending' }),
     ]);
 
   // Fill missing days so the chart has a continuous x-axis.
@@ -103,6 +105,7 @@ dashboardRouter.get('/', async (_req, res) => {
     openByStatus: Object.fromEntries(byStatus.map((s) => [s._id, s.count])),
     pendingPayments: pendingPayments[0] ?? { due: 0, orders: 0 },
     pendingInstitutions,
+    pendingReviews,
     daily: series,
     topProducts,
     byAudience: Object.fromEntries(byAudience.map((a) => [a._id, { revenue: a.revenue, orders: a.orders }])),

@@ -1,5 +1,4 @@
 import {
-  IconArrowLeft,
   IconBuildingStore,
   IconClockHour4,
   IconCreditCard,
@@ -11,24 +10,16 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageNav } from '@/components/common/page-nav';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { orderKeys, useCancelOrder, useOrder } from '@/features/orders/api';
 import { OrderProgress } from '@/features/orders/components/order-progress';
@@ -82,10 +73,8 @@ export default function OrderDetailPage() {
   };
 
   return (
-    <div className="container-page max-w-5xl py-10">
-      <Link to="/account/orders" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <IconArrowLeft className="size-4" /> {t('orders.back')}
-      </Link>
+    <div className="container-page py-10">
+      <PageNav items={[{ label: t('nav.myOrders'), to: '/account/orders' }, { label: order.orderNumber }]} />
 
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
@@ -118,37 +107,23 @@ export default function OrderDetailPage() {
             </Button>
           )}
           {canCancel && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <IconX /> {t('orders.cancel')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('orders.cancel')}</DialogTitle>
-                  <DialogDescription>{t('orders.cancelConfirm')}</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="ghost">{t('common.back')}</Button>
-                  </DialogClose>
-                  <Button
-                    variant="destructive"
-                    disabled={cancel.isPending}
-                    onClick={() =>
-                      cancel.mutate(undefined, {
-                        onSuccess: () => toast.success(t('orders.cancelled')),
-                        onError: (e) => toast.error(getErrorMessage(e)),
-                      })
-                    }
-                  >
-                    {cancel.isPending && <Spinner className="size-4 text-current" />}
-                    {t('orders.cancel')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button
+              variant="outline"
+              disabled={cancel.isPending}
+              onClick={() =>
+                void confirmAction({
+                  tone: 'danger',
+                  title: t('confirm.cancelOrderTitle', { number: order.orderNumber }),
+                  description: t('orders.cancelConfirm'),
+                  confirmLabel: t('orders.cancel'),
+                  cancelLabel: t('confirm.keepOrder'),
+                  action: () => cancel.mutateAsync(undefined),
+                  successTitle: t('orders.cancelled'),
+                })
+              }
+            >
+              <IconX /> {t('orders.cancel')}
+            </Button>
           )}
         </div>
       </header>
