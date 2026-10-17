@@ -2,19 +2,23 @@ import { Schema, model } from 'mongoose';
 
 const notificationSchema = new Schema(
   {
-    channel: { type: String, enum: ['whatsapp', 'sms', 'console'], required: true },
+    /** 'whatsapp' only on older entries. */
+    channel: { type: String, enum: ['email', 'sms', 'whatsapp', 'console'], required: true },
     to: { type: String, required: true },
+    /** Message kind, e.g. order_ready, low_stock, promo. */
     template: { type: String, required: true },
+    /** MSG91 template id the SMS used. */
+    templateId: String,
+    /** Email subject. */
+    subject: String,
+    /** Held a pickup / delivery code: the body is masked and it cannot be re-sent. */
+    secret: Boolean,
     body: String,
-    /** Template variables, kept so a failed WhatsApp message can be re-sent as SMS. */
+    /** Template variables, kept so a failed message can be re-sent. Never set when they hold a code. */
     params: { type: [String], default: undefined },
     status: { type: String, enum: ['sent', 'delivered', 'read', 'failed'], required: true },
     error: String,
     relatedOrder: { type: Schema.Types.ObjectId, ref: 'Order' },
-    /** WhatsApp message id (wamid), matched against delivery status webhooks. */
-    providerMessageId: { type: String, index: true, sparse: true },
-    /** Set when a failed WhatsApp message was re-sent as SMS. */
-    fallbackSent: { type: Boolean, default: false },
     /** Times staff re-sent this message from the System activity page. */
     retries: { type: Number, default: 0 },
   },

@@ -224,7 +224,9 @@ describe('order flow rules', () => {
     await new Promise((r) => setTimeout(r, 50));
     const ready = await NotificationLogModel.find({ relatedOrder: res.body._id, template: 'order_ready' }).lean();
     expect(ready).toHaveLength(1);
-    expect(ready[0]!.body).toMatch(/pickup code \d{4}/);
+    expect(ready[0]!.body).toContain('is ready for pickup. Code ••••');
+    // The code goes only into the SMS, never into the message log.
+    expect(ready[0]!.params).toBeUndefined();
     // The code is not stored in the order history staff can read.
     const order = await OrderModel.findById(res.body._id).lean();
     expect(JSON.stringify(order?.statusHistory)).not.toMatch(/code \d{4}/);
@@ -232,6 +234,29 @@ describe('order flow rules', () => {
 });
 
 describe('tracking and accounts', () => {
+  it('asks email-only customers for a mobile number once, then tracks their order by email', async () => {
+    const restore = withEnv({ MESSAGING_CHANNEL: 'email' });
+    try {
+      const otp = await api().post('/api/v1/auth/otp/request').send({ email: 'meera@example.com' }).expect(200);
+      const login = await api().post('/api/v1/auth/otp/verify').send({ email: 'meera@example.com', code: otp.body.devCode, name: 'Meera' }).expect(200);
+      const token = login.body.accessToken as string;
+
+      const missing = await api().post('/api/v1/orders').set(bearer(token)).send(pickupOrder('counter')).expect(400);
+      expect(missing.body.error.code).toBe('PHONE_REQUIRED');
+      const order = await api().post('/api/v1/orders').set(bearer(token)).send({ ...pickupOrder('counter'), contactPhone: '9988776655' }).expect(201);
+      expect(order.body.contact).toMatchObject({ phone: '9988776655', email: 'meera@example.com' });
+      const me = await api().get('/api/v1/auth/me').set(bearer(token)).expect(200);
+      expect(me.body.user.phone).toBe('9988776655');
+
+      const lookup = { orderNumber: order.body.orderNumber, email: 'meera@example.com' };
+      const sent = await api().post('/api/v1/track/request').send(lookup).expect(200);
+      const tracked = await api().post('/api/v1/track/verify').send({ ...lookup, code: sent.body.devCode }).expect(200);
+      expect(tracked.body.orderNumber).toBe(order.body.orderNumber);
+    } finally {
+      restore();
+    }
+  });
+
   it('tracks an order without an account after a code to the phone on the order', async () => {
     const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('counter')).expect(201);
     const lookup = { orderNumber: res.body.orderNumber.toLowerCase(), phone: '9876512345' };

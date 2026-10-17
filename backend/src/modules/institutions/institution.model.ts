@@ -27,6 +27,8 @@ const institutionSchema = new Schema(
     /** Optional extra discount on top of institution prices, set by the owner. */
     extraDiscountPercent: { type: Number, min: 0, max: 50, default: 0 },
     lastLoginAt: Date,
+    /** When the account last opened its Updates page; newer updates count as unread. */
+    updatesSeenAt: Date,
   },
   { timestamps: true },
 );

@@ -1,5 +1,10 @@
 import { Router } from 'express';
+import { z } from 'zod';
+import { objectId } from '@/common/validation';
+import { authLimiter } from '@/middleware/rate-limit';
+import { validate } from '@/middleware/validate';
 import { BANNER_KINDS, BannerModel, type BannerKind } from './banner.model';
+import { unsubscribe } from './promo.service';
 
 export const marketingRouter = Router();
 
@@ -21,3 +26,15 @@ marketingRouter.get('/banners', async (_req, res) => {
   res.set('Cache-Control', 'public, max-age=60');
   res.json(grouped);
 });
+
+/** The "Stop offer emails" link: signed per customer, so it works without signing in. */
+marketingRouter.post(
+  '/unsubscribe',
+  authLimiter,
+  validate({ body: z.object({ u: objectId, t: z.string().trim().min(10).max(64) }) }),
+  async (req, res) => {
+    const { u, t } = req.body as { u: string; t: string };
+    await unsubscribe(u, t);
+    res.json({ ok: true });
+  },
+);

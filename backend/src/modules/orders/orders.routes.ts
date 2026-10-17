@@ -69,7 +69,7 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
   const needsQuote = items.some((i) => i.workflow === 'quote');
   const subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
   const totals = await computeTotals(subtotal, input.fulfilment.method);
-  const who = await resolveContact(auth, input.contactName);
+  const who = await resolveContact(auth, input.contactName, input.contactPhone);
   // Individuals paying online: nothing is printed until the money arrives. Approved
   // institutions are billed on account, so their orders start straight away.
   const payFirst = input.paymentMethod === 'online' && ctx.audience === 'retail';

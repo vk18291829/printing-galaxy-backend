@@ -92,10 +92,10 @@ export default function SettingsPage() {
             <Field label="Phone (10 digits)">
               <Input inputMode="numeric" {...register('shop.phone')} />
             </Field>
-            <Field label="WhatsApp (10 digits)">
+            <Field label="WhatsApp chat number (empty = phone)">
               <Input inputMode="numeric" {...register('shop.whatsapp')} />
             </Field>
-            <Field label="Email">
+            <Field label="Email (shop alerts go here)">
               <Input type="email" {...register('shop.email')} />
             </Field>
             <div className="sm:col-span-2">

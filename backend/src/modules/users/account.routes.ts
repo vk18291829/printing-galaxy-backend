@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { addressInput, indianPhone } from '@/common/validation';
+import { emailChannel } from '@/config/env';
 import { authenticate } from '@/middleware/auth';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { UserModel } from './user.model';
@@ -12,7 +13,9 @@ accountRouter.use(authenticate);
 const userUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   email: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
+  phone: indianPhone.optional().or(z.literal('')),
   language: z.enum(['en', 'hi']).optional(),
+  offers: z.boolean().optional(),
   addresses: z.array(addressInput).max(5).optional(),
 });
 
@@ -38,13 +41,22 @@ accountRouter.patch('/', async (req, res) => {
     return;
   }
   const input = userUpdateSchema.parse(req.body);
+  // The detail customers sign in with cannot be changed here: email on the email channel, phone on SMS.
+  const login = emailChannel() ? 'email' : 'phone';
+  delete input[login];
   const update: Record<string, unknown> = { ...input };
-  if (input.email === '') {
-    delete update.email;
+  const unset: Record<string, 1> = {};
+  for (const key of ['email', 'phone'] as const) {
+    if (input[key] === '') {
+      delete update[key];
+      unset[key] = 1;
+    } else if (input[key] && (await UserModel.exists({ [key]: input[key], _id: { $ne: auth.id } }))) {
+      throw ApiError.conflict(key === 'email' ? 'This email is already used by another account' : 'This mobile number is already used by another account');
+    }
   }
   const user = await UserModel.findByIdAndUpdate(
     auth.id,
-    { $set: update, ...(input.email === '' ? { $unset: { email: 1 } } : {}) },
+    { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
     { new: true, runValidators: true },
   );
   if (!user) throw ApiError.notFound('User');

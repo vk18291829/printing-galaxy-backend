@@ -22,6 +22,8 @@ export const createOrderSchema = z
     paymentMethod: z.enum(PAYMENT_METHODS),
     customerNote: z.string().trim().max(1000).optional(),
     contactName: z.string().trim().max(80).optional(),
+    /** Needed once for customers who signed in by email, so the shop and rider can call. */
+    contactPhone: indianPhone.optional(),
   })
   .refine((v) => v.fulfilment.method === 'pickup' || v.fulfilment.address, {
     message: 'Delivery address is required',
@@ -29,7 +31,12 @@ export const createOrderSchema = z
   });
 
 export const walkInOrderSchema = z.object({
-  customer: z.object({ name: z.string().trim().min(1).max(80), phone: indianPhone }),
+  customer: z.object({
+    name: z.string().trim().min(1).max(80),
+    phone: indianPhone,
+    /** Order updates go here when messages are sent by email. */
+    email: z.string().trim().toLowerCase().email().optional().or(z.literal('').transform(() => undefined)),
+  }),
   items: z.array(orderItemInput).min(1).max(50),
   fulfilment: z.object({
     method: z.enum(['pickup', 'delivery']),

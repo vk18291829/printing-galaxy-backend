@@ -95,6 +95,7 @@ adminInstitutionsRouter.patch(
     if (previous !== status && (status === 'approved' || status === 'rejected')) {
       void notifications.institutionReviewed({
         phone: institution.phone,
+        email: institution.email,
         name: institution.name,
         approved: status === 'approved',
         reason,

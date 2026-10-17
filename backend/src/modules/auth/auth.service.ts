@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { ApiError } from '@/common/errors';
 import { STAFF_ROLES, type AuthContext, type UserRole } from '@/common/types';
-import { env, isProd } from '@/config/env';
+import { emailChannel, emailEnabled, env, isProd } from '@/config/env';
 import { logEvent, maskPhone } from '@/config/logger';
 import { audit } from '@/modules/audit/audit.model';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
@@ -33,8 +33,8 @@ const ROTATION_GRACE_MS = 30_000;
 
 export type OtpPurpose = 'login' | 'password_reset' | 'track';
 
-const hashOtp = (phone: string, code: string, purpose: OtpPurpose = 'login') =>
-  crypto.createHmac('sha256', env.JWT_ACCESS_SECRET).update(purpose === 'login' ? `${phone}:${code}` : `${purpose}:${phone}:${code}`).digest('hex');
+const hashOtp = (to: string, code: string, purpose: OtpPurpose = 'login') =>
+  crypto.createHmac('sha256', env.JWT_ACCESS_SECRET).update(purpose === 'login' ? `${to}:${code}` : `${purpose}:${to}:${code}`).digest('hex');
 
 export const hashPassword = (plain: string) => bcrypt.hash(plain, 12);
 
@@ -136,9 +136,12 @@ export async function getMe(ctx: AuthContext) {
 
 // ── Customer OTP ────────────────────────────────────────────────────────────
 
+/** Where a code goes: a 10-digit mobile number (SMS) or an email address. */
+const maskTarget = (to: string) => (to.includes('@') ? to.replace(/^(.).*(@.*)$/, '$1***$2') : maskPhone(to));
+
 /** Creates and sends a one-time code. Shared by sign-in, password reset and order tracking. */
-export async function issueOtp(phone: string, purpose: OtpPurpose = 'login') {
-  const recent = await OtpModel.find({ phone, createdAt: { $gt: new Date(Date.now() - 3_600_000) } })
+export async function issueOtp(to: string, purpose: OtpPurpose = 'login') {
+  const recent = await OtpModel.find({ to, createdAt: { $gt: new Date(Date.now() - 3_600_000) } })
     .sort({ createdAt: -1 })
     .lean();
   const latest = recent.find((o) => (o.purpose ?? 'login') === purpose);
@@ -151,27 +154,28 @@ export async function issueOtp(phone: string, purpose: OtpPurpose = 'login') {
 
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
   // Only the newest code stays valid; older ones are kept briefly for rate limiting.
-  await OtpModel.updateMany({ phone, purpose }, { $set: { attempts: OTP_MAX_ATTEMPTS } });
+  await OtpModel.updateMany({ to, purpose }, { $set: { attempts: OTP_MAX_ATTEMPTS } });
   await OtpModel.create({
-    phone,
+    to,
     purpose,
-    codeHash: hashOtp(phone, code, purpose),
+    codeHash: hashOtp(to, code, purpose),
     expiresAt: new Date(Date.now() + env.OTP_TTL_MINUTES * 60_000),
   });
-  await notifications.sendOtp(phone, code);
-  logEvent('auth.otp_sent', { phone: maskPhone(phone), purpose });
+  await notifications.sendOtp(to, code, purpose);
+  logEvent('auth.otp_sent', { to: maskTarget(to), purpose });
 
+  const providerReady = to.includes('@') ? emailEnabled() : Boolean(env.MSG91_AUTH_KEY);
   return {
     expiresInSeconds: env.OTP_TTL_MINUTES * 60,
     resendInSeconds: OTP_RESEND_COOLDOWN_MS / 1000,
-    // Lets developers sign in without an SMS provider. Never returned in production.
-    ...(!isProd && !env.MSG91_AUTH_KEY ? { devCode: code } : {}),
+    // Lets developers sign in without Gmail / SMS set up. Never returned in production.
+    ...(!isProd && !providerReady ? { devCode: code } : {}),
   };
 }
 
 /** Checks a code; wrong tries are counted. The code is used up on success. */
-export async function checkOtp(phone: string, code: string, purpose: OtpPurpose = 'login') {
-  const otp = await OtpModel.findOne({ phone, purpose: purpose === 'login' ? { $in: ['login', null] } : purpose }).sort({ createdAt: -1 });
+export async function checkOtp(to: string, code: string, purpose: OtpPurpose = 'login') {
+  const otp = await OtpModel.findOne({ to, purpose: purpose === 'login' ? { $in: ['login', null] } : purpose }).sort({ createdAt: -1 });
   if (!otp || otp.expiresAt < new Date()) {
     throw ApiError.badRequest('Code expired. Please request a new one');
   }
@@ -180,23 +184,37 @@ export async function checkOtp(phone: string, code: string, purpose: OtpPurpose 
   }
 
   const expected = Buffer.from(otp.codeHash, 'hex');
-  const actual = Buffer.from(hashOtp(phone, code, purpose), 'hex');
+  const actual = Buffer.from(hashOtp(to, code, purpose), 'hex');
   if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
     otp.attempts += 1;
     await otp.save();
     throw ApiError.badRequest('Incorrect code');
   }
-  await OtpModel.deleteMany({ phone, purpose });
+  await OtpModel.deleteMany({ to, purpose });
 }
 
-export const requestOtp = (phone: string) => issueOtp(phone, 'login');
+/** Customers sign in with whatever MESSAGING_CHANNEL uses: email, or mobile number by SMS. */
+function loginTarget(input: { email?: string; phone?: string }) {
+  if (emailChannel()) {
+    if (!input.email) throw ApiError.badRequest('Enter your email address');
+    return { email: input.email };
+  }
+  if (!input.phone) throw ApiError.badRequest('Enter your mobile number');
+  return { phone: input.phone };
+}
 
-export async function verifyOtp(req: Request, res: Response, phone: string, code: string, name?: string) {
-  await checkOtp(phone, code, 'login');
+export const requestOtp = (input: { email?: string; phone?: string }) => {
+  const target = loginTarget(input);
+  return issueOtp(target.email ?? target.phone!, 'login');
+};
 
-  let user = await UserModel.findOne({ phone });
+export async function verifyOtp(req: Request, res: Response, input: { email?: string; phone?: string }, code: string, name?: string) {
+  const target = loginTarget(input);
+  await checkOtp(target.email ?? target.phone!, code, 'login');
+
+  let user = await UserModel.findOne(target);
   const isNew = !user;
-  if (!user) user = await UserModel.create({ phone, name: name ?? '', role: 'customer' });
+  if (!user) user = await UserModel.create({ ...target, name: name ?? '', role: 'customer' });
   else if (name && !user.name) user.name = name;
   if (!user.isActive) throw ApiError.forbidden('This account has been disabled');
   user.lastLoginAt = new Date();
@@ -271,25 +289,34 @@ export async function loginStaff(req: Request, res: Response, email: string, pas
   return { accessToken, kind: 'user' as const, user: user.toJSON() };
 }
 
-// ── Institution password reset (code sent to the phone on the account) ─────
+// ── Institution password reset (code to the account email, or its phone by SMS) ──
 
-const RESET_SENT = {
+const resetSent = () => ({
   sent: true,
-  message: 'If this email is registered, a 6-digit code has been sent to the phone number on the account.',
-};
+  sentTo: emailChannel() ? ('email' as const) : ('phone' as const),
+  message: emailChannel()
+    ? 'If this email is registered, a 6-digit code has been sent to it.'
+    : 'If this email is registered, a 6-digit code has been sent to the phone number on the account.',
+});
+
+const resetTarget = (institution: { email: string; phone: string }) => (emailChannel() ? institution.email : institution.phone);
 
 export async function requestInstitutionPasswordReset(email: string) {
   const institution = await InstitutionModel.findOne({ email }).lean();
   // Same answer whether or not the email exists, so accounts cannot be discovered.
-  if (!institution || institution.status === 'suspended') return RESET_SENT;
-  const issued = await issueOtp(institution.phone, 'password_reset');
-  return { ...RESET_SENT, phoneHint: maskPhone(institution.phone), ...('devCode' in issued ? { devCode: issued.devCode } : {}) };
+  if (!institution || institution.status === 'suspended') return resetSent();
+  const issued = await issueOtp(resetTarget(institution), 'password_reset');
+  return {
+    ...resetSent(),
+    ...(emailChannel() ? {} : { phoneHint: maskPhone(institution.phone) }),
+    ...('devCode' in issued ? { devCode: issued.devCode } : {}),
+  };
 }
 
 export async function resetInstitutionPassword(req: Request, email: string, code: string, password: string) {
   const institution = await InstitutionModel.findOne({ email }).select('+passwordHash');
   if (!institution || institution.status === 'suspended') throw ApiError.badRequest('Incorrect code');
-  await checkOtp(institution.phone, code, 'password_reset');
+  await checkOtp(resetTarget(institution), code, 'password_reset');
   institution.passwordHash = await hashPassword(password);
   await institution.save();
   // Signed out everywhere: whoever knew the old password loses access.

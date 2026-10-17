@@ -1,4 +1,5 @@
 import {
+  IconBell,
   IconBuildingCommunity,
   IconLayoutDashboard,
   IconLogout,
@@ -28,6 +29,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useLogout } from '@/features/auth/api';
 import { useAuthStore, useDisplayName } from '@/features/auth/auth-store';
+import { useUpdates } from '@/features/updates/api';
 import { useCartCount } from '@/features/cart/cart-store';
 import { useCategories } from '@/features/catalog/api';
 import { useLocalized } from '@/lib/i18n';
@@ -50,6 +52,26 @@ function CartButton() {
         {count > 0 && (
           <span className="bg-brand-magenta absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-white">
             {count}
+          </span>
+        )}
+      </Link>
+    </Button>
+  );
+}
+
+function UpdatesButton() {
+  const { t } = useTranslation();
+  const signedIn = useAuthStore((s) => s.status === 'authenticated');
+  const { data } = useUpdates();
+  if (!signedIn) return null;
+  const unread = data?.unread ?? 0;
+  return (
+    <Button variant="ghost" size="icon" className="relative size-9" asChild>
+      <Link to="/account/updates" aria-label={unread ? t('updates.unread', { count: unread }) : t('nav.updates')}>
+        <IconBell className="size-[19px]" />
+        {unread > 0 && (
+          <span className="bg-brand-magenta absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-white">
+            {unread > 9 ? '9+' : unread}
           </span>
         )}
       </Link>
@@ -101,6 +123,9 @@ function AccountMenu() {
         )}
         <DropdownMenuItem onSelect={() => navigate('/account/orders')}>
           <IconPackage /> {t('nav.myOrders')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => navigate('/account/updates')}>
+          <IconBell /> {t('nav.updates')}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate('/account/profile')}>
           <IconUser /> {t('nav.profile')}
@@ -189,6 +214,7 @@ export function SiteHeader() {
           <div className="hidden min-[380px]:block">
             <ThemeToggle />
           </div>
+          <UpdatesButton />
           <CartButton />
           <div className="hidden sm:block">
             <AccountMenu />
@@ -245,6 +271,12 @@ export function SiteHeader() {
                       className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
                     >
                       {t('nav.myOrders')}
+                    </NavLink>
+                    <NavLink
+                      to="/account/updates"
+                      className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
+                    >
+                      {t('nav.updates')}
                     </NavLink>
                     <NavLink
                       to="/account/profile"

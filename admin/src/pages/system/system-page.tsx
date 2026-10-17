@@ -98,7 +98,7 @@ function MessagesTab() {
   return (
     <Card className="gap-0 py-0">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
-        <p className="text-sm text-muted-foreground">WhatsApp and SMS messages sent to customers and the shop.</p>
+        <p className="text-sm text-muted-foreground">Emails and SMS sent to customers and the shop. Pickup and delivery codes are never stored.</p>
         <Button variant="outline" size="sm" onClick={() => { setFailedOnly((v) => !v); setPage(1); }}>
           {failedOnly ? 'Show all' : 'Failed only'}
         </Button>
@@ -134,7 +134,6 @@ function MessagesTab() {
                   </TableCell>
                   <TableCell className="align-top">
                     <Badge variant={STATUS_VARIANT[m.status] ?? 'secondary'}>{m.status}</Badge>
-                    {m.fallbackSent && <p className="mt-1 text-xs text-muted-foreground">SMS sent instead</p>}
                   </TableCell>
                   <TableCell className="pr-5 text-right align-top">
                     {m.status === 'failed' && m.template !== 'otp' && (
@@ -172,7 +171,7 @@ function WebhooksTab() {
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />;
   return (
     <Card className="gap-0 py-0">
-      <p className="border-b px-5 py-3 text-sm text-muted-foreground">Events received from Razorpay and WhatsApp. Repeats of the same event are recognised and skipped.</p>
+      <p className="border-b px-5 py-3 text-sm text-muted-foreground">Events received from Razorpay. Repeats of the same event are recognised and skipped.</p>
       {isLoading ? (
         <Loading />
       ) : data?.items.length ? (

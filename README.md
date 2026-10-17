@@ -76,18 +76,30 @@ switch on when their keys are set:
 | Integration | Variables | Without it |
 | --- | --- | --- |
 | Razorpay | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Only pay-at-counter is offered |
-| OTP SMS (MSG91) | `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID` | Code returned to the browser in development |
-| WhatsApp updates | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_*` | Messages are logged to the console |
-| WhatsApp delivery receipts | `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | Failures after sending are not noticed |
-| Status SMS fallback (MSG91) | `MSG91_AUTH_KEY`, `MSG91_STATUS_TEMPLATE_ID` | No SMS when WhatsApp fails |
+| Email (Gmail), the default | `MESSAGING_CHANNEL=email`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `WEBSITE_URL` | Codes and emails are printed in the API log (development only) |
+| SMS (MSG91), switched off | `MESSAGING_CHANNEL=sms`, `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID`, `MSG91_TEMPLATE_*` | Messages are logged to the console |
 | Job queue (Redis / BullMQ) | `REDIS_URL` | Bulk jobs run one at a time inside the API process |
 
-**WhatsApp templates.** Outside the 24-hour customer-service window WhatsApp only delivers approved
-templates. Create three *Utility* templates in Meta Business Manager and put their names in `.env`:
-order status `Your order {{1}} {{2}}. {{3}}` (in English and Hindi), account update
-`Printing Galaxy: {{1}} {{2}}`, staff alert `Printing Galaxy alert: {{1}}`. Point the WhatsApp webhook at
-`/api/v1/notifications/whatsapp/webhook` (field `messages`): if a message later fails to deliver, it is
-re-sent once by SMS. The MSG91 status flow receives the same values as `var1`, `var2`, `var3`.
+**Messages: email or SMS.** `MESSAGING_CHANNEL` picks one channel for everything: sign-in codes,
+order updates with pickup / delivery codes, refunds, institution approvals, shop alerts and
+promotions. With `email` (the default) customers sign in with their email address and give a
+mobile number once at checkout so the shop and rider can call. Mail goes out through a Gmail
+account with an App Password (Google Account → Security → 2-Step Verification → App passwords).
+A normal Gmail account sends about 500 emails a day, Google Workspace about 2,000.
+
+**SMS templates (SMS channel).** With `MESSAGING_CHANNEL=sms` all messages are SMS through MSG91, and India's DLT rules need every SMS text
+registered first. Register one *Service Implicit* template per message on your DLT portal, add each
+to MSG91 (SMS → Templates, variables written `##var1##`, `##var2##`, …) and put the MSG91 template
+ids in `.env`; the exact texts are in `backend/.env.example`. Each variable holds at most 30
+characters. SMS are sent in English.
+
+**Promotions.** In **Admin → Promotions** write an email (subject, message, optional button), send
+yourself a test, then send it to every customer who has not turned offers off. Each email has a
+signed "Stop offer emails" link. On the SMS channel the same page sends DLT-approved promotional
+templates instead, only between 10 AM and 9 PM.
+
+The website's WhatsApp chat button opens a chat with the shop's WhatsApp number (Settings), or the
+shop phone when that is empty. It does not send messages.
 
 Razorpay webhook URL: `POST /api/v1/payments/razorpay/webhook` (events `payment.captured`,
 `order.paid`, `payment.failed`, `refund.processed`, `refund.failed`). Each event is stored with
@@ -120,7 +132,7 @@ any open step ─> cancelled (refund if paid)
 - **Allowed moves.** The status control only offers the next valid steps. The owner can override with a
   written reason (saved in the history as `Override: …`).
 - **Handover codes.** When a pickup order is ready, or a delivery goes out, the customer gets a 4-digit code
-  by WhatsApp/SMS and on their order page. Staff (Hand over) or the rider (Delivered) must enter it; five
+  by email (or SMS) and on their order page. Staff (Hand over) or the rider (Delivered) must enter it; five
   wrong codes lock the handover until the owner confirms it. Riders never see the code.
 - **Balance at handover.** Anything still due must be collected when the order is handed over (except
   institutions). Failed delivery attempts message the customer; after three, the shop is alerted.
@@ -146,7 +158,7 @@ updated, refresh"* instead of overwriting each other.
 - Phone numbers are masked (`98****3210`); tokens, codes and signatures are redacted. Login codes are
   never written to the log in production.
 - `/api/v1/health` returns 503 when the database is down (use it for uptime monitoring).
-- **Admin → System activity** (owner): server health, setup warnings, failed WhatsApp/SMS messages with
+- **Admin → System activity** (owner): server health, setup warnings, failed emails / SMS with
   a Retry button, all payments and refunds, and every webhook received.
 - In production the API refuses to start with the example JWT secrets and prints warnings for missing
   integrations. Rotate logs with `pm2 install pm2-logrotate`.

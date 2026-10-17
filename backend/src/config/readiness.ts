@@ -1,4 +1,4 @@
-import { env, isProd, razorpayEnabled } from './env';
+import { emailChannel, emailEnabled, env, isProd, razorpayEnabled } from './env';
 import { logger } from './logger';
 
 const EXAMPLE_SECRETS = [
@@ -25,8 +25,17 @@ export function readinessReport() {
   if (env.CORS_ORIGINS.every((o) => /localhost|127\.0\.0\.1/.test(o))) {
     warnings.push('CORS_ORIGINS only lists localhost: add the website and admin URLs');
   }
-  if (!env.MSG91_AUTH_KEY || !env.MSG91_OTP_TEMPLATE_ID) {
+  if (emailChannel()) {
+    if (!emailEnabled()) warnings.push('GMAIL_USER / GMAIL_APP_PASSWORD are missing: customers cannot get sign-in codes or order emails');
+    if (env.WEBSITE_URL.includes('localhost')) warnings.push('WEBSITE_URL points at localhost: links in emails will not work for customers');
+  } else if (!env.MSG91_AUTH_KEY || !env.MSG91_OTP_TEMPLATE_ID) {
     warnings.push('MSG91 is not configured: customers cannot receive login codes, so phone sign-in is switched off');
+  }
+  const missingSms = (
+    ['MSG91_TEMPLATE_ORDER_STATUS', 'MSG91_TEMPLATE_PICKUP_CODE', 'MSG91_TEMPLATE_DELIVERY_CODE', 'MSG91_TEMPLATE_ACCOUNT_UPDATE', 'MSG91_TEMPLATE_STAFF_ALERT'] as const
+  ).filter((k) => !env[k]);
+  if (!emailChannel() && env.MSG91_AUTH_KEY && missingSms.length) {
+    warnings.push(`MSG91 templates missing (${missingSms.join(', ')}): those SMS are not sent`);
   }
   if (!razorpayEnabled()) warnings.push('Razorpay keys are missing: only pay-at-counter is offered');
   else if (!env.RAZORPAY_WEBHOOK_SECRET) warnings.push('RAZORPAY_WEBHOOK_SECRET is missing: payments made after the browser closes are only found by the reconciliation job');

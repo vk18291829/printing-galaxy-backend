@@ -34,7 +34,7 @@ describe('materials and low-stock alerts', () => {
     await new Promise((r) => setTimeout(r, 50));
     const alerts = await NotificationLogModel.find({ template: 'low_stock' }).lean();
     expect(alerts).toHaveLength(1);
-    expect(alerts[0]!.body).toContain('PVC sheets is low: 15 sheets left');
+    expect(alerts[0]!.body).toContain('Low stock: 15 sheets left - PVC sheets');
 
     const dash = await api().get('/api/v1/admin/dashboard').set(bearer(staff)).expect(200);
     expect(dash.body.lowStock.map((m: { name: string }) => m.name)).toEqual(['PVC sheets']);

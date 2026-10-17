@@ -66,7 +66,8 @@
     "categories": "Categories",
     "institutionRegister": "Register your institution",
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "switchToDark": "Switch to dark theme",
+    "updates": "Updates"
   },
   "home": {
     "badge": "Now taking orders online",
@@ -81,7 +82,7 @@
     "audienceTitle": "Two ways to order",
     "audienceSubtitle": "Individual prices for everyday printing, bulk prices for institutions.",
     "individualTitle": "Individuals & students",
-    "individualDesc": "Sign in with your phone number. No password, no app to install.",
+    "individualDesc": "Sign in with a one-time code. No password, no app to install.",
     "individualPoints": [
       "Notes, PPT and colour prints",
       "PVC Aadhaar, PAN and Voter ID cards",
@@ -369,14 +370,14 @@
       "heroTitle": "Print anything, straight from your phone",
       "heroSubtitle": "Notes, PVC cards, photos and gifts — see the price before you order and pick up or get it delivered.",
       "benefits": [
-        "No password — sign in with an SMS code",
+        "No password — sign in with a one-time code",
         "Live prices before you place the order",
         "Track every order and download invoices",
         "Pick up at the shop or get home delivery"
       ],
       "howApprovalWorks": "How sign-in works",
       "approvalSteps": [
-        "Enter your mobile number",
+        "Enter your email address",
         "Type the 6-digit code we send",
         "Start ordering — new accounts are created automatically"
       ],
@@ -395,7 +396,19 @@
     "resetPassword": "Set new password",
     "resetDone": "Password changed. Please sign in with your new password.",
     "backToLogin": "Back to sign in",
-    "changeEmail": "Use a different email"
+    "changeEmail": "Use a different email",
+    "byEmail": {
+      "loginTitle": "Sign in with your email",
+      "loginSubtitle": "We'll email you a 6-digit code. New here? Your account is created automatically.",
+      "email": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "otpSent": "Sent to {{email}}. Check your inbox and spam folder.",
+      "changeEmail": "Change email",
+      "step": "Email",
+      "privacy": "We only email you about your orders, plus offers you can turn off. No spam."
+    },
+    "resetSubtitleEmail": "Enter your institution's email. We'll email you a 6-digit code.",
+    "resetCodeSentEmail": "If the email is registered, a 6-digit code was sent to it. Check your inbox and spam folder."
   },
   "status": {
     "institution": {
@@ -476,6 +489,8 @@
     "payCounter": "Pay at counter",
     "payCounterDesc": "Cash or UPI when you collect",
     "contactName": "Your name",
+    "contactPhone": "Mobile number",
+    "contactPhoneHint": "Only for this order: the shop or delivery person may call you. Saved to your account.",
     "note": "Note for the shop",
     "placeOrder": "Place order",
     "placeAndPay": "Place order & pay {{amount}}",
@@ -563,7 +578,9 @@
     "name": "Name",
     "email": "Email",
     "phone": "Mobile",
-    "language": "Preferred language for messages",
+    "language": "Preferred language",
+    "offers": "Offers and new products",
+    "offersDesc": "Discounts and new products. Order updates and sign-in codes are always sent.",
     "saved": "Saved",
     "addresses": "Saved address",
     "institution": "Institution",
@@ -952,7 +969,10 @@
     "another": "Track another order",
     "placed": "Placed {{date}}",
     "signInHint": "Sign in to see files, proofs, invoices and your pickup or delivery code.",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "subtitleEmail": "No account needed. Enter your order number and the email address used for the order.",
+    "email": "Email address",
+    "codeSentEmail": "If the details match an order, we've emailed a 6-digit code to {{email}}."
   },
   "legal": {
     "updated": "Last updated: {{date}}",
@@ -997,7 +1017,7 @@
         ],
         [
           "How we use it",
-          "To price, print and deliver your orders, send order updates by WhatsApp or SMS, issue invoices and answer your questions. We do not sell your data."
+          "To price, print and deliver your orders, send order updates by email or SMS, issue invoices and answer your questions. We do not sell your data."
         ],
         [
           "Identity documents",
@@ -1061,5 +1081,26 @@
         ]
       ]
     }
+  },
+  "updates": {
+    "title": "Updates",
+    "subtitle": "Order progress, refunds and offers from the last 90 days.",
+    "empty": "No updates yet",
+    "emptyDesc": "When your order moves forward or we have an offer, it shows up here.",
+    "orderStatus": "Order {{number}}: {{status}}",
+    "refundStarted": "Refund of {{amount}} started for order {{number}}",
+    "refundDone": "Refund of {{amount}} completed for order {{number}}",
+    "offer": "Offer",
+    "new": "New",
+    "unread_one": "{{count}} new update",
+    "unread_other": "{{count}} new updates"
+  },
+  "unsubscribe": {
+    "title": "Offer emails",
+    "working": "Turning off offer emails…",
+    "done": "You won't get offer emails any more.",
+    "doneDesc": "Order updates and sign-in codes still arrive. You can turn offers back on in your profile.",
+    "failed": "This link is not valid or has expired.",
+    "home": "Go to the home page"
   }
 }

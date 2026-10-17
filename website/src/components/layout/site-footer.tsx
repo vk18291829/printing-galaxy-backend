@@ -64,9 +64,9 @@ export function SiteFooter() {
                 </a>
               </li>
             )}
-            {shop?.whatsapp && (
+            {(shop?.whatsapp || shop?.phone) && (
               <li>
-                <a href={`https://wa.me/91${shop.whatsapp}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-foreground">
+                <a href={`https://wa.me/91${shop.whatsapp || shop.phone}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-foreground">
                   <IconBrandWhatsapp className="size-4" /> WhatsApp
                 </a>
               </li>

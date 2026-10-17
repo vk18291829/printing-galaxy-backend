@@ -23,8 +23,9 @@ export interface InstitutionRegisterInput {
 }
 
 export const authApi = {
-  requestOtp: (phone: string) => api.post<OtpRequestResponse>('/auth/otp/request', { phone }).then((r) => r.data),
-  verifyOtp: (input: { phone: string; code: string; name?: string }) =>
+  /** Email or mobile number, whichever the server signs customers in with. */
+  requestOtp: (target: { email?: string; phone?: string }) => api.post<OtpRequestResponse>('/auth/otp/request', target).then((r) => r.data),
+  verifyOtp: (input: { email?: string; phone?: string; code: string; name?: string }) =>
     api.post<SessionResponse & { isNew: boolean }>('/auth/otp/verify', input).then((r) => r.data),
   institutionLogin: (input: { email: string; password: string }) =>
     api.post<SessionResponse>('/auth/institution/login', input).then((r) => r.data),

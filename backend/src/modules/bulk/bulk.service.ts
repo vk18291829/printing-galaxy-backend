@@ -78,11 +78,7 @@ async function fail(job: BulkJobDoc, err: unknown) {
   job.error = err instanceof Error ? err.message : String(err);
   await job.save();
   const settings = await getSettings();
-  void notifications.staffAlert(
-    settings.shop.whatsapp || settings.shop.phone,
-    'bulk_job_failed',
-    `Bulk card job ${job.id} failed: ${job.error}`,
-  );
+  void notifications.staffAlert(settings.shop, 'bulk_job_failed', 'Bulk card job failed', job.id);
 }
 
 async function runValidate({ bulkJobId }: { bulkJobId: string }) {

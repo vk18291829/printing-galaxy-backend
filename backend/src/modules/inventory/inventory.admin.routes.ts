@@ -41,11 +41,7 @@ async function checkLowStock(materialId: string) {
     m.lowStockAlertedAt = new Date();
     await m.save();
     const settings = await getSettings();
-    void notifications.staffAlert(
-      settings.shop.whatsapp || settings.shop.phone,
-      'low_stock',
-      `${m.name} is low: ${m.quantity} ${m.unit} left (alert at ${m.lowStockThreshold}).${m.reorderQuantity ? ` Reorder ${m.reorderQuantity} ${m.unit}.` : ''}`,
-    );
+    void notifications.staffAlert(settings.shop, 'low_stock', `Low stock: ${m.quantity} ${m.unit} left`, m.name);
   } else if (!low && m.lowStockAlertedAt) {
     m.lowStockAlertedAt = undefined;
     await m.save();

@@ -1,86 +1,74 @@
 import type { Types } from 'mongoose';
 import { ApiError } from '@/common/errors';
-import { env, isProd } from '@/config/env';
+import { emailChannel, emailEnabled, env, isProd } from '@/config/env';
 import { logger, maskPhone } from '@/config/logger';
+import { sendMail, type Mail } from './mailer';
 import { NotificationClaimModel, NotificationLogModel } from './notification.model';
 
-type Lang = 'en' | 'hi';
-type Channel = 'whatsapp' | 'sms' | 'console';
-
-const STATUS_TEXT: Record<string, Record<Lang, string>> = {
-  quote_pending: { en: 'received — we will share a price shortly', hi: 'प्राप्त हुआ — हम जल्द ही कीमत बताएँगे' },
-  awaiting_payment: { en: 'is waiting for payment. Pay from My orders to start printing', hi: 'भुगतान की प्रतीक्षा में है। प्रिंटिंग शुरू करने के लिए मेरे ऑर्डर से भुगतान करें' },
-  delivery_failed: { en: 'could not be delivered today', hi: 'आज डिलीवर नहीं हो सका' },
-  refunded: { en: 'refund has been started. It reaches your account in 5–7 working days', hi: 'का रिफ़ंड शुरू हो गया है। यह 5–7 कार्य दिवसों में आपके खाते में पहुँचेगा' },
-  received: { en: 'received', hi: 'प्राप्त हो गया है' },
-  proof_sent: { en: 'proof is ready for your approval', hi: 'का प्रूफ़ आपकी मंज़ूरी के लिए तैयार है' },
-  approved: { en: 'approved and queued for printing', hi: 'मंज़ूर हो गया है और प्रिंटिंग की कतार में है' },
-  printing: { en: 'is being printed', hi: 'प्रिंट हो रहा है' },
-  ready: { en: 'is ready for pickup', hi: 'पिकअप के लिए तैयार है' },
-  out_for_delivery: { en: 'is out for delivery', hi: 'डिलीवरी के लिए निकल चुका है' },
-  delivered: { en: 'has been delivered', hi: 'डिलीवर हो गया है' },
-  picked_up: { en: 'has been picked up. Thank you!', hi: 'ले लिया गया है। धन्यवाद!' },
-  cancelled: { en: 'has been cancelled', hi: 'रद्द कर दिया गया है' },
+/**
+ * Status phrases. SMS templates allow at most 30 characters per {#var#}, so keep them short.
+ * SMS template: "Printing Galaxy: Your order {#var#} {#var#}. {#var#}"
+ */
+const STATUS_TEXT: Record<string, string> = {
+  quote_pending: 'is received, price coming soon',
+  awaiting_payment: 'is waiting for payment',
+  delivery_failed: 'could not be delivered today',
+  refunded: 'refund has been started',
+  received: 'has been received',
+  proof_sent: 'proof is ready to approve',
+  approved: 'is approved for printing',
+  printing: 'is being printed',
+  ready: 'is ready for pickup',
+  out_for_delivery: 'is out for delivery',
+  delivered: 'has been delivered',
+  picked_up: 'has been picked up. Thank you',
+  cancelled: 'has been cancelled',
 };
 
+/** SMS message types with their own DLT template. Promotions use templates saved in the admin panel. */
+const TEMPLATE_ENV = {
+  orderStatus: 'MSG91_TEMPLATE_ORDER_STATUS',
+  pickupCode: 'MSG91_TEMPLATE_PICKUP_CODE',
+  deliveryCode: 'MSG91_TEMPLATE_DELIVERY_CODE',
+  accountUpdate: 'MSG91_TEMPLATE_ACCOUNT_UPDATE',
+  staffAlert: 'MSG91_TEMPLATE_STAFF_ALERT',
+} as const;
+type TemplateKey = keyof typeof TEMPLATE_ENV;
+
+/** DLT rejects a variable longer than 30 characters; newlines and repeated spaces are removed too. */
+export const smsVar = (v: string) => v.replace(/\s+/g, ' ').trim().slice(0, 30);
+
 /**
- * One outgoing message. `body` is the full text (console, in-session WhatsApp, SMS without a
- * template); `template` is the approved WhatsApp template used when one is configured.
- * Template variables are also passed to the SMS flow as var1…varN.
+ * One outgoing message, ready for either channel (MESSAGING_CHANNEL picks one).
+ * `body` is the readable text kept in the log and printed in development.
  */
 interface Message {
-  to: string;
+  phone?: string | null;
+  email?: string | null;
   kind: string;
   body: string;
-  template?: { name?: string; lang: Lang; params: string[] };
+  /** SMS: the MSG91 template filled with `params` (var1, var2, …). */
+  sms: { template: TemplateKey | { id: string }; params: string[] };
+  mail: Omit<Mail, 'to' | 'headers'>;
+  /** The message holds a secret (handover code): send it, but never store it or re-send it. */
+  secret?: boolean;
   relatedOrder?: Types.ObjectId;
 }
 
-const whatsappEnabled = () => Boolean(env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID);
-const smsEnabled = () => Boolean(env.MSG91_AUTH_KEY && env.MSG91_STATUS_TEMPLATE_ID);
+const templateId = (t: Message['sms']['template']) => (typeof t === 'string' ? env[TEMPLATE_ENV[t]] : t.id);
 
-/** Meta rejects empty template parameters and ones with newlines or long runs of spaces. */
-const templateParam = (v: string) => v.replace(/\s+/g, ' ').trim().slice(0, 900) || '-';
-
-async function sendWhatsApp(msg: Message): Promise<string | undefined> {
-  const payload = msg.template?.name
-    ? {
-        type: 'template',
-        template: {
-          name: msg.template.name,
-          language: { code: msg.template.lang },
-          components: [
-            {
-              type: 'body',
-              parameters: msg.template.params.map((text) => ({ type: 'text', text: templateParam(text) })),
-            },
-          ],
-        },
-      }
-    : // Free-form text only reaches people who messaged the shop in the last 24 hours.
-      { type: 'text', text: { body: msg.body } };
-
-  const res = await fetch(`https://graph.facebook.com/v21.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messaging_product: 'whatsapp', to: `91${msg.to}`, ...payload }),
-  });
-  if (!res.ok) throw new Error(`WhatsApp API ${res.status}: ${await res.text()}`);
-  const data = (await res.json().catch(() => ({}))) as { messages?: { id: string }[] };
-  return data.messages?.[0]?.id;
-}
-
-async function sendSms(to: string, vars: string[]) {
-  const recipient: Record<string, string> = { mobiles: `91${to}` };
-  vars.forEach((v, i) => {
-    recipient[`var${i + 1}`] = v;
-  });
+/** Sends one SMS template to many numbers in one call; every recipient gets the same variables. */
+export async function sendSms(to: string[], id: string, params: string[]) {
+  const vars = Object.fromEntries(params.map((v, i) => [`var${i + 1}`, smsVar(v)]));
   const res = await fetch('https://control.msg91.com/api/v5/flow', {
     method: 'POST',
     headers: { authkey: env.MSG91_AUTH_KEY ?? '', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ template_id: env.MSG91_STATUS_TEMPLATE_ID, short_url: '0', recipients: [recipient] }),
+    body: JSON.stringify({ template_id: id, short_url: '0', recipients: to.map((m) => ({ mobiles: `91${m}`, ...vars })) }),
   });
   if (!res.ok) throw new Error(`MSG91 ${res.status}: ${await res.text()}`);
+  // MSG91 can answer 200 with { type: "error" }.
+  const data = (await res.json().catch(() => ({}))) as { type?: string; message?: string };
+  if (data.type === 'error') throw new Error(`MSG91: ${data.message ?? 'rejected'}`);
 }
 
 async function sendSmsOtp(to: string, code: string) {
@@ -92,37 +80,31 @@ async function sendSmsOtp(to: string, code: string) {
   if (!res.ok) throw new Error(`MSG91 ${res.status}: ${await res.text()}`);
 }
 
-async function log(
-  channel: Channel,
-  msg: Pick<Message, 'to' | 'kind' | 'body' | 'relatedOrder'> & { params?: string[] },
-  extra: { error?: unknown; providerMessageId?: string } = {},
-) {
+interface LogEntry {
+  to: string;
+  kind: string;
+  body: string;
+  subject?: string;
+  params?: string[];
+  templateId?: string;
+  secret?: boolean;
+  relatedOrder?: Types.ObjectId;
+}
+
+async function log(channel: 'sms' | 'email' | 'console', msg: LogEntry, error?: unknown) {
   await NotificationLogModel.create({
     channel,
     to: msg.to,
     template: msg.kind,
+    templateId: msg.templateId,
+    subject: msg.subject,
     body: msg.body,
-    params: msg.params,
-    status: extra.error ? 'failed' : 'sent',
-    error: extra.error ? String((extra.error as Error).message ?? extra.error) : undefined,
+    params: msg.secret ? undefined : msg.params,
+    secret: msg.secret || undefined,
+    status: error ? 'failed' : 'sent',
+    error: error ? String((error as Error).message ?? error) : undefined,
     relatedOrder: msg.relatedOrder,
-    providerMessageId: extra.providerMessageId,
   }).catch((err) => logger.error({ err }, 'Failed to log notification'));
-}
-
-const smsVars = (msg: Pick<Message, 'body'> & { params?: string[] }) =>
-  msg.params?.length ? msg.params : [msg.body];
-
-async function deliverSms(msg: Pick<Message, 'to' | 'kind' | 'body' | 'relatedOrder'> & { params?: string[] }) {
-  try {
-    await sendSms(msg.to, smsVars(msg));
-    await log('sms', msg);
-    return true;
-  } catch (err) {
-    logger.warn({ err, to: maskPhone(msg.to), kind: msg.kind }, 'SMS send failed');
-    await log('sms', msg, { error: err });
-    return false;
-  }
 }
 
 /** True the first time a key is seen; false when this exact message was already sent. */
@@ -136,186 +118,245 @@ async function claim(key: string) {
   }
 }
 
-/** WhatsApp first; SMS when WhatsApp is not set up or the send fails; console in development. */
+async function deliverEmail(msg: Message) {
+  if (!msg.email) return;
+  const entry: LogEntry = { ...msg, to: msg.email, subject: msg.mail.subject, body: msg.secret ? msg.body : msg.mail.text };
+  if (!emailEnabled()) {
+    logger.info({ to: msg.email, kind: msg.kind }, `📧 ${msg.mail.subject}\n${msg.mail.text}`);
+    await log('console', entry);
+    return;
+  }
+  try {
+    await sendMail({ to: msg.email, ...msg.mail });
+    await log('email', entry);
+  } catch (err) {
+    logger.warn({ err, kind: msg.kind }, 'Email send failed');
+    await log('email', entry, err);
+  }
+}
+
+async function deliverSms(msg: Message) {
+  if (!msg.phone) return;
+  const id = templateId(msg.sms.template);
+  const entry: LogEntry = { ...msg, to: msg.phone, templateId: id, params: msg.sms.params };
+  if (!env.MSG91_AUTH_KEY) {
+    logger.info({ to: maskPhone(msg.phone), kind: msg.kind }, `📨 ${msg.body}`);
+    await log('console', entry);
+    return;
+  }
+  if (!id) {
+    const name = typeof msg.sms.template === 'string' ? TEMPLATE_ENV[msg.sms.template] : 'template id';
+    logger.warn({ kind: msg.kind }, `SMS not sent: ${name} is not set`);
+    await log('sms', entry, new Error(`${name} is not set`));
+    return;
+  }
+  try {
+    await sendSms([msg.phone], id, msg.sms.params);
+    await log('sms', entry);
+  } catch (err) {
+    logger.warn({ err, to: maskPhone(msg.phone), kind: msg.kind }, 'SMS send failed');
+    await log('sms', entry, err);
+  }
+}
+
+/** Email or SMS, as MESSAGING_CHANNEL says; printed to the console when that channel is not set up. */
 async function deliver(msg: Message & { dedupeKey?: string }) {
   if (msg.dedupeKey && !(await claim(msg.dedupeKey))) {
     logger.debug({ key: msg.dedupeKey }, 'Notification already sent, skipped');
     return;
   }
-  const params = msg.template?.params;
-  if (whatsappEnabled()) {
-    try {
-      const providerMessageId = await sendWhatsApp(msg);
-      await log('whatsapp', { ...msg, params }, { providerMessageId });
-      return;
-    } catch (err) {
-      logger.warn({ err, to: maskPhone(msg.to), kind: msg.kind }, 'WhatsApp send failed');
-      await log('whatsapp', { ...msg, params }, { error: err });
-      if (smsEnabled()) await deliverSms({ ...msg, params });
-      return;
-    }
-  }
-  if (smsEnabled()) {
-    await deliverSms({ ...msg, params });
-    return;
-  }
-  logger.info({ to: maskPhone(msg.to), kind: msg.kind }, `📨 ${msg.body}`);
-  await log('console', { ...msg, params });
+  if (emailChannel()) await deliverEmail(msg);
+  else await deliverSms(msg);
 }
 
-interface WhatsAppStatus {
-  id: string;
-  status: 'sent' | 'delivered' | 'read' | 'failed';
-  errors?: { code: number; title?: string; message?: string }[];
-}
+export const statusText = (status: string) => STATUS_TEXT[status] ?? status.replace(/_/g, ' ');
 
-/**
- * Delivery receipts from the WhatsApp webhook. A message accepted by the API can still fail later
- * (number not on WhatsApp, template paused, …); those are re-sent once as SMS.
- */
-export async function handleWhatsAppStatuses(statuses: WhatsAppStatus[]) {
-  for (const s of statuses) {
-    const entry = await NotificationLogModel.findOne({ providerMessageId: s.id, channel: 'whatsapp' });
-    if (!entry) continue;
-    if (s.status !== 'failed') {
-      // Never downgrade (e.g. a late "delivered" after "read").
-      const rank = { sent: 0, delivered: 1, read: 2, failed: 3 } as const;
-      if (rank[s.status] > rank[entry.status as keyof typeof rank]) {
-        entry.status = s.status;
-        await entry.save();
-      }
-      continue;
-    }
-    entry.status = 'failed';
-    entry.error = s.errors?.map((e) => `${e.code} ${e.title ?? e.message ?? ''}`.trim()).join('; ') || 'failed';
-    const resend = smsEnabled() && !entry.fallbackSent;
-    entry.fallbackSent = entry.fallbackSent || resend;
-    await entry.save();
-    if (resend) {
-      await deliverSms({
-        to: entry.to,
-        kind: entry.template,
-        body: entry.body ?? '',
-        params: entry.params ?? undefined,
-        relatedOrder: entry.relatedOrder ?? undefined,
-      });
-    }
-  }
-}
+const OTP_MAIL: Record<string, { subject: string; intro: string }> = {
+  login: { subject: 'Your Printing Galaxy sign-in code', intro: 'Use this code to sign in to Printing Galaxy:' },
+  password_reset: { subject: 'Reset your Printing Galaxy password', intro: 'Use this code to set a new password for your institution account:' },
+  track: { subject: 'Your order tracking code', intro: 'Use this code to see the progress of your order:' },
+};
 
-export const statusText = (status: string, lang: Lang) => STATUS_TEXT[status]?.[lang] ?? status;
+const orderUrl = (orderId: Types.ObjectId) => `${env.WEBSITE_URL.replace(/\/$/, '')}/account/orders/${orderId}`;
 
 export const notifications = {
-  async sendOtp(phone: string, code: string) {
-    if (env.MSG91_AUTH_KEY && env.MSG91_OTP_TEMPLATE_ID) {
-      const entry = { to: phone, kind: 'otp', body: 'OTP sent' };
+  /** One-time code to an email address (email channel) or a mobile number (SMS channel). */
+  async sendOtp(to: string, code: string, purpose: 'login' | 'password_reset' | 'track' = 'login') {
+    const byEmail = to.includes('@');
+    const ready = byEmail ? emailEnabled() : Boolean(env.MSG91_AUTH_KEY && env.MSG91_OTP_TEMPLATE_ID);
+    if (ready) {
+      const entry = { to, kind: 'otp', body: 'Code sent' };
       try {
-        await sendSmsOtp(phone, code);
-        await log('sms', entry);
+        if (byEmail) {
+          const copy = OTP_MAIL[purpose]!;
+          await sendMail({
+            to,
+            subject: `${code} · ${copy.subject}`,
+            text: `${copy.intro}\n\n${code}\n\nIt expires in ${env.OTP_TTL_MINUTES} minutes. Never share it with anyone, including our staff. If you did not ask for it, you can ignore this email.`,
+          });
+        } else {
+          await sendSmsOtp(to, code);
+        }
+        await log(byEmail ? 'email' : 'sms', entry);
       } catch (err) {
-        await log('sms', { ...entry, body: 'OTP send failed' }, { error: err });
-        throw err;
+        await log(byEmail ? 'email' : 'sms', { ...entry, body: 'Code send failed' }, err);
+        throw new ApiError(503, 'We could not send the code right now. Please try again in a minute.', 'OTP_SEND_FAILED');
       }
       return;
     }
-    // Never print codes in production: without an SMS provider phone sign-in is unavailable.
+    // Never print codes in production: without a provider sign-in by code is unavailable.
     if (isProd) {
-      logger.error({ phone: maskPhone(phone) }, 'OTP requested but MSG91 is not configured');
-      throw new ApiError(503, 'Sign-in by phone is not available right now. Please call the shop.', 'OTP_UNAVAILABLE');
+      logger.error({ channel: byEmail ? 'email' : 'sms' }, 'Code requested but the provider is not configured');
+      throw new ApiError(503, 'Sign-in by code is not available right now. Please call the shop.', 'OTP_UNAVAILABLE');
     }
-    logger.info({ phone }, `🔐 OTP for ${phone}: ${code} (no SMS provider configured)`);
+    logger.info(`🔐 Code for ${byEmail ? to : maskPhone(to)}: ${code} (no ${byEmail ? 'Gmail' : 'SMS'} provider configured)`);
   },
 
   /**
    * Notifies the customer about an order status change. Never throws.
-   * `extra` is added to the message only (e.g. the handover code), never stored on the order.
+   * `code` is the pickup / delivery handover code: it is sent, never stored in the log.
    * `dedupeKey` makes retries of the same change send nothing.
    */
   async orderStatus(params: {
     phone?: string | null;
-    lang?: Lang;
+    email?: string | null;
+    name?: string | null;
     orderNumber: string;
     status: string;
     orderId: Types.ObjectId;
     note?: string;
-    extra?: Record<Lang, string>;
+    code?: string;
     dedupeKey?: string;
   }) {
-    if (!params.phone) return;
-    const lang = params.lang ?? 'en';
-    const text = statusText(params.status, lang);
-    const tail = [params.note, params.extra?.[lang]].filter(Boolean).join(' ');
-    const body =
-      lang === 'hi'
-        ? `Printing Galaxy: आपका ऑर्डर ${params.orderNumber} ${text}।${tail ? ` ${tail}` : ''}`
-        : `Printing Galaxy: Your order ${params.orderNumber} ${text}.${tail ? ` ${tail}` : ''}`;
-    await deliver({
-      to: params.phone,
-      kind: `order_${params.status}`,
-      body,
-      // Template body, e.g.: "Your order {{1}} {{2}}. {{3}}"
-      template: {
-        name: env.WHATSAPP_TEMPLATE_ORDER_STATUS,
-        lang,
-        params: [params.orderNumber, text, tail],
-      },
-      relatedOrder: params.orderId,
-      dedupeKey: params.dedupeKey,
-    }).catch((err) => logger.error({ err, orderNumber: params.orderNumber }, 'Order notification failed'));
+    if (!params.phone && !params.email) return;
+    const text = statusText(params.status);
+    const note = params.note?.trim() ?? '';
+    const hello = `Hi${params.name ? ` ${params.name.split(' ')[0]}` : ''},`;
+    const action = { label: 'View your order', url: orderUrl(params.orderId) };
+    const base = { phone: params.phone, email: params.email, kind: `order_${params.status}`, relatedOrder: params.orderId, dedupeKey: params.dedupeKey };
+    let msg: Message;
+    if (params.code && params.status === 'ready') {
+      msg = {
+        ...base,
+        secret: true,
+        body: `Order ${params.orderNumber} is ready for pickup. Code ••••.`,
+        // "Printing Galaxy: Your order {#var#} is ready for pickup. Show code {#var#} at the counter."
+        sms: { template: 'pickupCode', params: [params.orderNumber, params.code] },
+        mail: {
+          subject: `Order ${params.orderNumber} is ready for pickup`,
+          text: `${hello}\n\nYour order ${params.orderNumber} is ready for pickup.\n\nShow this code at the counter: ${params.code}${note ? `\n\n${note}` : ''}`,
+          action,
+        },
+      };
+    } else if (params.code && params.status === 'out_for_delivery') {
+      msg = {
+        ...base,
+        secret: true,
+        body: `Order ${params.orderNumber} is out for delivery. Code ••••.`,
+        // "Printing Galaxy: Your order {#var#} is out for delivery. Give code {#var#} to the delivery person only after you receive it."
+        sms: { template: 'deliveryCode', params: [params.orderNumber, params.code] },
+        mail: {
+          subject: `Order ${params.orderNumber} is out for delivery`,
+          text: `${hello}\n\nYour order ${params.orderNumber} is on its way.\n\nDelivery code: ${params.code}\nGive it to the delivery person only after you receive your order.${note ? `\n\n${note}` : ''}`,
+          action,
+        },
+      };
+    } else {
+      msg = {
+        ...base,
+        body: `Order ${params.orderNumber} ${text}.${note ? ` ${note}` : ''}`,
+        sms: { template: 'orderStatus', params: [params.orderNumber, text, note] },
+        mail: {
+          subject: `Order ${params.orderNumber} ${text}`,
+          text: `${hello}\n\nYour order ${params.orderNumber} ${text}.${note ? `\n\n${note}` : ''}`,
+          action,
+        },
+      };
+    }
+    await deliver(msg).catch((err) => logger.error({ err, orderNumber: params.orderNumber }, 'Order notification failed'));
   },
 
-  async institutionReviewed(params: { phone: string; name: string; approved: boolean; reason?: string }) {
-    const message = params.approved
-      ? 'is approved. Institution pricing is now active on your account.'
-      : `could not be approved.${params.reason ? ` Reason: ${params.reason}` : ''}`;
+  async institutionReviewed(params: { phone?: string; email?: string; name: string; approved: boolean; reason?: string }) {
+    // SMS: "Printing Galaxy: Your institution account {#var#} {#var#}."
+    const result = params.approved ? 'is approved' : 'was not approved. Call us';
+    const text = params.approved
+      ? `Good news: ${params.name} is approved. Institution prices are now active when you sign in.`
+      : `We could not approve ${params.name}.${params.reason ? `\n\nReason: ${params.reason}` : ''}\n\nPlease call the shop if you have questions.`;
     await deliver({
-      to: params.phone,
+      phone: params.phone,
+      email: params.email,
       kind: params.approved ? 'institution_approved' : 'institution_rejected',
-      body: `Printing Galaxy: ${params.name} ${message}`,
-      // Template body, e.g.: "Printing Galaxy: {{1}} {{2}}"
-      template: { name: env.WHATSAPP_TEMPLATE_ACCOUNT_UPDATE, lang: 'en', params: [params.name, message] },
+      body: `Institution ${params.name} ${result}.${params.reason ? ` Reason: ${params.reason}` : ''}`,
+      sms: { template: 'accountUpdate', params: [params.name, result] },
+      mail: {
+        subject: params.approved ? 'Your institution account is approved' : 'About your institution account',
+        text,
+        action: params.approved ? { label: 'Sign in', url: `${env.WEBSITE_URL.replace(/\/$/, '')}/institutions/login` } : undefined,
+      },
     }).catch((err) => logger.error({ err }, 'Institution notification failed'));
   },
 
-  /** Internal alerts to the shop's own WhatsApp number (low stock, failed jobs). */
-  async staffAlert(phone: string | undefined, kind: string, message: string) {
-    const to = phone?.replace(/\D/g, '').slice(-10);
-    if (!to || to.length !== 10) {
-      logger.warn({ kind }, `⚠️ ${message} (no shop WhatsApp number in settings)`);
+  /**
+   * Internal alerts to the shop (low stock, failed deliveries, failed jobs): the shop email, or the
+   * shop phone by SMS. SMS: "Printing Galaxy alert: {#var#} - {#var#}. Check the admin panel."
+   */
+  async staffAlert(shop: { phone?: string | null; email?: string | null }, kind: string, title: string, subject: string) {
+    const phone = shop.phone?.replace(/\D/g, '').slice(-10);
+    const email = shop.email?.trim();
+    if (emailChannel() ? !email : !phone || phone.length !== 10) {
+      logger.warn({ kind }, `⚠️ ${title}: ${subject} (no shop ${emailChannel() ? 'email' : 'phone number'} in settings)`);
       return;
     }
     await deliver({
-      to,
+      phone,
+      email,
       kind,
-      body: `Printing Galaxy alert: ${message}`,
-      // Template body, e.g.: "Printing Galaxy alert: {{1}}"
-      template: { name: env.WHATSAPP_TEMPLATE_STAFF_ALERT, lang: 'en', params: [message] },
+      body: `${title} - ${subject}`,
+      sms: { template: 'staffAlert', params: [title, subject] },
+      mail: { subject: `Alert: ${title}`, text: `${title}: ${subject}.\n\nOpen the admin panel for details.` },
     }).catch((err) => logger.error({ err }, 'Staff alert failed'));
   },
 };
 
-/** Re-sends a logged message (System activity → Retry). Returns the new log entry's status. */
+/** SMS template for a log entry written before template ids were stored. */
+function templateFor(kind: string): TemplateKey {
+  if (kind.startsWith('order_')) return 'orderStatus';
+  if (kind.startsWith('institution_')) return 'accountUpdate';
+  return 'staffAlert';
+}
+
+/** Re-sends a logged message (System activity → Retry). Returns the new log entry. */
 export async function retryNotification(id: string) {
   const entry = await NotificationLogModel.findById(id);
   if (!entry) throw ApiError.notFound('Message');
   if (entry.template === 'otp') throw ApiError.badRequest('Login codes cannot be re-sent; the customer requests a new one');
+  const isEmail = entry.channel === 'email' || entry.to.includes('@');
+  if (entry.secret || (isEmail ? !entry.subject : !entry.params?.length)) {
+    // Pickup / delivery code messages: the code is never stored.
+    throw ApiError.badRequest('This message cannot be re-sent. Pickup and delivery codes are shown on the customer’s order page.');
+  }
   entry.retries += 1;
   await entry.save();
-  await deliver({
-    to: entry.to,
-    kind: entry.template,
-    body: entry.body ?? '',
-    template: entry.params?.length
-      ? { name: templateFor(entry.template), lang: /[\u0900-\u097F]/.test(entry.body ?? '') ? 'hi' : 'en', params: entry.params }
-      : undefined,
-    relatedOrder: entry.relatedOrder ?? undefined,
-  });
-  const latest = await NotificationLogModel.findOne({ to: entry.to, template: entry.template }).sort({ createdAt: -1 }).lean();
-  return latest;
-}
-
-function templateFor(kind: string) {
-  if (kind.startsWith('order_')) return env.WHATSAPP_TEMPLATE_ORDER_STATUS;
-  if (kind.startsWith('institution_')) return env.WHATSAPP_TEMPLATE_ACCOUNT_UPDATE;
-  return env.WHATSAPP_TEMPLATE_STAFF_ALERT;
+  const body = entry.body ?? '';
+  const relatedOrder = entry.relatedOrder ?? undefined;
+  if (isEmail) {
+    await deliverEmail({
+      email: entry.to,
+      kind: entry.template,
+      body,
+      sms: { template: 'orderStatus', params: [] },
+      mail: { subject: entry.subject!, text: body, action: relatedOrder ? { label: 'View your order', url: orderUrl(relatedOrder) } : undefined },
+      relatedOrder,
+    });
+  } else {
+    await deliverSms({
+      phone: entry.to,
+      kind: entry.template,
+      body,
+      sms: { template: entry.templateId ? { id: entry.templateId } : templateFor(entry.template), params: entry.params ?? [] },
+      mail: { subject: '', text: '' },
+      relatedOrder,
+    });
+  }
+  return NotificationLogModel.findOne({ to: entry.to, template: entry.template }).sort({ createdAt: -1 }).lean();
 }

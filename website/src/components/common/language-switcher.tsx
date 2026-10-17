@@ -9,10 +9,12 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LANGUAGES } from '@/lib/i18n';
+import { LANGUAGES, type Language } from '@/lib/i18n';
+import { useSetLanguage } from './language-prompt';
 
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
+  const setLanguage = useSetLanguage();
   const current = LANGUAGES.find((l) => l.code === i18n.language) ?? LANGUAGES[0];
 
   return (
@@ -25,7 +27,7 @@ export function LanguageSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{t('nav.language')}</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={i18n.language} onValueChange={(v) => void i18n.changeLanguage(v)}>
+        <DropdownMenuRadioGroup value={i18n.language} onValueChange={(v) => setLanguage(v as Language)}>
           {LANGUAGES.map((l) => (
             <DropdownMenuRadioItem key={l.code} value={l.code}>
               {l.label}

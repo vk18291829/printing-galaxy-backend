@@ -103,19 +103,18 @@ export async function failDelivery(req: Request, order: OrderDoc, reason: string
 
   void notifications.orderStatus({
     phone: order.contact?.phone,
+    email: order.contact?.email,
+    name: order.contact?.name,
     orderNumber: order.orderNumber,
     status: 'delivery_failed',
     orderId: order._id,
-    note: `${reason}. ${attempt >= DELIVERY_MAX_ATTEMPTS ? 'Please call the shop to arrange delivery or pickup.' : 'We will try again.'}`,
+    // Fits one 30-character SMS variable; the reason stays in the order history.
+    note: attempt >= DELIVERY_MAX_ATTEMPTS ? 'Please call the shop.' : 'We will try again.',
     dedupeKey: `delivery-failed:${order.id}:${attempt}`,
   });
   if (attempt >= DELIVERY_MAX_ATTEMPTS) {
     const settings = await getSettings();
-    void notifications.staffAlert(
-      settings.shop.whatsapp || settings.shop.phone,
-      'delivery_failed',
-      `${order.orderNumber}: ${attempt} delivery attempts failed (${reason}). Call the customer.`,
-    );
+    void notifications.staffAlert(settings.shop, 'delivery_failed', `Delivery failed ${attempt} times`, order.orderNumber);
   }
   logEvent('delivery.failed', { orderNumber: order.orderNumber, attempt, reason }, 'warn');
   return order;

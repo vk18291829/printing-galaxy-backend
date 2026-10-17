@@ -9,6 +9,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   categories: 'Categories',
   reviews: 'Ratings & reviews',
   banners: 'Banners & offers',
+  promotions: 'Promotions',
   institutions: 'Institutions',
   customers: 'Customers',
   staff: 'Staff',

@@ -216,12 +216,6 @@ export async function persistOrder(data: Record<string, unknown>, key?: string) 
   return { order, replayed: false };
 }
 
-async function contactLanguage(order: OrderDoc): Promise<'en' | 'hi'> {
-  if (!order.customer) return 'en';
-  const user = await UserModel.findById(order.customer).select('language').lean();
-  return (user?.language as 'en' | 'hi') ?? 'en';
-}
-
 /** The customer's 4-digit handover code, created the first time it is needed. */
 export async function ensureHandoverCode(orderId: OrderDoc['_id']) {
   const current = await OrderModel.findById(orderId).select('+handover.code').lean();
@@ -235,14 +229,6 @@ export async function ensureHandoverCode(orderId: OrderDoc['_id']) {
   return saved?.handover?.code ?? code;
 }
 
-const HANDOVER_TEXT = {
-  pickup: (c: string) => ({ en: `Show pickup code ${c} at the counter.`, hi: `काउंटर पर पिकअप कोड ${c} दिखाएँ।` }),
-  delivery: (c: string) => ({
-    en: `Delivery code: ${c}. Share it with the delivery person only after you get your order.`,
-    hi: `डिलीवरी कोड: ${c}। ऑर्डर मिलने के बाद ही इसे डिलीवरी वाले को बताएँ।`,
-  }),
-};
-
 export async function notifyStatus(order: OrderDoc, note?: string) {
   const status = order.status as OrderStatus;
   const method = (order.fulfilment?.method ?? 'pickup') as 'pickup' | 'delivery';
@@ -251,18 +237,16 @@ export async function notifyStatus(order: OrderDoc, note?: string) {
   // A new unpaid online order: the customer is still in checkout.
   if (status === 'awaiting_payment' && order.statusHistory.length <= 1) return;
 
-  let extra: { en: string; hi: string } | undefined;
-  if ((status === 'ready' && method === 'pickup') || status === 'out_for_delivery') {
-    extra = HANDOVER_TEXT[method](await ensureHandoverCode(order._id));
-  }
+  const needsCode = (status === 'ready' && method === 'pickup') || status === 'out_for_delivery';
   void notifications.orderStatus({
     phone: order.contact?.phone,
-    lang: await contactLanguage(order),
+    email: order.contact?.email,
+    name: order.contact?.name,
     orderNumber: order.orderNumber,
     status,
     orderId: order._id,
     note,
-    extra,
+    code: needsCode ? await ensureHandoverCode(order._id) : undefined,
     dedupeKey: `order:${order.id}:${status}:${order.statusHistory.length}`,
   });
 }
@@ -348,7 +332,7 @@ export async function changeStatus(
   return order;
 }
 
-export async function resolveContact(auth: AuthContext, contactName?: string) {
+export async function resolveContact(auth: AuthContext, contactName?: string, contactPhone?: string) {
   if (auth.kind === 'institution') {
     const inst = await InstitutionModel.findById(auth.id).lean();
     if (!inst) throw ApiError.unauthorized();
@@ -360,14 +344,16 @@ export async function resolveContact(auth: AuthContext, contactName?: string) {
   }
   const user = await UserModel.findById(auth.id);
   if (!user) throw ApiError.unauthorized();
-  if (contactName && !user.name) {
-    user.name = contactName;
-    await user.save();
-  }
+  const phone = user.phone || contactPhone;
+  if (!phone) throw new ApiError(400, 'Add your mobile number so the shop can reach you about this order', 'PHONE_REQUIRED');
+  if (contactName && !user.name) user.name = contactName;
+  // Keep the number on the account, unless another account already uses it.
+  if (!user.phone && contactPhone && !(await UserModel.exists({ phone: contactPhone }))) user.phone = contactPhone;
+  if (user.isModified()) await user.save();
   return {
     customer: user._id,
     institution: undefined,
-    contact: { name: user.name || contactName || '', phone: user.phone, email: user.email },
+    contact: { name: user.name || contactName || '', phone, email: user.email },
   };
 }
 

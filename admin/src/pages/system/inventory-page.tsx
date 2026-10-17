@@ -69,7 +69,7 @@ function MaterialDialog({ material, onClose }: { material: Material | 'new'; onC
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isNew ? 'Add material' : `Edit ${material.name}`}</DialogTitle>
-          <DialogDescription>When stock falls to the alert level, the shop WhatsApp gets one message.</DialogDescription>
+          <DialogDescription>When stock falls to the alert level, the shop gets one alert.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">

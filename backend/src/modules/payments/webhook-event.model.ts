@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 
 /**
- * Every webhook received (Razorpay, WhatsApp). The provider's event id is unique, so a retried
+ * Every webhook received (Razorpay; 'whatsapp' only on older entries). The provider's event id is unique, so a retried
  * delivery of the same event is recognised and skipped. Kept 90 days for the System activity page.
  */
 const webhookEventSchema = new Schema(

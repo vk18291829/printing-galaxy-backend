@@ -2,10 +2,13 @@ import { z } from 'zod';
 import { addressInput, indianPhone } from '@/common/validation';
 import { INSTITUTION_TYPES } from '@/modules/institutions/institution.model';
 
-export const otpRequestSchema = z.object({ phone: indianPhone });
+/** Email or mobile number, whichever MESSAGING_CHANNEL signs customers in with. */
+export const otpRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address').optional(),
+  phone: indianPhone.optional(),
+});
 
-export const otpVerifySchema = z.object({
-  phone: indianPhone,
+export const otpVerifySchema = otpRequestSchema.extend({
   code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
   name: z.string().trim().max(80).optional(),
 });

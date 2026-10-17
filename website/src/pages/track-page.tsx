@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OtpInput } from '@/features/auth/components/otp-input';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { api, getErrorMessage } from '@/lib/api-client';
 import { formatDate, formatINR, formatNumber } from '@/lib/format';
@@ -31,19 +32,26 @@ interface TrackedOrder {
   createdAt: string;
 }
 
-/** Order status without an account: order number + phone, confirmed with a code. */
+/** Order status without an account: order number + email (or phone on the SMS channel), confirmed with a code. */
 export default function TrackPage() {
   const { t, i18n } = useTranslation();
   const l = useLocalized();
   useDocumentTitle(t('track.title'));
   const signedIn = Boolean(useAuthStore((s) => s.principal));
   const [orderNumber, setOrderNumber] = useState('');
+  const byEmail = usePublicSettings().data?.messaging !== 'sms';
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState<string>();
   const [step, setStep] = useState<'lookup' | 'code' | 'done'>('lookup');
 
-  const lookup = { orderNumber: orderNumber.trim().toUpperCase(), phone: phone.replace(/\D/g, '').slice(-10) };
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+  const lookup = {
+    orderNumber: orderNumber.trim().toUpperCase(),
+    ...(byEmail ? { email: cleanEmail } : { phone: cleanPhone }),
+  };
   const request = useMutation({
     mutationFn: async () => (await api.post<{ sent: boolean; devCode?: string }>('/track/request', lookup)).data,
     onSuccess: (data) => {
@@ -56,7 +64,8 @@ export default function TrackPage() {
     onSuccess: () => setStep('done'),
   });
   const order = verify.data;
-  const lookupValid = /^PG\d{6}-[A-Z0-9]{4}$/.test(lookup.orderNumber) && /^[6-9]\d{9}$/.test(lookup.phone);
+  const contactValid = byEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail) : /^[6-9]\d{9}$/.test(cleanPhone);
+  const lookupValid = /^PG\d{6}-[A-Z0-9]{4}$/.test(lookup.orderNumber) && contactValid;
 
   const restart = () => {
     setStep('lookup');
@@ -70,7 +79,7 @@ export default function TrackPage() {
       <PageNav items={[{ label: t('track.title') }]} />
       <header className="mb-6 space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('track.title')}</h1>
-        <p className="text-base text-muted-foreground">{t('track.subtitle')}</p>
+        <p className="text-base text-muted-foreground">{byEmail ? t('track.subtitleEmail') : t('track.subtitle')}</p>
       </header>
 
       {step !== 'done' && (
@@ -90,10 +99,17 @@ export default function TrackPage() {
                   <Input id="order" autoFocus className="h-11 font-mono uppercase" placeholder="PG261017-AB12" value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} />
                   <p className="text-xs text-muted-foreground">{t('track.orderNumberHint')}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">{t('track.phone')}</Label>
-                  <PrefixedInput id="phone" prefix="+91" inputMode="numeric" autoComplete="tel-national" className="h-11" placeholder="98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                </div>
+                {byEmail ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">{t('track.email')}</Label>
+                    <Input id="email" type="email" inputMode="email" autoComplete="email" className="h-11" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">{t('track.phone')}</Label>
+                    <PrefixedInput id="phone" prefix="+91" inputMode="numeric" autoComplete="tel-national" className="h-11" placeholder="98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
+                )}
                 {request.isError && (
                   <Alert variant="destructive">
                     <AlertDescription>{getErrorMessage(request.error)}</AlertDescription>
@@ -114,7 +130,7 @@ export default function TrackPage() {
                 }}
               >
                 <Alert variant="info">
-                  <AlertDescription className="text-foreground">{t('track.codeSent', { phone: lookup.phone })}</AlertDescription>
+                  <AlertDescription className="text-foreground">{byEmail ? t('track.codeSentEmail', { email: cleanEmail }) : t('track.codeSent', { phone: cleanPhone })}</AlertDescription>
                 </Alert>
                 {devCode && <p className="text-center text-xs text-muted-foreground">{t('auth.devCode', { code: devCode })}</p>}
                 <div className="space-y-2">

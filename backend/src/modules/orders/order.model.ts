@@ -200,6 +200,7 @@ orderSchema.path('items').validate((v: unknown[]) => v.length > 0, 'An order nee
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ 'payment.status': 1 });
 orderSchema.index({ 'contact.phone': 1 });
+orderSchema.index({ 'contact.email': 1 });
 orderSchema.index({ status: 1, 'payment.dueBy': 1 });
 
 export type Order = InferSchemaType<typeof orderSchema>;

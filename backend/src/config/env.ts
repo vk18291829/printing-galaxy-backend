@@ -41,20 +41,29 @@ const schema = z.object({
   RAZORPAY_KEY_SECRET: optional,
   RAZORPAY_WEBHOOK_SECRET: optional,
 
-  WHATSAPP_TOKEN: optional,
-  WHATSAPP_PHONE_NUMBER_ID: optional,
-  /** Approved template names. Business-initiated messages outside the 24-hour window must use them. */
-  WHATSAPP_TEMPLATE_ORDER_STATUS: optional,
-  WHATSAPP_TEMPLATE_ACCOUNT_UPDATE: optional,
-  WHATSAPP_TEMPLATE_STAFF_ALERT: optional,
-  /** Webhook: verify token you type into the Meta dashboard, and the app secret for signatures. */
-  WHATSAPP_VERIFY_TOKEN: optional,
-  WHATSAPP_APP_SECRET: optional,
+  /**
+   * How customers sign in and get messages: 'email' (Gmail, login codes by email) or 'sms'
+   * (MSG91, login codes by SMS; needs DLT registration).
+   */
+  MESSAGING_CHANNEL: z.enum(['email', 'sms']).default('email'),
+  /** Gmail account and its 16-character App Password (Google Account → Security → App passwords). */
+  GMAIL_USER: optional,
+  GMAIL_APP_PASSWORD: optional,
+  MAIL_FROM_NAME: z.string().default('Printing Galaxy'),
+  /** Website address used for links in emails. */
+  WEBSITE_URL: z.string().url().default('http://localhost:5173'),
+
   MSG91_AUTH_KEY: optional,
-  MSG91_SENDER_ID: z.string().default('PRNTGL'),
   MSG91_OTP_TEMPLATE_ID: optional,
-  /** DLT-registered MSG91 flow template for status SMS (variables: var1 = message). */
-  MSG91_STATUS_TEMPLATE_ID: optional,
+  /**
+   * MSG91 template ids, one per message type, each linked to a DLT-approved template. Variables
+   * are ##var1##, ##var2## in MSG91 ({#var#} on DLT, 30 characters each). Bodies: see .env.example.
+   */
+  MSG91_TEMPLATE_ORDER_STATUS: optional,
+  MSG91_TEMPLATE_PICKUP_CODE: optional,
+  MSG91_TEMPLATE_DELIVERY_CODE: optional,
+  MSG91_TEMPLATE_ACCOUNT_UPDATE: optional,
+  MSG91_TEMPLATE_STAFF_ALERT: optional,
 
   /** Redis for the background job queue (BullMQ). Without it jobs run inside the API process. */
   REDIS_URL: optional,
@@ -77,3 +86,6 @@ export const env = parsed.data;
 export const isProd = env.NODE_ENV === 'production';
 /** Read on every call so tests (and a restart-free key change) see the current env. */
 export const razorpayEnabled = () => Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+export const emailEnabled = () => Boolean(env.GMAIL_USER && env.GMAIL_APP_PASSWORD);
+/** True when customers sign in and get messages by email rather than SMS. */
+export const emailChannel = () => env.MESSAGING_CHANNEL === 'email';

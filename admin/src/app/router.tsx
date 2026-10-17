@@ -27,6 +27,7 @@ const BulkJobDetailPage = lazy(() => import('@/pages/bulk/bulk-job-detail-page')
 const DeliveriesPage = lazy(() => import('@/pages/delivery/deliveries-page'));
 const ReviewsPage = lazy(() => import('@/pages/reviews/reviews-page'));
 const BannersPage = lazy(() => import('@/pages/marketing/banners-page'));
+const PromotionsPage = lazy(() => import('@/pages/marketing/promotions-page'));
 
 const page = (node: ReactNode, adminOnly = false) => (
   <Suspense fallback={<PageLoader />}>{adminOnly ? <RequireAdmin>{node}</RequireAdmin> : node}</Suspense>
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
       { path: 'categories', element: page(<CategoriesPage />, true) },
       { path: 'reviews', element: page(<ReviewsPage />) },
       { path: 'banners', element: page(<BannersPage />, true) },
+      { path: 'promotions', element: page(<PromotionsPage />, true) },
       { path: 'institutions', element: page(<InstitutionsPage />) },
       { path: 'institutions/:id', element: page(<InstitutionDetailPage />) },
       { path: 'customers', element: page(<CustomersPage />) },

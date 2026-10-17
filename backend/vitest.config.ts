@@ -17,8 +17,10 @@ export default defineConfig({
       S3_ENDPOINT: 'http://127.0.0.1:9',
       S3_FORCE_PATH_STYLE: 'true',
       REDIS_URL: '',
-      WHATSAPP_TOKEN: '',
       MSG91_AUTH_KEY: '',
+      GMAIL_USER: '',
+      // Most suites sign customers in by phone; email-channel tests switch it with withEnv.
+      MESSAGING_CHANNEL: 'sms',
     },
     // One database, so files run one after another, each in a fresh process (Mongoose models
     // are registered once per process).

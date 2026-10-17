@@ -13,6 +13,30 @@ export type Language = (typeof LANGUAGES)[number]['code'];
 
 const STORAGE_KEY = 'pg-lang';
 
+// Set only by an explicit choice; i18next itself also writes STORAGE_KEY on start-up.
+const CHOSEN_KEY = 'pg-lang-chosen';
+
+/** True once the visitor picked a language (or opened a ?lang= link); until then the picker is shown. */
+export function hasLanguageChoice() {
+  if (/[?&]lang=(en|hi)/.test(window.location.search)) return true;
+  try {
+    return localStorage.getItem(CHOSEN_KEY) === '1';
+  } catch {
+    // Storage blocked: do not ask on every page.
+    return true;
+  }
+}
+
+/** Switches the language and remembers that the visitor chose it. */
+export function chooseLanguage(lng: Language) {
+  try {
+    localStorage.setItem(CHOSEN_KEY, '1');
+  } catch {
+    // ignore
+  }
+  return i18n.changeLanguage(lng);
+}
+
 function initialLanguage(): Language {
   // A shared link like /pricing?lang=hi opens in that language.
   const fromUrl = new URLSearchParams(window.location.search).get('lang');

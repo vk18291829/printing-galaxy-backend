@@ -320,10 +320,13 @@ export async function refundOrder(
   audit(req, { action: 'payment.refunded', entity: 'Order', entityId: order._id, summary: `${order.orderNumber}: ₹${refunded} refunded (${input.reason})` });
   void notifications.orderStatus({
     phone: order.contact?.phone,
+    email: order.contact?.email,
+    name: order.contact?.name,
     orderNumber: order.orderNumber,
     status: 'refunded',
     orderId: order._id,
-    note: `₹${refunded}`,
+    // Plain ASCII: a ₹ sign would turn the SMS into a Unicode message.
+    note: `Amount Rs ${refunded}`,
     dedupeKey: `refund:${order.id}:${input.idempotencyKey ?? Date.now()}`,
   });
   return OrderModel.findById(order._id);

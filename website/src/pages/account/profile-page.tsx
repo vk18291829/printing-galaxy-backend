@@ -1,15 +1,19 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { PrefixedInput } from '@/components/common/prefixed-input';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useUpdateAccount } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { chooseLanguage } from '@/lib/i18n';
 import type { Address, Institution, User } from '@/types/api';
 
 const EMPTY: Address = { line1: '', line2: '', city: '', state: '', pincode: '' };
@@ -47,8 +51,12 @@ function UserProfile({ user }: { user: User }) {
   const { t, i18n } = useTranslation();
   const update = useUpdateAccount();
   const [name, setName] = useState(user.name);
+  // Customers sign in with their email (email channel) or mobile number (SMS); that one is locked.
+  const byEmail = usePublicSettings().data?.messaging !== 'sms';
   const [email, setEmail] = useState(user.email ?? '');
+  const [phone, setPhone] = useState(user.phone ?? '');
   const [language, setLanguage] = useState(user.language);
+  const [offers, setOffers] = useState(user.offers !== false);
   const [address, setAddress] = useState<Address>(user.addresses[0] ?? EMPTY);
 
   const submit = (e: FormEvent) => {
@@ -58,10 +66,17 @@ function UserProfile({ user }: { user: User }) {
       title: t('confirm.profileTitle'),
       description: t('confirm.profileDesc'),
       confirmLabel: t('confirm.saveChanges'),
-      action: () => update.mutateAsync({ name: name.trim(), email: email.trim(), language, addresses: hasAddress ? [address] : [] }),
+      action: () =>
+        update.mutateAsync({
+          name: name.trim(),
+          ...(byEmail ? { phone: phone.replace(/\D/g, '').slice(-10) } : { email: email.trim() }),
+          language,
+          offers,
+          addresses: hasAddress ? [address] : [],
+        }),
       successTitle: t('account.saved'),
     }).then((ok) => {
-      if (ok && language !== i18n.language) void i18n.changeLanguage(language);
+      if (ok && language !== i18n.language) void chooseLanguage(language);
     });
   };
 
@@ -78,12 +93,16 @@ function UserProfile({ user }: { user: User }) {
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
           </div>
           <div className="space-y-2">
-            <Label>{t('account.phone')}</Label>
-            <Input value={`+91 ${user.phone ?? ''}`} disabled />
+            <Label htmlFor="phone">{t('account.phone')}</Label>
+            {byEmail ? (
+              <PrefixedInput id="phone" prefix="+91" type="tel" inputMode="numeric" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))} />
+            ) : (
+              <Input id="phone" value={`+91 ${user.phone ?? ''}`} disabled />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">{t('account.email')}</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={byEmail} />
           </div>
           <div className="space-y-2">
             <Label>{t('account.language')}</Label>
@@ -97,6 +116,13 @@ function UserProfile({ user }: { user: User }) {
               </SelectContent>
             </Select>
           </div>
+          <label className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">{t('account.offers')}</span>
+              <span className="block text-xs text-muted-foreground">{t('account.offersDesc')}</span>
+            </span>
+            <Switch checked={offers} onCheckedChange={setOffers} />
+          </label>
         </CardContent>
       </Card>
       <Card>

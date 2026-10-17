@@ -129,6 +129,8 @@ export interface User {
   email?: string;
   role: 'customer' | 'staff' | 'admin' | 'delivery';
   language: 'en' | 'hi';
+  /** Promotional SMS; order updates are always sent. */
+  offers?: boolean;
   addresses: Address[];
 }
 
@@ -255,6 +257,8 @@ export interface PublicSettings {
   tax: { enabled: boolean; rate: number; pricesIncludeTax: boolean };
   delivery: { enabled: boolean; fee: number; freeAbove: number };
   payments: { onlineEnabled: boolean; counterEnabled: boolean; onlineTimeoutMinutes?: number };
+  /** How customers sign in and get order updates. */
+  messaging?: 'email' | 'sms';
 }
 
 export type BannerKind = 'hero' | 'promo' | 'feature' | 'offer';

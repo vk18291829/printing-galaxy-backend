@@ -16,6 +16,7 @@ export interface CreateOrderInput {
   paymentMethod: 'online' | 'counter';
   customerNote?: string;
   contactName?: string;
+  contactPhone?: string;
 }
 
 export interface RazorpayOrderResponse {

@@ -96,7 +96,7 @@ export const useSendProof = (orderId: string) =>
   });
 
 export interface WalkInInput {
-  customer: { name: string; phone: string };
+  customer: { name: string; phone: string; email?: string };
   items: { productId: string; options: Record<string, string>; quantity?: number; pageCount?: number; copies?: number; notes?: string; fileIds: string[] }[];
   fulfilment: { method: 'pickup' | 'delivery'; address?: Address };
   amountPaid: number;

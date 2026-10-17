@@ -10,14 +10,13 @@ export interface SystemOverview {
 
 export interface MessageLog {
   _id: string;
-  channel: 'whatsapp' | 'sms' | 'console';
+  channel: 'email' | 'sms' | 'whatsapp' | 'console';
   to: string;
   template: string;
   body?: string;
   status: 'sent' | 'delivered' | 'read' | 'failed';
   error?: string;
   retries?: number;
-  fallbackSent?: boolean;
   relatedOrder?: { _id: string; orderNumber: string };
   createdAt: string;
 }

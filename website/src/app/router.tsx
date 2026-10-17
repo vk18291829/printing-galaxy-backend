@@ -18,6 +18,7 @@ const CheckoutPage = lazy(() => import('@/pages/checkout-page'));
 const OrdersPage = lazy(() => import('@/pages/account/orders-page'));
 const OrderDetailPage = lazy(() => import('@/pages/account/order-detail-page'));
 const ProfilePage = lazy(() => import('@/pages/account/profile-page'));
+const UpdatesPage = lazy(() => import('@/pages/account/updates-page'));
 const InstitutionDashboardPage = lazy(() => import('@/pages/institution/dashboard-page'));
 const TemplatesPage = lazy(() => import('@/pages/institution/templates-page'));
 const TemplateEditorPage = lazy(() => import('@/pages/institution/template-editor-page'));
@@ -25,6 +26,7 @@ const BulkUploadPage = lazy(() => import('@/pages/institution/bulk-upload-page')
 const BulkJobPage = lazy(() => import('@/pages/institution/bulk-job-page'));
 const NotFoundPage = lazy(() => import('@/pages/not-found-page'));
 const TrackPage = lazy(() => import('@/pages/track-page'));
+const UnsubscribePage = lazy(() => import('@/pages/unsubscribe-page'));
 const LegalPage = lazy(() => import('@/pages/legal-page'));
 const InstitutionPasswordPage = lazy(() => import('@/pages/auth/institution-password-page'));
 
@@ -41,6 +43,7 @@ export const router = createBrowserRouter([
       { path: 'institutions', element: page(<InstitutionsPage />) },
       { path: 'contact', element: page(<ContactPage />) },
       { path: 'track', element: page(<TrackPage />) },
+      { path: 'unsubscribe', element: page(<UnsubscribePage />) },
       { path: 'terms', element: page(<LegalPage kind="terms" />) },
       { path: 'privacy', element: page(<LegalPage kind="privacy" />) },
       { path: 'refund-policy', element: page(<LegalPage kind="refund" />) },
@@ -56,6 +59,7 @@ export const router = createBrowserRouter([
       { path: 'account/orders', element: page(<RequireAuth><OrdersPage /></RequireAuth>) },
       { path: 'account/orders/:id', element: page(<RequireAuth><OrderDetailPage /></RequireAuth>) },
       { path: 'account/profile', element: page(<RequireAuth><ProfilePage /></RequireAuth>) },
+      { path: 'account/updates', element: page(<RequireAuth><UpdatesPage /></RequireAuth>) },
       { path: 'institution', element: page(<RequireAuth kind="institution"><InstitutionDashboardPage /></RequireAuth>) },
       { path: 'institution/templates', element: page(<RequireAuth kind="institution"><TemplatesPage /></RequireAuth>) },
       { path: 'institution/templates/:id', element: page(<RequireAuth kind="institution"><TemplateEditorPage /></RequireAuth>) },

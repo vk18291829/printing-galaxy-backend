@@ -16,12 +16,12 @@ export const authRouter = Router();
 
 // Customers (website)
 authRouter.post('/otp/request', authLimiter, validate({ body: otpRequestSchema }), async (req, res) => {
-  res.json(await auth.requestOtp(req.body.phone));
+  res.json(await auth.requestOtp(req.body));
 });
 
 authRouter.post('/otp/verify', authLimiter, validate({ body: otpVerifySchema }), async (req, res) => {
-  const { phone, code, name } = req.body;
-  res.json(await auth.verifyOtp(req, res, phone, code, name));
+  const { email, phone, code, name } = req.body;
+  res.json(await auth.verifyOtp(req, res, { email, phone }, code, name));
 });
 
 // Institutions (website)

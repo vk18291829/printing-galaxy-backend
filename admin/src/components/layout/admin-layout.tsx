@@ -13,6 +13,7 @@ import {
   IconLayoutDashboard,
   IconLogout,
   IconMenu2,
+  IconMessage2,
   IconMoon,
   IconPackage,
   IconReceipt,
@@ -90,6 +91,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: 'Marketing',
     items: [
       { to: '/banners', label: 'Banners & offers', icon: IconSpeakerphone, adminOnly: true },
+      { to: '/promotions', label: 'Promotions', icon: IconMessage2, adminOnly: true },
       { to: '/reviews', label: 'Ratings & reviews', icon: IconStars, badge: 'reviews' },
     ],
   },

@@ -163,6 +163,7 @@ export default function WalkInPage() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [lines, setLines] = useState<Line[]>([newLine()]);
   const [totals, setTotals] = useState<Record<string, number | null>>({});
   const [paid, setPaid] = useState('');
@@ -176,6 +177,7 @@ export default function WalkInPage() {
   const total = active.reduce((sum, l) => sum + (totals[l.key] ?? 0), 0);
   const allValid = active.length > 0 && active.every((l) => totals[l.key] !== null && totals[l.key] !== undefined);
   const phoneValid = /^[6-9]\d{9}$/.test(phone);
+  const emailValid = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 
   const submit = async () => {
     let orderId = '';
@@ -186,7 +188,7 @@ export default function WalkInPage() {
       action: async () => {
         const order = await create.mutateAsync({
           key: orderKey.current,
-          customer: { name: name.trim(), phone },
+          customer: { name: name.trim(), phone, email: email.trim().toLowerCase() || undefined },
           items: active.map((l) => {
             const product = products.find((p) => p._id === l.productId)!;
             return {
@@ -226,6 +228,12 @@ export default function WalkInPage() {
               <div className="space-y-2">
                 <Label htmlFor="phone">Mobile</Label>
                 <Input id="phone" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="email">
+                  Email <span className="font-normal text-muted-foreground">(optional, for order updates)</span>
+                </Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!emailValid} />
               </div>
             </CardContent>
           </Card>
@@ -288,7 +296,7 @@ export default function WalkInPage() {
               <Label>Internal note</Label>
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} className="min-h-16" />
             </div>
-            <Button className="w-full" size="lg" disabled={!name.trim() || !phoneValid || !allValid || create.isPending} onClick={() => void submit()}>
+            <Button className="w-full" size="lg" disabled={!name.trim() || !phoneValid || !emailValid || !allValid || create.isPending} onClick={() => void submit()}>
               {create.isPending ? <Spinner className="size-4 text-current" /> : <IconReceipt />} Create order
             </Button>
             {!phoneValid && phone.length > 0 && <p className="text-xs text-destructive">Enter a valid 10-digit mobile number.</p>}

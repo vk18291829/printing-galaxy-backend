@@ -79,14 +79,14 @@ export default function ContactPage() {
                 }
               />
             )}
-            {shop.whatsapp && (
+            {(shop.whatsapp || shop.phone) && (
               <Channel
                 icon={IconBrandWhatsapp}
                 title={t('contact.whatsapp')}
-                value={`+91 ${shop.whatsapp}`}
+                value={`+91 ${shop.whatsapp || shop.phone}`}
                 action={
                   <Button className="w-full bg-[#25D366] text-white hover:bg-[#1fb957]" asChild>
-                    <a href={`https://wa.me/91${shop.whatsapp}`} target="_blank" rel="noreferrer">
+                    <a href={`https://wa.me/91${shop.whatsapp || shop.phone}`} target="_blank" rel="noreferrer">
                       <IconBrandWhatsapp /> {t('contact.chatNow')}
                     </a>
                   </Button>

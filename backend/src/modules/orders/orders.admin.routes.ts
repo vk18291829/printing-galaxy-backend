@@ -298,8 +298,14 @@ adminOrdersRouter.post('/walk-in', validate({ body: walkInOrderSchema }), async 
     return;
   }
 
+  const email = input.customer.email;
   let customer = await UserModel.findOne({ phone: input.customer.phone });
-  customer ??= await UserModel.create({ phone: input.customer.phone, name: input.customer.name });
+  customer ??= email ? await UserModel.findOne({ email }) : null;
+  customer ??= await UserModel.create({ phone: input.customer.phone, name: input.customer.name, email });
+  if (email && !customer.email && !(await UserModel.exists({ email }))) {
+    customer.email = email;
+    await customer.save();
+  }
 
   // Counter customers hand over files in person, so uploads are optional here.
   const items = await buildItems(input.items, { audience: 'retail', discountPercent: 0 }, req.auth, {
@@ -312,7 +318,7 @@ adminOrdersRouter.post('/walk-in', validate({ body: walkInOrderSchema }), async 
   const { order, replayed } = await persistOrder({
     audience: 'retail',
     customer: customer._id,
-    contact: { name: input.customer.name, phone: input.customer.phone },
+    contact: { name: input.customer.name, phone: input.customer.phone, email: email ?? customer.email },
     source: 'walk_in',
     items,
     status,

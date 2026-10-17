@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { PrefixedInput } from '@/components/common/prefixed-input';
-import { Spinner } from '@/components/common/states';
+import { PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,12 @@ import { Label } from '@/components/ui/label';
 import { authApi, useVerifyOtp, type OtpRequestResponse } from '@/features/auth/api';
 import { AuthStepper, OrgAuthLayout, OrgBenefitsInline } from '@/features/auth/components/org-auth-layout';
 import { OtpInput } from '@/features/auth/components/otp-input';
+import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { getErrorMessage } from '@/lib/api-client';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -25,7 +27,11 @@ export default function LoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
 
+  const settings = usePublicSettings();
+  // The server decides: email codes (Gmail) or SMS codes (MSG91).
+  const byEmail = settings.data?.messaging !== 'sms';
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [sent, setSent] = useState<OtpRequestResponse | null>(null);
@@ -50,18 +56,20 @@ export default function LoginPage() {
   const verify = useVerifyOtp();
 
   const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-  const phoneValid = PHONE_RE.test(cleanPhone);
+  const cleanEmail = email.trim().toLowerCase();
+  const target = byEmail ? { email: cleanEmail } : { phone: cleanPhone };
+  const targetValid = byEmail ? EMAIL_RE.test(cleanEmail) : PHONE_RE.test(cleanPhone);
 
-  const submitPhone = (e: FormEvent) => {
+  const submitTarget = (e: FormEvent) => {
     e.preventDefault();
-    if (phoneValid) request.mutate(cleanPhone);
+    if (targetValid) request.mutate(target);
   };
 
   const submitCode = (e?: FormEvent) => {
     e?.preventDefault();
     if (code.length !== 6) return;
     verify.mutate(
-      { phone: cleanPhone, code, name: name.trim() || undefined },
+      { ...target, code, name: name.trim() || undefined },
       {
         onSuccess: (data) => {
           toast.success(data.isNew ? t('auth.welcome') : t('auth.welcomeBack'));
@@ -77,11 +85,21 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
+  if (settings.isLoading) return <PageLoader />;
+
   return (
     <OrgAuthLayout
       audience="individual"
-      title={sent ? t('auth.otpTitle') : t('auth.loginTitle')}
-      subtitle={sent ? t('auth.otpSent', { phone: cleanPhone }) : t('auth.loginSubtitle')}
+      title={sent ? t('auth.otpTitle') : byEmail ? t('auth.byEmail.loginTitle') : t('auth.loginTitle')}
+      subtitle={
+        sent
+          ? byEmail
+            ? t('auth.byEmail.otpSent', { email: cleanEmail })
+            : t('auth.otpSent', { phone: cleanPhone })
+          : byEmail
+            ? t('auth.byEmail.loginSubtitle')
+            : t('auth.loginSubtitle')
+      }
       footer={
         <div className="flex items-center gap-4 rounded-xl border border-dashed p-4">
           <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -98,7 +116,7 @@ export default function LoginPage() {
     >
       <AuthStepper
         step={sent ? 1 : 0}
-        labels={[t('auth.person.stepPhone'), t('auth.person.stepCode')]}
+        labels={[byEmail ? t('auth.byEmail.step') : t('auth.person.stepPhone'), t('auth.person.stepCode')]}
         onJump={() => {
           setSent(null);
           verify.reset();
@@ -107,26 +125,46 @@ export default function LoginPage() {
       {!sent && <OrgBenefitsInline audience="individual" />}
 
       {!sent ? (
-        <form onSubmit={submitPhone} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="phone">{t('auth.phone')}</Label>
-            <PrefixedInput
-              prefix="+91"
-              id="phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              autoFocus
-              placeholder={t('auth.phonePlaceholder')}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))}
-              className="h-12 [&_input]:text-lg [&_input]:tracking-wide"
-            />
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <IconShieldCheck className="size-3.5 text-success" /> {t('auth.person.privacy')}
-            </p>
-          </div>
-          <Button type="submit" size="lg" variant="brand" className="w-full" disabled={!phoneValid || request.isPending}>
+        <form onSubmit={submitTarget} className="space-y-5">
+          {byEmail ? (
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('auth.byEmail.email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoFocus
+                placeholder={t('auth.byEmail.emailPlaceholder')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value.slice(0, 120))}
+                className="h-12 text-lg"
+              />
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <IconShieldCheck className="size-3.5 text-success" /> {t('auth.byEmail.privacy')}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="phone">{t('auth.phone')}</Label>
+              <PrefixedInput
+                prefix="+91"
+                id="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                autoFocus
+                placeholder={t('auth.phonePlaceholder')}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))}
+                className="h-12 [&_input]:text-lg [&_input]:tracking-wide"
+              />
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <IconShieldCheck className="size-3.5 text-success" /> {t('auth.person.privacy')}
+              </p>
+            </div>
+          )}
+          <Button type="submit" size="lg" variant="brand" className="w-full" disabled={!targetValid || request.isPending}>
             {request.isPending && <Spinner className="size-4 text-current" />}
             {t('auth.sendOtp')} {!request.isPending && <IconArrowRight />}
           </Button>
@@ -160,12 +198,12 @@ export default function LoginPage() {
                 verify.reset();
               }}
             >
-              <IconArrowLeft className="size-4" /> {t('auth.changeNumber')}
+              <IconArrowLeft className="size-4" /> {byEmail ? t('auth.byEmail.changeEmail') : t('auth.changeNumber')}
             </button>
             <button
               type="button"
               disabled={cooldown > 0 || request.isPending}
-              onClick={() => request.mutate(cleanPhone)}
+              onClick={() => request.mutate(target)}
               className="font-semibold text-primary disabled:font-normal disabled:text-muted-foreground"
             >
               {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('auth.resend')}

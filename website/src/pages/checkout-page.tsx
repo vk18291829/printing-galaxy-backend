@@ -13,6 +13,7 @@ import { Link, Navigate, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageNav } from '@/components/common/page-nav';
+import { PrefixedInput } from '@/components/common/prefixed-input';
 import { PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { authApi } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCartStore } from '@/features/cart/cart-store';
 import { CartLine } from '@/features/cart/components/cart-line';
@@ -92,11 +94,14 @@ export default function CheckoutPage() {
   const savedAddress =
     principal?.kind === 'institution' ? principal.institution.address : principal?.user.addresses?.[0];
   const needsName = principal?.kind === 'user' && !principal.user.name;
+  // Customers who signed in by email give a mobile number once, so the shop and rider can call.
+  const needsPhone = principal?.kind === 'user' && !principal.user.phone;
 
   const [method, setMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [payment, setPayment] = useState<'online' | 'counter' | null>(null);
   const [address, setAddress] = useState<Address>(savedAddress ?? EMPTY_ADDRESS);
   const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
   const [note, setNote] = useState('');
   const [paying, setPaying] = useState(false);
   const [step, setStep] = useState<'details' | 'review'>('details');
@@ -121,12 +126,14 @@ export default function CheckoutPage() {
   const addressValid =
     method === 'pickup' || (address.line1.trim().length >= 3 && address.city.trim() && /^\d{6}$/.test(address.pincode));
   const nameValid = !needsName || contactName.trim().length > 0;
-  const canReview = !invalid && addressValid && nameValid;
+  const cleanPhone = contactPhone.replace(/\D/g, '').slice(-10);
+  const phoneValid = !needsPhone || /^[6-9]\d{9}$/.test(cleanPhone);
+  const canReview = !invalid && addressValid && nameValid && phoneValid;
   const canSubmit = canReview && confirmed && !createOrder.isPending && !paying;
   const contact =
     principal?.kind === 'institution'
       ? { name: `${principal.institution.contactName} (${principal.institution.name})`, phone: principal.institution.phone, email: principal.institution.email }
-      : { name: principal?.user.name || contactName, phone: principal?.user.phone, email: principal?.user.email };
+      : { name: principal?.user.name || contactName, phone: principal?.user.phone || cleanPhone, email: principal?.user.email };
 
   const placeOrder = async () => {
     const ok = await confirmAction({
@@ -153,10 +160,13 @@ export default function CheckoutPage() {
         paymentMethod,
         customerNote: note.trim() || undefined,
         contactName: contactName.trim() || undefined,
+        contactPhone: needsPhone ? cleanPhone : undefined,
       },
       {
         onSuccess: async (order) => {
           clearCart();
+          // The number was saved to the account; refresh it so the next checkout does not ask again.
+          if (needsPhone) void authApi.me().then(useAuthStore.getState().setPrincipal).catch(() => undefined);
           toast.success(t('checkout.success'), { description: order.orderNumber });
           if (paymentMethod === 'online' && order.status !== 'quote_pending') {
             setPaying(true);
@@ -312,6 +322,23 @@ export default function CheckoutPage() {
                 <div className="space-y-2">
                   <Label htmlFor="contactName">{t('checkout.contactName')}</Label>
                   <Input id="contactName" autoComplete="name" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+                </div>
+              )}
+              {needsPhone && (
+                <div className="space-y-2">
+                  <Label htmlFor="contactPhone">{t('checkout.contactPhone')}</Label>
+                  <PrefixedInput
+                    id="contactPhone"
+                    prefix="+91"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    placeholder="98765 43210"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))}
+                    aria-invalid={contactPhone.length > 0 && !phoneValid}
+                  />
+                  <p className="text-xs text-muted-foreground">{t('checkout.contactPhoneHint')}</p>
                 </div>
               )}
               <div className="space-y-2">

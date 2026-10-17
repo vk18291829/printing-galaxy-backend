@@ -12,18 +12,21 @@ import { Label } from '@/components/ui/label';
 import { OrgAuthLayout } from '@/features/auth/components/org-auth-layout';
 import { OtpInput } from '@/features/auth/components/otp-input';
 import { PasswordInput, PasswordStrength } from '@/features/auth/components/password-input';
+import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { api, getErrorMessage } from '@/lib/api-client';
 
 interface ForgotResponse {
   sent: boolean;
   phoneHint?: string;
+  sentTo?: 'email' | 'phone';
   devCode?: string;
 }
 
 /** Institution password reset: email → code to the phone on the account → new password. */
 export default function InstitutionPasswordPage() {
   const { t } = useTranslation();
+  const byEmail = usePublicSettings().data?.messaging !== 'sms';
   useDocumentTitle(t('auth.resetTitle'));
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -48,7 +51,7 @@ export default function InstitutionPasswordPage() {
   return (
     <OrgAuthLayout
       title={t('auth.resetTitle')}
-      subtitle={t('auth.resetSubtitle')}
+      subtitle={byEmail ? t('auth.resetSubtitleEmail') : t('auth.resetSubtitle')}
       footer={
         <Link to="/institutions/login" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
           <IconArrowLeft className="size-4" /> {t('auth.backToLogin')}
@@ -89,7 +92,7 @@ export default function InstitutionPasswordPage() {
         >
           <Alert variant="info">
             <AlertDescription className="text-foreground">
-              {sent.phoneHint ? t('auth.resetCodeSent', { phone: sent.phoneHint }) : t('auth.resetCodeSentGeneric')}
+              {sent.sentTo === 'email' ? t('auth.resetCodeSentEmail') : sent.phoneHint ? t('auth.resetCodeSent', { phone: sent.phoneHint }) : t('auth.resetCodeSentGeneric')}
             </AlertDescription>
           </Alert>
           {sent.devCode && <p className="text-center text-xs text-muted-foreground">{t('auth.devCode', { code: sent.devCode })}</p>}

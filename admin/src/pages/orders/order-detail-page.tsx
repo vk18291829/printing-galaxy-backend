@@ -296,7 +296,7 @@ function StatusCard({ order }: { order: AdminOrder }) {
             aria-invalid={needsReason && note.trim().length < 5}
           />
           <label className="flex items-center justify-between gap-3 text-sm">
-            Send WhatsApp / SMS update
+            Notify the customer
             <Switch checked={sendMsg} onCheckedChange={setSendMsg} />
           </label>
           {cancelling && paid > 0 && (
@@ -325,7 +325,7 @@ function StatusCard({ order }: { order: AdminOrder }) {
                 [
                   cancelling ? 'This cannot be undone.' : '',
                   cancelling && paid > 0 ? (refund && isAdmin ? `${formatINR(paid)} is refunded to the customer.` : `${formatINR(paid)} was paid and is NOT refunded now.`) : '',
-                  sendMsg ? 'The customer gets a WhatsApp / SMS update.' : 'No message is sent to the customer.',
+                  sendMsg ? 'The customer is notified.' : 'No message is sent to the customer.',
                 ].filter(Boolean).join(' '),
                 cancelling ? 'Cancel order' : 'Update status',
                 () => change.mutateAsync({ status, note: note || undefined, notify: sendMsg, override: needsReason, refund: cancelling && refund && isAdmin }),
@@ -551,7 +551,7 @@ function RefundDialog({ order, max, onClose }: { order: AdminOrder; max: number;
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Refund {order.orderNumber}</DialogTitle>
-          <DialogDescription>Up to {formatINR(max)} can be refunded. The customer is told by WhatsApp / SMS.</DialogDescription>
+          <DialogDescription>Up to {formatINR(max)} can be refunded. The customer is notified.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
