@@ -29,12 +29,16 @@ export interface Mail {
   /** Shown in small print, e.g. how to stop offers. */
   footer?: { text: string; url?: string; linkLabel?: string };
   headers?: Record<string, string>;
+  /** E.g. the invoice PDF. */
+  attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string }[];
+  /** Language of the text, for screen readers and email clients. */
+  lang?: 'en' | 'hi';
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** Simple, client-safe HTML (tables, inline styles) with the brand strip at the top. */
-export function renderMail(mail: Omit<Mail, 'to' | 'headers'>) {
+export function renderMail(mail: Omit<Mail, 'to' | 'headers' | 'attachments'>) {
   const paragraphs = mail.text
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#18181b">${esc(p).replace(/\n/g, '<br>')}</p>`)
@@ -47,7 +51,7 @@ export function renderMail(mail: Omit<Mail, 'to' | 'headers'>) {
         mail.footer.url ? ` <a href="${esc(mail.footer.url)}" style="color:#71717a">${esc(mail.footer.linkLabel ?? mail.footer.url)}</a>` : ''
       }</p>`
     : '';
-  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif">
+  const html = `<!doctype html><html lang="${mail.lang ?? 'en'}"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e4e4e7">
 <tr><td style="height:6px;font-size:0;line-height:0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
@@ -76,6 +80,7 @@ export async function sendMail(mail: Mail) {
     text,
     html,
     headers: mail.headers,
+    attachments: mail.attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content), contentType: a.contentType ?? 'application/pdf' })),
   });
   return info.messageId as string | undefined;
 }

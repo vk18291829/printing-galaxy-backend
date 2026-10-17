@@ -20,8 +20,8 @@ authRouter.post('/otp/request', authLimiter, validate({ body: otpRequestSchema }
 });
 
 authRouter.post('/otp/verify', authLimiter, validate({ body: otpVerifySchema }), async (req, res) => {
-  const { email, phone, code, name } = req.body;
-  res.json(await auth.verifyOtp(req, res, { email, phone }, code, name));
+  const { email, phone, code, name, lang } = req.body;
+  res.json(await auth.verifyOtp(req, res, { email, phone, lang }, code, name));
 });
 
 // Institutions (website)
@@ -44,7 +44,7 @@ authRouter.post(
 );
 
 authRouter.post('/institution/password/forgot', authLimiter, validate({ body: passwordForgotSchema }), async (req, res) => {
-  res.json(await auth.requestInstitutionPasswordReset(req.body.email));
+  res.json(await auth.requestInstitutionPasswordReset(req.body.email, req.body.lang));
 });
 
 authRouter.post('/institution/password/reset', authLimiter, validate({ body: passwordResetSchema }), async (req, res) => {

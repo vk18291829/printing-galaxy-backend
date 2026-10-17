@@ -53,7 +53,7 @@ export default function TrackPage() {
     ...(byEmail ? { email: cleanEmail } : { phone: cleanPhone }),
   };
   const request = useMutation({
-    mutationFn: async () => (await api.post<{ sent: boolean; devCode?: string }>('/track/request', lookup)).data,
+    mutationFn: async () => (await api.post<{ sent: boolean; devCode?: string }>('/track/request', { ...lookup, lang: i18n.language })).data,
     onSuccess: (data) => {
       setDevCode(data.devCode);
       setStep('code');

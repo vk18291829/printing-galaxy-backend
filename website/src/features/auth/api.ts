@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
+import i18n from '@/lib/i18n';
 import type { Address, InstitutionType, Principal, SessionResponse } from '@/types/api';
 import { useAuthStore } from './auth-store';
 
@@ -24,13 +25,15 @@ export interface InstitutionRegisterInput {
 
 export const authApi = {
   /** Email or mobile number, whichever the server signs customers in with. */
-  requestOtp: (target: { email?: string; phone?: string }) => api.post<OtpRequestResponse>('/auth/otp/request', target).then((r) => r.data),
+  // `lang` makes codes, the welcome email and later emails arrive in the visitor's language.
+  requestOtp: (target: { email?: string; phone?: string }) =>
+    api.post<OtpRequestResponse>('/auth/otp/request', { ...target, lang: i18n.language }).then((r) => r.data),
   verifyOtp: (input: { email?: string; phone?: string; code: string; name?: string }) =>
-    api.post<SessionResponse & { isNew: boolean }>('/auth/otp/verify', input).then((r) => r.data),
+    api.post<SessionResponse & { isNew: boolean }>('/auth/otp/verify', { ...input, lang: i18n.language }).then((r) => r.data),
   institutionLogin: (input: { email: string; password: string }) =>
     api.post<SessionResponse>('/auth/institution/login', input).then((r) => r.data),
   institutionRegister: (input: InstitutionRegisterInput) =>
-    api.post<SessionResponse>('/auth/institution/register', input).then((r) => r.data),
+    api.post<SessionResponse>('/auth/institution/register', { ...input, lang: i18n.language }).then((r) => r.data),
   logout: () => api.post('/auth/logout'),
   me: () => api.get<Principal>('/auth/me').then((r) => r.data),
   updateAccount: (input: Record<string, unknown>) => api.patch<Principal>('/account', input).then((r) => r.data),

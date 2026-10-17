@@ -226,7 +226,7 @@ describe('email channel', () => {
     const sent = fakeGmail();
     const orderId = new Types.ObjectId();
     await notifications.orderStatus({ phone: '9876543210', email: 'asha@example.com', name: 'Asha Verma', orderNumber: 'PG261015-AB12', status: 'ready', orderId, code: '4821' });
-    expect(sent[0]).toMatchObject({ to: 'asha@example.com', subject: 'Order PG261015-AB12 is ready for pickup' });
+    expect(sent[0]).toMatchObject({ to: 'asha@example.com', subject: 'Order PG261015-AB12: Ready for pickup' });
     expect(sent[0]!.text).toContain('Hi Asha,');
     expect(sent[0]!.text).toContain('Show this code at the counter: 4821');
     expect(sent[0]!.html).toContain(`https://printinggalaxy.in/account/orders/${orderId}`);

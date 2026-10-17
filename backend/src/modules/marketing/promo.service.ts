@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { ApiError } from '@/common/errors';
 import { emailChannel, emailEnabled, env } from '@/config/env';
 import { logger } from '@/config/logger';
+import { asLang, promoFooter, type Lang } from '@/modules/notifications/email-copy';
 import { sendMail } from '@/modules/notifications/mailer';
 import { sendSms } from '@/modules/notifications/notification.service';
 import { UserModel } from '@/modules/users/user.model';
@@ -71,10 +72,10 @@ const audienceFilter = () => ({
 export const audienceCount = () => UserModel.countDocuments(audienceFilter());
 
 export async function audience() {
-  const users = await UserModel.find(audienceFilter()).select('email phone name').lean();
+  const users = await UserModel.find(audienceFilter()).select('email phone name language').lean();
   return emailChannel()
-    ? users.filter((u) => u.email).map((u) => ({ id: String(u._id), to: u.email!, name: u.name }))
-    : users.filter((u) => /^\d{10}$/.test(u.phone ?? '')).map((u) => ({ id: String(u._id), to: u.phone!, name: u.name }));
+    ? users.filter((u) => u.email).map((u) => ({ id: String(u._id), to: u.email!, name: u.name, lang: asLang(u.language) }))
+    : users.filter((u) => /^\d{10}$/.test(u.phone ?? '')).map((u) => ({ id: String(u._id), to: u.phone!, name: u.name, lang: asLang(u.language) }));
 }
 
 export const promoReady = () => (emailChannel() ? emailEnabled() : Boolean(env.MSG91_AUTH_KEY));
@@ -89,20 +90,26 @@ export async function markStaleCampaigns() {
 
 // ── Sending ─────────────────────────────────────────────────────────────────
 
-export function promoEmail(campaign: { title: string; text: string; link?: string | null; buttonLabel?: string | null }, to: { id: string; to: string }) {
+/** The owner writes the message; the small print and default button follow the customer's language. */
+export function promoEmail(
+  campaign: { title: string; text: string; link?: string | null; buttonLabel?: string | null },
+  to: { id: string; to: string; lang?: Lang },
+) {
+  const lang = to.lang ?? 'en';
   return {
     to: to.to,
+    lang,
     subject: campaign.title,
     text: campaign.text,
-    action: campaign.link ? { label: campaign.buttonLabel || 'Shop now', url: campaign.link } : undefined,
-    footer: { text: 'You get these emails because you have an account with us.', url: unsubscribeUrl(to.id), linkLabel: 'Stop offer emails' },
+    action: campaign.link ? { label: campaign.buttonLabel || (lang === 'hi' ? 'अभी देखें' : 'Shop now'), url: campaign.link } : undefined,
+    footer: { ...promoFooter(lang), url: unsubscribeUrl(to.id) },
     headers: { 'List-Unsubscribe': `<${unsubscribeUrl(to.id)}>` },
   };
 }
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function runEmail(campaign: CampaignDoc, people: { id: string; to: string }[]) {
+async function runEmail(campaign: CampaignDoc, people: { id: string; to: string; lang?: Lang }[]) {
   let failsInARow = 0;
   for (const [i, person] of people.entries()) {
     try {
@@ -144,7 +151,7 @@ async function runSms(campaign: CampaignDoc, people: { to: string }[]) {
 }
 
 /** Sends the campaign and records progress. Never throws. */
-export async function runCampaign(campaign: CampaignDoc, people: { id: string; to: string }[]) {
+export async function runCampaign(campaign: CampaignDoc, people: { id: string; to: string; lang?: Lang }[]) {
   try {
     if (campaign.channel === 'email') await runEmail(campaign, people);
     else await runSms(campaign, people);

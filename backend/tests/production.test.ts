@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Transporter } from 'nodemailer';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cancelUnpaidOrders } from '@/jobs/order-maintenance';
+import { resetMailer } from '@/modules/notifications/mailer';
 import { NotificationLogModel } from '@/modules/notifications/notification.model';
 import { OrderModel } from '@/modules/orders/order.model';
 import { PaymentModel } from '@/modules/payments/payment.model';
@@ -253,6 +255,42 @@ describe('tracking and accounts', () => {
       const tracked = await api().post('/api/v1/track/verify').send({ ...lookup, code: sent.body.devCode }).expect(200);
       expect(tracked.body.orderNumber).toBe(order.body.orderNumber);
     } finally {
+      restore();
+    }
+  });
+
+  it('emails a Hindi customer in Hindi: welcome, pickup code, then the invoice when picked up', async () => {
+    const restore = withEnv({ MESSAGING_CHANNEL: 'email', GMAIL_USER: 'shop@gmail.com', GMAIL_APP_PASSWORD: 'x' });
+    const sent: { to: string; subject: string; text: string; attachments?: { filename: string; content: Buffer }[] }[] = [];
+    resetMailer({ sendMail: async (m: (typeof sent)[number]) => (sent.push(m), { messageId: 'x' }) } as unknown as Transporter);
+    const codeFrom = (text: string) => /\n(\d{6})\n/.exec(text)?.[1];
+    try {
+      await api().post('/api/v1/auth/otp/request').send({ email: 'ravi.hi@example.com', lang: 'hi' }).expect(200);
+      expect(sent[0]!.subject).toContain('साइन-इन कोड');
+      const login = await api().post('/api/v1/auth/otp/verify').send({ email: 'ravi.hi@example.com', code: codeFrom(sent[0]!.text), name: 'Ravi Kumar', lang: 'hi' }).expect(200);
+      expect(login.body.user.language).toBe('hi');
+      await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Printing Galaxy में आपका स्वागत है')).toBe(true));
+      const token = login.body.accessToken as string;
+
+      const order = await api().post('/api/v1/orders').set(bearer(token)).send({ ...pickupOrder('counter'), contactPhone: '9988776600' }).expect(201);
+      for (const status of ['printing', 'ready']) {
+        await api().patch(`/api/v1/admin/orders/${order.body._id}/status`).set(bearer(staff)).send({ status }).expect(200);
+      }
+      const mine = await api().get(`/api/v1/orders/${order.body._id}`).set(bearer(token)).expect(200);
+      await vi.waitFor(() => expect(sent.find((m) => m.subject === `ऑर्डर ${order.body.orderNumber}: पिकअप के लिए तैयार`)?.text).toContain(`काउंटर पर यह कोड दिखाएँ: ${mine.body.handoverCode}`));
+
+      await api()
+        .post(`/api/v1/admin/orders/${order.body._id}/handover`)
+        .set(bearer(staff))
+        .send({ code: mine.body.handoverCode, amountCollected: order.body.totals.total })
+        .expect(200);
+      await vi.waitFor(() => expect(sent.find((m) => m.subject === `ऑर्डर ${order.body.orderNumber}: ले लिया गया`)).toBeDefined());
+      const done = sent.find((m) => m.subject === `ऑर्डर ${order.body.orderNumber}: ले लिया गया`)!;
+      expect(done.text).toContain('आपका बिल (PDF) इस ईमेल के साथ लगा है।');
+      expect(done.attachments?.[0]?.filename).toMatch(/^PG-\d{4}-\d{2}-\d{5}\.pdf$/);
+      expect(done.attachments?.[0]?.content.subarray(0, 5).toString()).toBe('%PDF-');
+    } finally {
+      resetMailer();
       restore();
     }
   });

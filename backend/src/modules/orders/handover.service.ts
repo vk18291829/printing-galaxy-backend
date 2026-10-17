@@ -105,6 +105,8 @@ export async function failDelivery(req: Request, order: OrderDoc, reason: string
     phone: order.contact?.phone,
     email: order.contact?.email,
     name: order.contact?.name,
+    customer: order.customer,
+    institution: order.institution,
     orderNumber: order.orderNumber,
     status: 'delivery_failed',
     orderId: order._id,

@@ -27,6 +27,8 @@ const institutionSchema = new Schema(
     /** Optional extra discount on top of institution prices, set by the owner. */
     extraDiscountPercent: { type: Number, min: 0, max: 50, default: 0 },
     lastLoginAt: Date,
+    /** Language for emails, from the site language at registration. */
+    language: { type: String, enum: ['en', 'hi'], default: 'en' },
     /** When the account last opened its Updates page; newer updates count as unread. */
     updatesSeenAt: Date,
   },

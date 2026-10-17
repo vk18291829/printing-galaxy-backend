@@ -86,6 +86,10 @@ promotions. With `email` (the default) customers sign in with their email addres
 mobile number once at checkout so the shop and rider can call. Mail goes out through a Gmail
 account with an App Password (Google Account → Security → 2-Step Verification → App passwords).
 A normal Gmail account sends about 500 emails a day, Google Workspace about 2,000.
+Emails go out in the customer's language (English or हिंदी, from the site language at sign-up and
+their profile). New customers get a welcome email, new institutions a "registration received"
+email, and the invoice PDF is attached to the "delivered" / "picked up" email. The wording lives in
+`backend/src/modules/notifications/email-copy.ts`.
 
 **SMS templates (SMS channel).** With `MESSAGING_CHANNEL=sms` all messages are SMS through MSG91, and India's DLT rules need every SMS text
 registered first. Register one *Service Implicit* template per message on your DLT portal, add each

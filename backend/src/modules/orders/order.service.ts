@@ -4,10 +4,12 @@ import { customAlphabet } from 'nanoid';
 import type { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import type { AuthContext } from '@/common/types';
-import { logEvent } from '@/config/logger';
+import { emailChannel } from '@/config/env';
+import { logEvent, logger } from '@/config/logger';
 import { audit } from '@/modules/audit/audit.model';
 import { ProductModel } from '@/modules/catalog/product.model';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
+import { ensureInvoiceNumber, invoiceFileName, renderInvoicePdf } from '@/modules/invoices/invoice.service';
 import type { PricingContext } from '@/modules/institutions/institution.service';
 import { notifications } from '@/modules/notifications/notification.service';
 import { quoteProduct, round2 } from '@/modules/pricing/pricing.service';
@@ -229,6 +231,18 @@ export async function ensureHandoverCode(orderId: OrderDoc['_id']) {
   return saved?.handover?.code ?? code;
 }
 
+/** The invoice PDF for the "delivered" / "picked up" email. Email channel only; never blocks the email. */
+async function invoiceAttachment(order: OrderDoc, status: OrderStatus) {
+  if (!emailChannel() || !order.contact?.email || (status !== 'delivered' && status !== 'picked_up')) return undefined;
+  try {
+    await ensureInvoiceNumber(order);
+    return [{ filename: invoiceFileName(order), content: await renderInvoicePdf(order) }];
+  } catch (err) {
+    logger.warn({ err, orderNumber: order.orderNumber }, 'Invoice could not be attached to the email');
+    return undefined;
+  }
+}
+
 export async function notifyStatus(order: OrderDoc, note?: string) {
   const status = order.status as OrderStatus;
   const method = (order.fulfilment?.method ?? 'pickup') as 'pickup' | 'delivery';
@@ -242,6 +256,9 @@ export async function notifyStatus(order: OrderDoc, note?: string) {
     phone: order.contact?.phone,
     email: order.contact?.email,
     name: order.contact?.name,
+    customer: order.customer,
+    institution: order.institution,
+    attachments: await invoiceAttachment(order, status),
     orderNumber: order.orderNumber,
     status,
     orderId: order._id,

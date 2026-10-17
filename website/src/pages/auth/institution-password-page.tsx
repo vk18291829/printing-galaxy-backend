@@ -25,7 +25,7 @@ interface ForgotResponse {
 
 /** Institution password reset: email → code to the phone on the account → new password. */
 export default function InstitutionPasswordPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const byEmail = usePublicSettings().data?.messaging !== 'sms';
   useDocumentTitle(t('auth.resetTitle'));
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export default function InstitutionPasswordPage() {
   const [password, setPassword] = useState('');
 
   const request = useMutation({
-    mutationFn: async () => (await api.post<ForgotResponse>('/auth/institution/password/forgot', { email })).data,
+    mutationFn: async () => (await api.post<ForgotResponse>('/auth/institution/password/forgot', { email, lang: i18n.language })).data,
     onSuccess: (data) => setSent(data),
   });
   const reset = useMutation({

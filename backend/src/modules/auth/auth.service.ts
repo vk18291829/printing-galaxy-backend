@@ -140,7 +140,7 @@ export async function getMe(ctx: AuthContext) {
 const maskTarget = (to: string) => (to.includes('@') ? to.replace(/^(.).*(@.*)$/, '$1***$2') : maskPhone(to));
 
 /** Creates and sends a one-time code. Shared by sign-in, password reset and order tracking. */
-export async function issueOtp(to: string, purpose: OtpPurpose = 'login') {
+export async function issueOtp(to: string, purpose: OtpPurpose = 'login', lang: 'en' | 'hi' = 'en') {
   const recent = await OtpModel.find({ to, createdAt: { $gt: new Date(Date.now() - 3_600_000) } })
     .sort({ createdAt: -1 })
     .lean();
@@ -161,7 +161,7 @@ export async function issueOtp(to: string, purpose: OtpPurpose = 'login') {
     codeHash: hashOtp(to, code, purpose),
     expiresAt: new Date(Date.now() + env.OTP_TTL_MINUTES * 60_000),
   });
-  await notifications.sendOtp(to, code, purpose);
+  await notifications.sendOtp(to, code, purpose, lang);
   logEvent('auth.otp_sent', { to: maskTarget(to), purpose });
 
   const providerReady = to.includes('@') ? emailEnabled() : Boolean(env.MSG91_AUTH_KEY);
@@ -203,22 +203,29 @@ function loginTarget(input: { email?: string; phone?: string }) {
   return { phone: input.phone };
 }
 
-export const requestOtp = (input: { email?: string; phone?: string }) => {
+export const requestOtp = (input: { email?: string; phone?: string; lang?: 'en' | 'hi' }) => {
   const target = loginTarget(input);
-  return issueOtp(target.email ?? target.phone!, 'login');
+  return issueOtp(target.email ?? target.phone!, 'login', input.lang);
 };
 
-export async function verifyOtp(req: Request, res: Response, input: { email?: string; phone?: string }, code: string, name?: string) {
+export async function verifyOtp(
+  req: Request,
+  res: Response,
+  input: { email?: string; phone?: string; lang?: 'en' | 'hi' },
+  code: string,
+  name?: string,
+) {
   const target = loginTarget(input);
   await checkOtp(target.email ?? target.phone!, code, 'login');
 
   let user = await UserModel.findOne(target);
   const isNew = !user;
-  if (!user) user = await UserModel.create({ ...target, name: name ?? '', role: 'customer' });
+  if (!user) user = await UserModel.create({ ...target, name: name ?? '', role: 'customer', language: input.lang ?? 'en' });
   else if (name && !user.name) user.name = name;
   if (!user.isActive) throw ApiError.forbidden('This account has been disabled');
   user.lastLoginAt = new Date();
   await user.save();
+  if (isNew && user.email) void notifications.welcome({ email: user.email, name: user.name, lang: user.language as 'en' | 'hi' });
 
   const accessToken = await issueSession(req, res, 'website', {
     id: user.id,
@@ -238,12 +245,14 @@ export async function registerInstitution(
   const exists = await InstitutionModel.exists({ email: input.email });
   if (exists) throw ApiError.conflict('An institution with this email is already registered');
 
-  const { password, ...rest } = input;
+  const { password, lang, ...rest } = input;
   const institution = await InstitutionModel.create({
     ...rest,
+    language: lang ?? 'en',
     passwordHash: await hashPassword(password),
     status: 'pending',
   });
+  void notifications.institutionRegistered({ email: institution.email, name: institution.name, contactName: institution.contactName, lang: lang ?? 'en' });
 
   const accessToken = await issueSession(req, res, 'website', {
     id: institution.id,
@@ -301,11 +310,11 @@ const resetSent = () => ({
 
 const resetTarget = (institution: { email: string; phone: string }) => (emailChannel() ? institution.email : institution.phone);
 
-export async function requestInstitutionPasswordReset(email: string) {
+export async function requestInstitutionPasswordReset(email: string, lang?: 'en' | 'hi') {
   const institution = await InstitutionModel.findOne({ email }).lean();
   // Same answer whether or not the email exists, so accounts cannot be discovered.
   if (!institution || institution.status === 'suspended') return resetSent();
-  const issued = await issueOtp(resetTarget(institution), 'password_reset');
+  const issued = await issueOtp(resetTarget(institution), 'password_reset', lang ?? (institution.language as 'en' | 'hi'));
   return {
     ...resetSent(),
     ...(emailChannel() ? {} : { phoneHint: maskPhone(institution.phone) }),

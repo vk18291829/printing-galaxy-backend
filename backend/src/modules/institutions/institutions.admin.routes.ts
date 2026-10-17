@@ -96,6 +96,8 @@ adminInstitutionsRouter.patch(
       void notifications.institutionReviewed({
         phone: institution.phone,
         email: institution.email,
+        contactName: institution.contactName,
+        lang: institution.language as 'en' | 'hi',
         name: institution.name,
         approved: status === 'approved',
         reason,

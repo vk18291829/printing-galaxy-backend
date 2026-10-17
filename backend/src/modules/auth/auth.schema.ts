@@ -2,10 +2,14 @@ import { z } from 'zod';
 import { addressInput, indianPhone } from '@/common/validation';
 import { INSTITUTION_TYPES } from '@/modules/institutions/institution.model';
 
+/** Site language, so codes and the welcome email arrive in English or Hindi. */
+const lang = z.enum(['en', 'hi']).optional();
+
 /** Email or mobile number, whichever MESSAGING_CHANNEL signs customers in with. */
 export const otpRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address').optional(),
   phone: indianPhone.optional(),
+  lang,
 });
 
 export const otpVerifySchema = otpRequestSchema.extend({
@@ -37,6 +41,7 @@ export const institutionRegisterSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => undefined)),
   size: z.coerce.number().int().min(0).max(1_000_000).optional(),
+  lang,
 });
 
 export const passwordLoginSchema = z.object({
@@ -46,6 +51,7 @@ export const passwordLoginSchema = z.object({
 
 export const passwordForgotSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
+  lang,
 });
 
 export const passwordResetSchema = z.object({

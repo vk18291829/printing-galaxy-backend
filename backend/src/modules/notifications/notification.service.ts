@@ -2,6 +2,9 @@ import type { Types } from 'mongoose';
 import { ApiError } from '@/common/errors';
 import { emailChannel, emailEnabled, env, isProd } from '@/config/env';
 import { logger, maskPhone } from '@/config/logger';
+import { InstitutionModel } from '@/modules/institutions/institution.model';
+import { UserModel } from '@/modules/users/user.model';
+import { asLang, institutionRegisteredEmail, institutionReviewedEmail, orderEmail, otpEmail, welcomeEmail, type Lang } from './email-copy';
 import { sendMail, type Mail } from './mailer';
 import { NotificationClaimModel, NotificationLogModel } from './notification.model';
 
@@ -127,7 +130,7 @@ async function deliverEmail(msg: Message) {
     return;
   }
   try {
-    await sendMail({ to: msg.email, ...msg.mail });
+    await sendMail({ ...msg.mail, to: msg.email });
     await log('email', entry);
   } catch (err) {
     logger.warn({ err, kind: msg.kind }, 'Email send failed');
@@ -171,29 +174,25 @@ async function deliver(msg: Message & { dedupeKey?: string }) {
 
 export const statusText = (status: string) => STATUS_TEXT[status] ?? status.replace(/_/g, ' ');
 
-const OTP_MAIL: Record<string, { subject: string; intro: string }> = {
-  login: { subject: 'Your Printing Galaxy sign-in code', intro: 'Use this code to sign in to Printing Galaxy:' },
-  password_reset: { subject: 'Reset your Printing Galaxy password', intro: 'Use this code to set a new password for your institution account:' },
-  track: { subject: 'Your order tracking code', intro: 'Use this code to see the progress of your order:' },
-};
-
 const orderUrl = (orderId: Types.ObjectId) => `${env.WEBSITE_URL.replace(/\/$/, '')}/account/orders/${orderId}`;
+
+/** The account's chosen language, for emails. Walk-in and unknown customers get English. */
+async function accountLanguage(customer?: Types.ObjectId | null, institution?: Types.ObjectId | null): Promise<Lang> {
+  if (customer) return asLang((await UserModel.findById(customer).select('language').lean())?.language);
+  if (institution) return asLang((await InstitutionModel.findById(institution).select('language').lean())?.language);
+  return 'en';
+}
 
 export const notifications = {
   /** One-time code to an email address (email channel) or a mobile number (SMS channel). */
-  async sendOtp(to: string, code: string, purpose: 'login' | 'password_reset' | 'track' = 'login') {
+  async sendOtp(to: string, code: string, purpose: 'login' | 'password_reset' | 'track' = 'login', lang: Lang = 'en') {
     const byEmail = to.includes('@');
     const ready = byEmail ? emailEnabled() : Boolean(env.MSG91_AUTH_KEY && env.MSG91_OTP_TEMPLATE_ID);
     if (ready) {
       const entry = { to, kind: 'otp', body: 'Code sent' };
       try {
         if (byEmail) {
-          const copy = OTP_MAIL[purpose]!;
-          await sendMail({
-            to,
-            subject: `${code} · ${copy.subject}`,
-            text: `${copy.intro}\n\n${code}\n\nIt expires in ${env.OTP_TTL_MINUTES} minutes. Never share it with anyone, including our staff. If you did not ask for it, you can ignore this email.`,
-          });
+          await sendMail({ to, lang, ...otpEmail(purpose, lang, code) });
         } else {
           await sendSmsOtp(to, code);
         }
@@ -215,84 +214,94 @@ export const notifications = {
   /**
    * Notifies the customer about an order status change. Never throws.
    * `code` is the pickup / delivery handover code: it is sent, never stored in the log.
+   * `customer` / `institution` pick the email language from the account (Hindi or English).
    * `dedupeKey` makes retries of the same change send nothing.
    */
   async orderStatus(params: {
     phone?: string | null;
     email?: string | null;
     name?: string | null;
+    customer?: Types.ObjectId | null;
+    institution?: Types.ObjectId | null;
+    lang?: Lang;
     orderNumber: string;
     status: string;
     orderId: Types.ObjectId;
     note?: string;
     code?: string;
+    /** Email only, e.g. the invoice once the order is complete. */
+    attachments?: Mail['attachments'];
     dedupeKey?: string;
   }) {
     if (!params.phone && !params.email) return;
+    const lang = params.lang ?? (await accountLanguage(params.customer, params.institution));
     const text = statusText(params.status);
     const note = params.note?.trim() ?? '';
-    const hello = `Hi${params.name ? ` ${params.name.split(' ')[0]}` : ''},`;
-    const action = { label: 'View your order', url: orderUrl(params.orderId) };
-    const base = { phone: params.phone, email: params.email, kind: `order_${params.status}`, relatedOrder: params.orderId, dedupeKey: params.dedupeKey };
+    const mail = {
+      lang,
+      attachments: params.attachments,
+      ...orderEmail({
+        lang,
+        name: params.name,
+        orderNumber: params.orderNumber,
+        orderId: String(params.orderId),
+        status: params.status,
+        note,
+        code: params.code,
+        invoiceAttached: Boolean(params.attachments?.length),
+      }),
+    };
+    const base = { phone: params.phone, email: params.email, kind: `order_${params.status}`, relatedOrder: params.orderId, dedupeKey: params.dedupeKey, mail };
     let msg: Message;
     if (params.code && params.status === 'ready') {
-      msg = {
-        ...base,
-        secret: true,
-        body: `Order ${params.orderNumber} is ready for pickup. Code ••••.`,
-        // "Printing Galaxy: Your order {#var#} is ready for pickup. Show code {#var#} at the counter."
-        sms: { template: 'pickupCode', params: [params.orderNumber, params.code] },
-        mail: {
-          subject: `Order ${params.orderNumber} is ready for pickup`,
-          text: `${hello}\n\nYour order ${params.orderNumber} is ready for pickup.\n\nShow this code at the counter: ${params.code}${note ? `\n\n${note}` : ''}`,
-          action,
-        },
-      };
+      // SMS: "Printing Galaxy: Your order {#var#} is ready for pickup. Show code {#var#} at the counter."
+      msg = { ...base, secret: true, body: `Order ${params.orderNumber} is ready for pickup. Code ••••.`, sms: { template: 'pickupCode', params: [params.orderNumber, params.code] } };
     } else if (params.code && params.status === 'out_for_delivery') {
-      msg = {
-        ...base,
-        secret: true,
-        body: `Order ${params.orderNumber} is out for delivery. Code ••••.`,
-        // "Printing Galaxy: Your order {#var#} is out for delivery. Give code {#var#} to the delivery person only after you receive it."
-        sms: { template: 'deliveryCode', params: [params.orderNumber, params.code] },
-        mail: {
-          subject: `Order ${params.orderNumber} is out for delivery`,
-          text: `${hello}\n\nYour order ${params.orderNumber} is on its way.\n\nDelivery code: ${params.code}\nGive it to the delivery person only after you receive your order.${note ? `\n\n${note}` : ''}`,
-          action,
-        },
-      };
+      // SMS: "Printing Galaxy: Your order {#var#} is out for delivery. Give code {#var#} to the delivery person only after you receive it."
+      msg = { ...base, secret: true, body: `Order ${params.orderNumber} is out for delivery. Code ••••.`, sms: { template: 'deliveryCode', params: [params.orderNumber, params.code] } };
     } else {
-      msg = {
-        ...base,
-        body: `Order ${params.orderNumber} ${text}.${note ? ` ${note}` : ''}`,
-        sms: { template: 'orderStatus', params: [params.orderNumber, text, note] },
-        mail: {
-          subject: `Order ${params.orderNumber} ${text}`,
-          text: `${hello}\n\nYour order ${params.orderNumber} ${text}.${note ? `\n\n${note}` : ''}`,
-          action,
-        },
-      };
+      msg = { ...base, body: `Order ${params.orderNumber} ${text}.${note ? ` ${note}` : ''}`, sms: { template: 'orderStatus', params: [params.orderNumber, text, note] } };
     }
     await deliver(msg).catch((err) => logger.error({ err, orderNumber: params.orderNumber }, 'Order notification failed'));
   },
 
-  async institutionReviewed(params: { phone?: string; email?: string; name: string; approved: boolean; reason?: string }) {
+  /** Email only: a new customer account. */
+  async welcome(params: { email: string; name?: string | null; lang?: Lang }) {
+    if (!emailChannel()) return;
+    const lang = params.lang ?? 'en';
+    await deliverEmail({
+      email: params.email,
+      kind: 'welcome',
+      body: 'Welcome email',
+      sms: { template: 'accountUpdate', params: [] },
+      mail: { lang, ...welcomeEmail(lang, params.name) },
+    }).catch((err) => logger.error({ err }, 'Welcome email failed'));
+  },
+
+  /** Email only: an institution registered and waits for review. */
+  async institutionRegistered(params: { email: string; name: string; contactName?: string | null; lang?: Lang }) {
+    if (!emailChannel()) return;
+    const lang = params.lang ?? 'en';
+    await deliverEmail({
+      email: params.email,
+      kind: 'institution_registered',
+      body: `Registration received for ${params.name}`,
+      sms: { template: 'accountUpdate', params: [] },
+      mail: { lang, ...institutionRegisteredEmail(lang, params) },
+    }).catch((err) => logger.error({ err }, 'Institution registration email failed'));
+  },
+
+  async institutionReviewed(params: { phone?: string; email?: string; name: string; contactName?: string; lang?: Lang; approved: boolean; reason?: string }) {
     // SMS: "Printing Galaxy: Your institution account {#var#} {#var#}."
     const result = params.approved ? 'is approved' : 'was not approved. Call us';
-    const text = params.approved
-      ? `Good news: ${params.name} is approved. Institution prices are now active when you sign in.`
-      : `We could not approve ${params.name}.${params.reason ? `\n\nReason: ${params.reason}` : ''}\n\nPlease call the shop if you have questions.`;
+    const lang = params.lang ?? 'en';
     await deliver({
       phone: params.phone,
       email: params.email,
       kind: params.approved ? 'institution_approved' : 'institution_rejected',
       body: `Institution ${params.name} ${result}.${params.reason ? ` Reason: ${params.reason}` : ''}`,
       sms: { template: 'accountUpdate', params: [params.name, result] },
-      mail: {
-        subject: params.approved ? 'Your institution account is approved' : 'About your institution account',
-        text,
-        action: params.approved ? { label: 'Sign in', url: `${env.WEBSITE_URL.replace(/\/$/, '')}/institutions/login` } : undefined,
-      },
+      mail: { lang, ...institutionReviewedEmail(lang, params) },
     }).catch((err) => logger.error({ err }, 'Institution notification failed'));
   },
 
@@ -317,6 +326,8 @@ export const notifications = {
     }).catch((err) => logger.error({ err }, 'Staff alert failed'));
   },
 };
+
+const HINDI = /[\u0900-\u097F]/;
 
 /** SMS template for a log entry written before template ids were stored. */
 function templateFor(kind: string): TemplateKey {
@@ -345,7 +356,12 @@ export async function retryNotification(id: string) {
       kind: entry.template,
       body,
       sms: { template: 'orderStatus', params: [] },
-      mail: { subject: entry.subject!, text: body, action: relatedOrder ? { label: 'View your order', url: orderUrl(relatedOrder) } : undefined },
+      mail: {
+        subject: entry.subject!,
+        text: body,
+        lang: HINDI.test(body) ? 'hi' : 'en',
+        action: relatedOrder ? { label: HINDI.test(body) ? 'ऑर्डर देखें' : 'View your order', url: orderUrl(relatedOrder) } : undefined,
+      },
       relatedOrder,
     });
   } else {

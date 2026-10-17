@@ -322,6 +322,8 @@ export async function refundOrder(
     phone: order.contact?.phone,
     email: order.contact?.email,
     name: order.contact?.name,
+    customer: order.customer,
+    institution: order.institution,
     orderNumber: order.orderNumber,
     status: 'refunded',
     orderId: order._id,

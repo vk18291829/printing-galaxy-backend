@@ -31,12 +31,12 @@ function target(input: { email?: string; phone?: string }) {
   return { to: input.phone, filter: { 'contact.phone': input.phone } };
 }
 
-trackingRouter.post('/request', validate({ body: lookup }), async (req, res) => {
-  const { orderNumber, ...contact } = req.body as z.infer<typeof lookup>;
+trackingRouter.post('/request', validate({ body: lookup.extend({ lang: z.enum(['en', 'hi']).optional() }) }), async (req, res) => {
+  const { orderNumber, lang, ...contact } = req.body as z.infer<typeof lookup> & { lang?: 'en' | 'hi' };
   const { to, filter } = target(contact);
   const exists = await OrderModel.exists({ orderNumber, ...filter });
   // Same answer either way, so order numbers cannot be probed.
-  const result = exists ? await issueOtp(to, 'track') : {};
+  const result = exists ? await issueOtp(to, 'track', lang) : {};
   res.json({ sent: true, ...('devCode' in result ? { devCode: result.devCode } : {}) });
 });
 
