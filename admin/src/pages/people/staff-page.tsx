@@ -103,7 +103,7 @@ function StaffDialog({ member, onClose }: { member: StaffMember | 'new'; onClose
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={() => void submit()} disabled={save.isPending || !name || (isNew && (!email || !password))}>
@@ -160,7 +160,7 @@ export default function StaffPage() {
                 <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{s.lastLoginAt ? formatDate(s.lastLoginAt, 'en', true) : 'Never'}</TableCell>
                 <TableCell>{s.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}</TableCell>
                 <TableCell className="pr-5 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(s)}>
+                  <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                     <IconPencil /> Edit
                   </Button>
                 </TableCell>

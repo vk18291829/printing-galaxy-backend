@@ -55,13 +55,13 @@ adminReportsRouter.get('/sales', async (req, res) => {
   const rows = await OrderModel.aggregate<{
     _id: string; orders: number; revenue: number; collected: number; tax: number; retail: number; institution: number; walkIn: number;
   }>([
-    { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: range.start, $lt: range.end } } },
+    { $match: { status: { $nin: ['cancelled', 'awaiting_payment', 'quote_pending'] }, createdAt: { $gte: range.start, $lt: range.end } } },
     {
       $group: {
         _id: { $dateToString: { format, date: '$createdAt', timezone: TZ } },
         orders: { $sum: 1 },
         revenue: { $sum: '$totals.total' },
-        collected: { $sum: '$payment.amountPaid' },
+        collected: { $sum: { $subtract: ['$payment.amountPaid', { $ifNull: ['$payment.amountRefunded', 0] }] } },
         tax: { $sum: '$totals.tax' },
         retail: { $sum: { $cond: [{ $eq: ['$audience', 'retail'] }, '$totals.total', 0] } },
         institution: { $sum: { $cond: [{ $eq: ['$audience', 'institution'] }, '$totals.total', 0] } },
@@ -94,7 +94,7 @@ adminReportsRouter.get('/products', async (req, res) => {
   const q = rangeQuery.parse(req.query);
   const range = resolveRange(q);
   const rows = await OrderModel.aggregate<{ _id: unknown; name: { en: string }; orders: number; units: number; revenue: number }>([
-    { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: range.start, $lt: range.end } } },
+    { $match: { status: { $nin: ['cancelled', 'awaiting_payment', 'quote_pending'] }, createdAt: { $gte: range.start, $lt: range.end } } },
     { $unwind: '$items' },
     {
       $group: {
@@ -122,7 +122,7 @@ adminReportsRouter.get('/products', async (req, res) => {
 adminReportsRouter.get('/pending-payments', async (req, res) => {
   const q = rangeQuery.parse(req.query);
   const orders = await OrderModel.find({
-    status: { $nin: ['cancelled', 'quote_pending'] },
+    status: { $nin: ['cancelled', 'quote_pending', 'awaiting_payment'] },
     'payment.status': { $in: ['pending', 'partial'] },
   })
     .select('orderNumber contact audience source status totals payment createdAt institution')
@@ -131,7 +131,7 @@ adminReportsRouter.get('/pending-payments', async (req, res) => {
     .lean();
   const now = Date.now();
   type Row = (typeof orders)[number];
-  const due = (o: Row) => round2(o.totals.total - (o.payment?.amountPaid ?? 0));
+  const due = (o: Row) => round2(o.totals.total - (o.payment?.amountPaid ?? 0) + (o.payment?.amountRefunded ?? 0));
   const rows = orders.filter((o) => due(o) > 0.009);
   respond<Row>(res, q, 'pending-payments', null, rows, [
     { key: 'orderNumber', label: 'Order', value: (o) => o.orderNumber },
@@ -165,7 +165,7 @@ adminReportsRouter.get('/institutions', async (req, res) => {
         _id: '$institution',
         orders: { $sum: 1 },
         revenue: { $sum: '$totals.total' },
-        paid: { $sum: '$payment.amountPaid' },
+        paid: { $sum: { $subtract: ['$payment.amountPaid', { $ifNull: ['$payment.amountRefunded', 0] }] } },
         lastOrder: { $max: '$createdAt' },
       },
     },

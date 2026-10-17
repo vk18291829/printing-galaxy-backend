@@ -30,7 +30,12 @@ const settingsSchema = z.object({
     fee: z.coerce.number().min(0),
     freeAbove: z.coerce.number().min(0),
   }),
-  payments: z.object({ onlineEnabled: z.boolean(), counterEnabled: z.boolean() }),
+  payments: z.object({
+    onlineEnabled: z.boolean(),
+    counterEnabled: z.boolean(),
+    onlineTimeoutMinutes: z.coerce.number().int().min(5).max(1440).optional(),
+    quotePaymentDays: z.coerce.number().int().min(1).max(30).optional(),
+  }),
   sensitiveRetentionDays: z.coerce.number().int().min(1).max(365),
 });
 

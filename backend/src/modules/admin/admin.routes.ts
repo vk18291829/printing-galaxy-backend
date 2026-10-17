@@ -10,6 +10,7 @@ import { adminOrdersRouter } from '@/modules/orders/orders.admin.routes';
 import { adminReportsRouter } from '@/modules/reports/reports.admin.routes';
 import { adminReviewsRouter } from '@/modules/reviews/reviews.admin.routes';
 import { adminSettingsRouter } from '@/modules/settings/settings.admin.routes';
+import { adminSystemRouter } from '@/modules/system/system.admin.routes';
 import { adminUsersRouter } from '@/modules/users/users.admin.routes';
 import { dashboardRouter } from './dashboard.routes';
 
@@ -31,3 +32,4 @@ adminRouter.use('/reviews', adminReviewsRouter);
 adminRouter.use('/marketing', adminMarketingRouter);
 adminRouter.use('/reports', requireAdmin, adminReportsRouter);
 adminRouter.use('/audit', requireAdmin, adminAuditRouter);
+adminRouter.use('/system', requireAdmin, adminSystemRouter);

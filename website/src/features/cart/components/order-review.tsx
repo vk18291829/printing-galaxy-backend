@@ -16,7 +16,7 @@ function Section({ title, onEdit, children }: { title: string; onEdit?: () => vo
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
         {onEdit && (
-          <Button variant="ghost" size="sm" onClick={onEdit}>
+          <Button variant="outline" size="sm" onClick={onEdit}>
             <IconPencil /> {t('common.edit')}
           </Button>
         )}

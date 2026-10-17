@@ -353,10 +353,10 @@ export default function ProductPage() {
               <p className="flex items-center gap-2 text-sm font-medium text-primary">
                 <DynamicIcon name={product.icon} className="size-4" /> {l(product.category.name)}
               </p>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{l(product.name)}</h1>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{l(product.name)}</h1>
               <RatingSummaryLink slug={product.slug} />
-              <p className="text-muted-foreground">{l(product.shortDescription)}</p>
-              {l(product.description) && <p className="text-sm leading-relaxed text-muted-foreground">{l(product.description)}</p>}
+              <p className="text-lg leading-relaxed text-foreground/90">{l(product.shortDescription)}</p>
+              {l(product.description) && <p className="text-base leading-relaxed text-foreground/75">{l(product.description)}</p>}
               <div className="flex flex-wrap gap-2">
                 {audience === 'institution' && product.pricing.institution.enabled && (
                   <Badge variant="success">

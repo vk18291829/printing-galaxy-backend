@@ -268,7 +268,7 @@ function BannerDialog({ banner, kind, onClose }: { banner: AdminBanner | null; k
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={() => void submit()} disabled={save.isPending}>
@@ -376,13 +376,13 @@ export default function BannersPage() {
                 />
                 {isAdmin && (
                   <div className="flex shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => setEditing(b)}>
+                    <Button variant="outline" size="sm" onClick={() => setEditing(b)}>
                       <IconPencil /> <span className="hidden sm:inline">Edit</span>
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="danger"
                       size="sm"
-                      className="text-destructive hover:text-destructive"
+                      
                       aria-label="Delete"
                       onClick={() =>
                         void confirmAction({

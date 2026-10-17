@@ -101,7 +101,7 @@ export default function InstitutionsPage() {
       <section className="container-page py-16">
         <div className="mb-8 flex items-end justify-between">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('institutions.productsTitle')}</h2>
-          <Button variant="ghost" asChild>
+          <Button variant="outline" asChild>
             <Link to="/pricing">
               {t('nav.pricing')} <IconArrowRight />
             </Link>

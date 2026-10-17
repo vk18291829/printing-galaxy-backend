@@ -5,6 +5,8 @@ import { validate } from '@/middleware/validate';
 import {
   institutionRegisterSchema,
   otpRequestSchema,
+  passwordForgotSchema,
+  passwordResetSchema,
   otpVerifySchema,
   passwordLoginSchema,
 } from './auth.schema';
@@ -40,6 +42,14 @@ authRouter.post(
     res.json(await auth.loginInstitution(req, res, req.body.email, req.body.password));
   },
 );
+
+authRouter.post('/institution/password/forgot', authLimiter, validate({ body: passwordForgotSchema }), async (req, res) => {
+  res.json(await auth.requestInstitutionPasswordReset(req.body.email));
+});
+
+authRouter.post('/institution/password/reset', authLimiter, validate({ body: passwordResetSchema }), async (req, res) => {
+  res.json(await auth.resetInstitutionPassword(req, req.body.email, req.body.code, req.body.password));
+});
 
 authRouter.post('/refresh', async (req, res) => {
   res.json(await auth.refreshSession(req, res, 'website'));

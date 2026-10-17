@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { ApiError } from '@/common/errors';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
+import { WebhookEventModel } from '@/modules/payments/webhook-event.model';
 import { handleWhatsAppStatuses } from './notification.service';
 
 export const notificationsRouter = Router();
@@ -37,7 +38,20 @@ notificationsRouter.post('/whatsapp/webhook', async (req, res) => {
     ?.flatMap((e) => e.changes ?? [])
     .flatMap((c) => c.value?.statuses ?? []);
   if (statuses?.length) {
-    await handleWhatsAppStatuses(statuses).catch((err) => logger.error({ err }, 'WhatsApp webhook failed'));
+    const failed = statuses.filter((st) => st.status === 'failed').length;
+    let error: string | undefined;
+    await handleWhatsAppStatuses(statuses).catch((err) => {
+      error = (err as Error).message;
+      logger.error({ err }, 'WhatsApp webhook failed');
+    });
+    // Shown on Admin → System activity → Webhooks.
+    await WebhookEventModel.create({
+      provider: 'whatsapp',
+      event: 'message.status',
+      status: error ? 'failed' : 'processed',
+      summary: `${statuses.length} receipt${statuses.length === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}`,
+      error,
+    }).catch((err) => logger.warn({ err }, 'Could not record WhatsApp webhook'));
   }
   // Always 200 so Meta does not retry and disable the webhook.
   res.json({ ok: true });

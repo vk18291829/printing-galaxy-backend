@@ -6,9 +6,12 @@ import type { Order, OrderStatus } from '@/types/api';
 
 function stagesFor(order: Order): OrderStatus[] {
   const needsProof = order.items.some((i) => i.workflow === 'design' || i.proofs.length > 0);
-  const start: OrderStatus[] = order.statusHistory?.some((h) => h.status === 'quote_pending')
-    ? ['quote_pending', 'received']
-    : ['received'];
+  const history = new Set(order.statusHistory?.map((h) => h.status));
+  const start: OrderStatus[] = [
+    ...(history.has('quote_pending') ? (['quote_pending'] as const) : []),
+    ...(history.has('awaiting_payment') ? (['awaiting_payment'] as const) : []),
+    'received',
+  ];
   const proof: OrderStatus[] = needsProof ? ['proof_sent', 'approved'] : [];
   const end: OrderStatus[] =
     order.fulfilment.method === 'delivery' ? ['printing', 'out_for_delivery', 'delivered'] : ['printing', 'ready', 'picked_up'];

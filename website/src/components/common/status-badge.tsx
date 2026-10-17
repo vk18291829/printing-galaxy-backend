@@ -6,6 +6,7 @@ type Variant = 'default' | 'secondary' | 'success' | 'warning' | 'destructive' |
 
 const ORDER_VARIANT: Record<OrderStatus, Variant> = {
   quote_pending: 'warning',
+  awaiting_payment: 'warning',
   received: 'info',
   proof_sent: 'warning',
   approved: 'soft',

@@ -14,7 +14,8 @@ dashboardRouter.get('/', async (_req, res) => {
   const today = startOfDay();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const last14 = new Date(today.getTime() - 13 * 86_400_000);
-  const notCancelled = { status: { $ne: 'cancelled' } };
+  // Unpaid online orders (they may still be cancelled) and unpriced quotes are not sales yet.
+  const notCancelled = { status: { $nin: ['cancelled', 'awaiting_payment', 'quote_pending'] } };
 
   const sumRange = (from: Date) =>
     OrderModel.aggregate<{ revenue: number; collected: number; orders: number }>([
@@ -23,7 +24,7 @@ dashboardRouter.get('/', async (_req, res) => {
         $group: {
           _id: null,
           revenue: { $sum: '$totals.total' },
-          collected: { $sum: '$payment.amountPaid' },
+          collected: { $sum: { $subtract: ['$payment.amountPaid', { $ifNull: ['$payment.amountRefunded', 0] }] } },
           orders: { $sum: 1 },
         },
       },
@@ -42,7 +43,7 @@ dashboardRouter.get('/', async (_req, res) => {
         {
           $group: {
             _id: null,
-            due: { $sum: { $subtract: ['$totals.total', '$payment.amountPaid'] } },
+            due: { $sum: { $subtract: ['$totals.total', { $subtract: ['$payment.amountPaid', { $ifNull: ['$payment.amountRefunded', 0] }] }] } },
             orders: { $sum: 1 },
           },
         },

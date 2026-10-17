@@ -194,7 +194,7 @@ export function DesignStudio({
                 {loadingPhoto ? <Spinner className="size-4" /> : <IconPhotoPlus />} {photoBlob ? t('design.changePhoto') : t('design.choosePhoto')}
               </Button>
               {source && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setCropping(true)}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setCropping(true)}>
                   <IconCrop /> {t('design.adjustPhoto')}
                 </Button>
               )}

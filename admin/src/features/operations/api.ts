@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { api, idempotent } from '@/lib/api-client';
 import type {
   BulkJobDetail,
   BulkJobListItem,
@@ -113,8 +113,9 @@ function useDeliveryMutation<T>(fn: (input: T) => Promise<unknown>) {
 export const useStartDelivery = () => useDeliveryMutation((id: string) => api.post(`/delivery/${id}/start`));
 
 export const useCompleteDelivery = () =>
-  useDeliveryMutation(({ id, ...body }: { id: string; cashCollected: number; provider: 'cash' | 'upi_counter'; note?: string }) =>
-    api.post(`/delivery/${id}/delivered`, body),
+  useDeliveryMutation(
+    ({ id, key, ...body }: { id: string; key: string; code?: string; overrideReason?: string; cashCollected: number; provider: 'cash' | 'upi_counter'; note?: string }) =>
+      api.post(`/delivery/${id}/delivered`, body, idempotent(key)),
   );
 
 export const useFailDelivery = () =>

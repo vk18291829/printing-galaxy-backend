@@ -64,10 +64,10 @@ export function ProductCard({ product }: { product: Product; index?: number }) {
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <div className="flex items-start gap-2">
           <DynamicIcon name={product.icon} className="mt-0.5 size-4 shrink-0 text-primary" />
-          <h3 className="leading-snug font-semibold">{l(product.name)}</h3>
+          <h3 className="text-base leading-snug font-semibold sm:text-lg">{l(product.name)}</h3>
         </div>
         {product.rating && product.rating.count > 0 && <RatingChip average={product.rating.average} count={product.rating.count} />}
-        <p className="line-clamp-2 text-sm text-muted-foreground">{l(product.shortDescription)}</p>
+        <p className="line-clamp-2 text-sm leading-relaxed text-foreground/75">{l(product.shortDescription)}</p>
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <div className="min-w-0">
             {price !== null ? (

@@ -2,7 +2,9 @@ import { Router } from 'express';
 import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
+import { idempotencyHeader } from '@/common/idempotency';
 import type { AuthContext } from '@/common/types';
+import { razorpayEnabled } from '@/config/env';
 import { objectId, paginate, pagination } from '@/common/validation';
 import { authenticate, requireKind } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
@@ -13,17 +15,20 @@ import {
   invoiceFileName,
   renderInvoicePdf,
 } from '@/modules/invoices/invoice.service';
+import { PaymentModel } from '@/modules/payments/payment.model';
+import { refundOrder } from '@/modules/payments/payment.service';
 import { getSettings } from '@/modules/settings/settings.model';
 import { OrderModel, type Order } from './order.model';
 import { createOrderSchema, proofResponseSchema } from './order.schema';
 import {
-  attachFilesToOrder,
   buildItems,
   changeStatus,
   computeTotals,
-  generateOrderNumber,
+  findByIdempotencyKey,
+  netPaid,
   notifyStatus,
   ORDER_POPULATE,
+  persistOrder,
   resolveContact,
 } from './order.service';
 
@@ -39,12 +44,20 @@ const CUSTOMER_HIDDEN = '-internalNote -assignedTo -deliveryPerson';
 ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) => {
   const auth = req.auth!;
   const input = req.body as z.infer<typeof createOrderSchema>;
-  const settings = await getSettings();
 
+  // A retried checkout (double tap, flaky network) gets the first order back, not a copy.
+  const key = idempotencyHeader(req);
+  const previous = await findByIdempotencyKey(key);
+  if (previous) {
+    res.setHeader('Idempotent-Replayed', 'true').status(200).json(previous.toJSON());
+    return;
+  }
+
+  const settings = await getSettings();
   if (input.fulfilment.method === 'delivery' && !settings.delivery.enabled) {
     throw ApiError.badRequest('Home delivery is not available right now');
   }
-  if (input.paymentMethod === 'online' && !settings.payments.onlineEnabled) {
+  if (input.paymentMethod === 'online' && (!settings.payments.onlineEnabled || !razorpayEnabled())) {
     throw ApiError.badRequest('Online payment is not available right now');
   }
   if (input.paymentMethod === 'counter' && !settings.payments.counterEnabled) {
@@ -57,10 +70,12 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
   const subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
   const totals = await computeTotals(subtotal, input.fulfilment.method);
   const who = await resolveContact(auth, input.contactName);
-  const status = needsQuote ? 'quote_pending' : 'received';
+  // Individuals paying online: nothing is printed until the money arrives. Approved
+  // institutions are billed on account, so their orders start straight away.
+  const payFirst = input.paymentMethod === 'online' && ctx.audience === 'retail';
+  const status = needsQuote ? 'quote_pending' : payFirst ? 'awaiting_payment' : 'received';
 
-  const order = await OrderModel.create({
-    orderNumber: generateOrderNumber(),
+  const { order, replayed } = await persistOrder({
     audience: ctx.audience,
     ...who,
     source: 'online',
@@ -69,13 +84,17 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
     statusHistory: [{ status, by: auth.id, byKind: auth.kind, at: new Date() }],
     fulfilment: input.fulfilment,
     totals,
-    payment: { method: input.paymentMethod, status: 'pending', amountPaid: 0 },
+    payment: {
+      method: input.paymentMethod,
+      status: 'pending',
+      amountPaid: 0,
+      ...(status === 'awaiting_payment' ? { dueBy: new Date(Date.now() + settings.payments.onlineTimeoutMinutes * 60_000) } : {}),
+    },
     customerNote: input.customerNote,
-  });
-  await attachFilesToOrder(order);
-  await notifyStatus(order);
+  }, key);
+  if (!replayed) await notifyStatus(order);
 
-  res.status(201).json(order.toJSON());
+  res.status(replayed ? 200 : 201).json(order.toJSON());
 });
 
 ordersRouter.get('/', validate({ query: pagination }), async (req, res) => {
@@ -95,11 +114,16 @@ ordersRouter.get('/', validate({ query: pagination }), async (req, res) => {
 
 ordersRouter.get('/:id', validate({ params: z.object({ id: objectId }) }), async (req, res) => {
   const order = await OrderModel.findOne({ _id: req.params.id, ...ownerFilter(req.auth!) })
-    .select(CUSTOMER_HIDDEN)
+    .select(`${CUSTOMER_HIDDEN} +handover.code`)
     .populate(ORDER_POPULATE)
     .lean();
   if (!order) throw ApiError.notFound('Order');
-  res.json(order);
+  // The handover code is shown only while the customer needs it.
+  const method = order.fulfilment?.method ?? 'pickup';
+  const showCode = (order.status === 'ready' && method === 'pickup') || order.status === 'out_for_delivery';
+  const { handover, ...rest } = order;
+  const refunds = await PaymentModel.find({ order: order._id, kind: 'refund' }).select('amount status provider createdAt').sort({ createdAt: -1 }).lean();
+  res.json({ ...rest, handoverCode: showCode ? handover?.code : undefined, refunds });
 });
 
 ordersRouter.get('/:id/invoice', validate({ params: z.object({ id: objectId }) }), async (req, res) => {
@@ -123,12 +147,27 @@ ordersRouter.post(
   async (req, res) => {
     const order = await OrderModel.findOne({ _id: req.params.id, ...ownerFilter(req.auth!) });
     if (!order) throw ApiError.notFound('Order');
-    if (!['quote_pending', 'received'].includes(order.status) || order.payment.amountPaid > 0) {
-      throw ApiError.conflict('This order can no longer be cancelled online. Please call the shop.');
+    if (order.status === 'cancelled') {
+      res.json(order.toJSON());
+      return;
     }
-    order.cancelReason = req.body.reason;
+    if (!['quote_pending', 'awaiting_payment', 'received'].includes(order.status)) {
+      throw ApiError.conflict('Work on this order has started, so it can no longer be cancelled online. Please call the shop.');
+    }
+    // Paid online: the money goes back automatically. Paid at the counter: the shop refunds in person.
+    const paid = netPaid(order);
+    if (paid > 0) {
+      const counterMoney = await PaymentModel.exists({ order: order._id, kind: 'payment', status: 'captured', provider: { $ne: 'razorpay' } });
+      if (counterMoney || !razorpayEnabled()) {
+        throw ApiError.conflict('This order was paid at the shop. Please call the shop to cancel it.');
+      }
+    }
+    order.cancelReason = req.body.reason || 'Cancelled by customer';
     await changeStatus(req, order, 'cancelled', { note: req.body.reason });
-    res.json(order.toJSON());
+    const result = paid > 0
+      ? await refundOrder(req, order, { reason: 'Order cancelled by customer', idempotencyKey: `cancel:${order.id}` })
+      : order;
+    res.json(result?.toJSON());
   },
 );
 

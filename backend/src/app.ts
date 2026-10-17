@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -18,6 +19,8 @@ function isAllowedOrigin(origin?: string) {
   if (env.CORS_ORIGINS.includes(origin)) return true;
   return !isProd && DEV_ORIGIN.test(origin);
 }
+
+const SLOW_MS = 1000;
 
 export function createApp() {
   const app = express();
@@ -48,8 +51,33 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
+      // Every request gets an id (or keeps the proxy's), returned as X-Request-Id and shown in errors.
+      genReqId: (req, res) => {
+        const incoming = req.headers['x-request-id'];
+        const id = typeof incoming === 'string' && /^[\w-]{8,64}$/.test(incoming) ? incoming : randomUUID().slice(0, 12);
+        res.setHeader('X-Request-Id', id);
+        return id;
+      },
       autoLogging: { ignore: (req) => req.url === '/api/v1/health' },
-      customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
+      // Short request/response objects: method, path, status; never bodies or headers.
+      serializers: {
+        req: (req: { id: string; method: string; url: string }) => ({ id: req.id, method: req.method, url: req.url }),
+        res: (res: { statusCode: number }) => ({ status: res.statusCode }),
+      },
+      customLogLevel: (_req, res, err) => {
+        if (err || res.statusCode >= 500) return 'error';
+        if (res.statusCode >= 400) return 'warn';
+        return 'info';
+      },
+      customSuccessMessage: (req, res, responseTime) =>
+        `${req.method} ${req.originalUrl ?? req.url} ${res.statusCode} · ${Math.round(responseTime)}ms${responseTime > SLOW_MS ? ' (slow)' : ''}`,
+      customErrorMessage: (req, res, err) => `${req.method} ${req.originalUrl ?? req.url} ${res.statusCode} · ${err.message}`,
+      // Who made the request, added once auth has run.
+      customSuccessObject: (req, _res, val: Record<string, unknown>) => {
+        const auth = (req as express.Request).auth;
+        return { ...val, ...(auth ? { user: `${auth.role ?? auth.kind}:${auth.id}` } : {}) };
+      },
+      customAttributeKeys: { responseTime: 'ms' },
     }),
   );
 

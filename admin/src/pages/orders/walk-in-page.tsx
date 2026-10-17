@@ -1,6 +1,6 @@
 import { IconPlus, IconReceipt, IconTrash } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageHeader, Spinner } from '@/components/common/states';
@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { quoteRetail, useAdminProducts, type AdminProduct } from '@/features/catalog/api';
 import { useCreateWalkIn } from '@/features/orders/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { newIdempotencyKey } from '@/lib/api-client';
 import { formatINR } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 
@@ -89,7 +90,7 @@ function LineEditor({
             ))}
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="icon" onClick={onRemove} aria-label="Remove line">
+        <Button variant="danger" size="icon" onClick={onRemove} aria-label="Remove line">
           <IconTrash className="size-4" />
         </Button>
       </div>
@@ -167,6 +168,8 @@ export default function WalkInPage() {
   const [paid, setPaid] = useState('');
   const [provider, setProvider] = useState<'cash' | 'upi_counter'>('cash');
   const [note, setNote] = useState('');
+  // One key per walk-in form: a double click or retry never creates the order twice.
+  const orderKey = useRef(newIdempotencyKey());
 
   const handleTotal = useCallback((key: string, value: number | null) => setTotals((t) => ({ ...t, [key]: value })), []);
   const active = lines.filter((l) => l.productId);
@@ -182,6 +185,7 @@ export default function WalkInPage() {
       confirmLabel: 'Create order',
       action: async () => {
         const order = await create.mutateAsync({
+          key: orderKey.current,
           customer: { name: name.trim(), phone },
           items: active.map((l) => {
             const product = products.find((p) => p._id === l.productId)!;

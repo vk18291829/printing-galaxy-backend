@@ -128,6 +128,20 @@ Monorepo with three apps:
 - [x] PWA install + offline counter note (manifest, service worker, offline page and banner pointing to the shop counter)
 - [ ] Hindi copy review by a native speaker — **needs a person**; new strings since the last review: `crop`, `design`, `templates`, `bulk`, `pwa` sections and `orders.invoice` in `website/src/locales/hi.json`
 
+## Phase 5 — Production readiness
+- [x] `awaiting_payment` for individuals paying online, auto-cancel with Razorpay check, late payments reinstate the order
+- [x] Order transition table with owner override (reason required)
+- [x] Handover codes: delivery OTP for riders, pickup code at the counter, wrong-code lockout, balance collected at handover
+- [x] Refunds (automatic on customer cancel, owner refunds from the order page, Razorpay refund webhooks)
+- [x] Idempotency keys on orders, payments, handovers and refunds; atomic money updates; file claiming; webhook and message de-duplication; optimistic concurrency on orders
+- [x] Payment reconciliation job for missed webhooks
+- [x] Refresh-token grace window (two tabs) and reuse detection (revokes the sign-in)
+- [x] Request ids, readable request logs, business events, masked phones, crash handlers, 503 health check, production start-up checks
+- [x] Admin System activity page (health, failed messages with retry, payments/refunds, webhooks)
+- [x] Institution password reset (code to the account phone), order tracking without an account
+- [x] Terms, privacy, refund and shipping policy pages (needed for Razorpay live mode)
+- [x] UI: logo without box (dark-mode variant), visible outline/danger actions, searchable labelled icon picker, larger product titles and descriptions, stronger dark-theme contrast, product completeness column
+
 ## Open questions still owed by the owner
 Copied from the requirements doc: certificate workflow, passport-photo minimum unit, largest
 tie/belt size, delivery vs pickup, GST registration, the real price sheet, printer file formats.

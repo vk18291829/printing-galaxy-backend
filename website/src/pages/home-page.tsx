@@ -57,7 +57,7 @@ function HeroVisual() {
       <div className="absolute top-[38%] right-[4%] w-[58%] rotate-[5deg] overflow-hidden rounded-2xl bg-zinc-900 p-4 text-white shadow-2xl ring-1 ring-white/10">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[10px] font-semibold tracking-widest uppercase opacity-70">Student ID</span>
-          <img src="/logo.png" alt="" className="size-6 rounded bg-white p-0.5" />
+          <img src="/logo-mark-dark.png" alt="" className="size-7 object-contain" />
         </div>
         <div className="flex gap-3">
           <div className="size-14 shrink-0 rounded-lg bg-linear-to-br from-brand-sky to-brand-blue" />

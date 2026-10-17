@@ -54,9 +54,10 @@ describe('materials and low-stock alerts', () => {
 describe('deliveries', () => {
   let orderId: string;
   let riderToken: string;
+  let customer: string;
 
   beforeAll(async () => {
-    const customer = await customerToken('9876501234');
+    customer = await customerToken('9876501234');
     const order = await api()
       .post('/api/v1/orders')
       .set(bearer(customer))
@@ -94,10 +95,26 @@ describe('deliveries', () => {
     expect(failed.body.status).toBe('ready');
 
     await api().post(`/api/v1/delivery/${orderId}/start`).set(bearer(riderToken)).expect(200);
-    await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).send({ cashCollected: 9999 }).expect(400);
-    const done = await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).send({ cashCollected: 280, provider: 'cash' }).expect(200);
+    // The rider never sees the code; the customer does, and gets it by message.
+    const rider = await api().get('/api/v1/delivery').set(bearer(riderToken)).expect(200);
+    expect(JSON.stringify(rider.body)).not.toContain('"code"');
+    const { body: mine } = await api().get(`/api/v1/orders/${orderId}`).set(bearer(customer)).expect(200);
+    const code = mine.handoverCode as string;
+    expect(code).toMatch(/^\d{4}$/);
+
+    await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).send({ cashCollected: 280 }).expect(400);
+    const wrong = code === '1234' ? '4321' : '1234';
+    const miss = await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).send({ code: wrong, cashCollected: 280 }).expect(400);
+    expect(miss.body.error.message).toMatch(/4 tries left/);
+    await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).send({ code, cashCollected: 9999 }).expect(400);
+    // Cash due must be collected before handing over.
+    await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).send({ code, cashCollected: 100 }).expect(409);
+    const done = await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).set('Idempotency-Key', 'deliver-0001').send({ code, cashCollected: 280, provider: 'cash' }).expect(200);
     expect(done.body.status).toBe('delivered');
     expect(done.body.payment).toMatchObject({ amountPaid: 280, status: 'paid' });
+    // A repeated tap is harmless: same order, cash counted once.
+    const again = await api().post(`/api/v1/delivery/${orderId}/delivered`).set(bearer(riderToken)).set('Idempotency-Key', 'deliver-0001').send({ code, cashCollected: 280, provider: 'cash' }).expect(200);
+    expect(again.body.payment.amountPaid).toBe(280);
 
     const today = await api().get('/api/v1/delivery').set(bearer(riderToken)).expect(200);
     expect(today.body.doneToday).toHaveLength(1);

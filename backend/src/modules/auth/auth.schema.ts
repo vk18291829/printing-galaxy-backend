@@ -41,4 +41,14 @@ export const passwordLoginSchema = z.object({
   password: z.string().min(1, 'Enter your password'),
 });
 
+export const passwordForgotSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export const passwordResetSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+  password,
+});
+
 export { password as passwordSchema };

@@ -1,13 +1,17 @@
 import type { Types } from 'mongoose';
-import { env } from '@/config/env';
-import { logger } from '@/config/logger';
-import { NotificationLogModel } from './notification.model';
+import { ApiError } from '@/common/errors';
+import { env, isProd } from '@/config/env';
+import { logger, maskPhone } from '@/config/logger';
+import { NotificationClaimModel, NotificationLogModel } from './notification.model';
 
 type Lang = 'en' | 'hi';
 type Channel = 'whatsapp' | 'sms' | 'console';
 
 const STATUS_TEXT: Record<string, Record<Lang, string>> = {
   quote_pending: { en: 'received — we will share a price shortly', hi: 'प्राप्त हुआ — हम जल्द ही कीमत बताएँगे' },
+  awaiting_payment: { en: 'is waiting for payment. Pay from My orders to start printing', hi: 'भुगतान की प्रतीक्षा में है। प्रिंटिंग शुरू करने के लिए मेरे ऑर्डर से भुगतान करें' },
+  delivery_failed: { en: 'could not be delivered today', hi: 'आज डिलीवर नहीं हो सका' },
+  refunded: { en: 'refund has been started. It reaches your account in 5–7 working days', hi: 'का रिफ़ंड शुरू हो गया है। यह 5–7 कार्य दिवसों में आपके खाते में पहुँचेगा' },
   received: { en: 'received', hi: 'प्राप्त हो गया है' },
   proof_sent: { en: 'proof is ready for your approval', hi: 'का प्रूफ़ आपकी मंज़ूरी के लिए तैयार है' },
   approved: { en: 'approved and queued for printing', hi: 'मंज़ूर हो गया है और प्रिंटिंग की कतार में है' },
@@ -115,14 +119,29 @@ async function deliverSms(msg: Pick<Message, 'to' | 'kind' | 'body' | 'relatedOr
     await log('sms', msg);
     return true;
   } catch (err) {
-    logger.warn({ err, to: msg.to }, 'SMS send failed');
+    logger.warn({ err, to: maskPhone(msg.to), kind: msg.kind }, 'SMS send failed');
     await log('sms', msg, { error: err });
     return false;
   }
 }
 
+/** True the first time a key is seen; false when this exact message was already sent. */
+async function claim(key: string) {
+  try {
+    await NotificationClaimModel.create({ _id: key });
+    return true;
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return false;
+    throw err;
+  }
+}
+
 /** WhatsApp first; SMS when WhatsApp is not set up or the send fails; console in development. */
-async function deliver(msg: Message) {
+async function deliver(msg: Message & { dedupeKey?: string }) {
+  if (msg.dedupeKey && !(await claim(msg.dedupeKey))) {
+    logger.debug({ key: msg.dedupeKey }, 'Notification already sent, skipped');
+    return;
+  }
   const params = msg.template?.params;
   if (whatsappEnabled()) {
     try {
@@ -130,7 +149,7 @@ async function deliver(msg: Message) {
       await log('whatsapp', { ...msg, params }, { providerMessageId });
       return;
     } catch (err) {
-      logger.warn({ err, to: msg.to }, 'WhatsApp send failed');
+      logger.warn({ err, to: maskPhone(msg.to), kind: msg.kind }, 'WhatsApp send failed');
       await log('whatsapp', { ...msg, params }, { error: err });
       if (smsEnabled()) await deliverSms({ ...msg, params });
       return;
@@ -140,7 +159,7 @@ async function deliver(msg: Message) {
     await deliverSms({ ...msg, params });
     return;
   }
-  logger.info({ to: msg.to, template: msg.kind }, `📨 ${msg.body}`);
+  logger.info({ to: maskPhone(msg.to), kind: msg.kind }, `📨 ${msg.body}`);
   await log('console', { ...msg, params });
 }
 
@@ -199,10 +218,19 @@ export const notifications = {
       }
       return;
     }
+    // Never print codes in production: without an SMS provider phone sign-in is unavailable.
+    if (isProd) {
+      logger.error({ phone: maskPhone(phone) }, 'OTP requested but MSG91 is not configured');
+      throw new ApiError(503, 'Sign-in by phone is not available right now. Please call the shop.', 'OTP_UNAVAILABLE');
+    }
     logger.info({ phone }, `🔐 OTP for ${phone}: ${code} (no SMS provider configured)`);
   },
 
-  /** Notifies the customer about an order status change. Never throws. */
+  /**
+   * Notifies the customer about an order status change. Never throws.
+   * `extra` is added to the message only (e.g. the handover code), never stored on the order.
+   * `dedupeKey` makes retries of the same change send nothing.
+   */
   async orderStatus(params: {
     phone?: string | null;
     lang?: Lang;
@@ -210,14 +238,17 @@ export const notifications = {
     status: string;
     orderId: Types.ObjectId;
     note?: string;
+    extra?: Record<Lang, string>;
+    dedupeKey?: string;
   }) {
     if (!params.phone) return;
     const lang = params.lang ?? 'en';
     const text = statusText(params.status, lang);
+    const tail = [params.note, params.extra?.[lang]].filter(Boolean).join(' ');
     const body =
       lang === 'hi'
-        ? `Printing Galaxy: आपका ऑर्डर ${params.orderNumber} ${text}।${params.note ? ` ${params.note}` : ''}`
-        : `Printing Galaxy: Your order ${params.orderNumber} ${text}.${params.note ? ` ${params.note}` : ''}`;
+        ? `Printing Galaxy: आपका ऑर्डर ${params.orderNumber} ${text}।${tail ? ` ${tail}` : ''}`
+        : `Printing Galaxy: Your order ${params.orderNumber} ${text}.${tail ? ` ${tail}` : ''}`;
     await deliver({
       to: params.phone,
       kind: `order_${params.status}`,
@@ -226,10 +257,11 @@ export const notifications = {
       template: {
         name: env.WHATSAPP_TEMPLATE_ORDER_STATUS,
         lang,
-        params: [params.orderNumber, text, params.note ?? ''],
+        params: [params.orderNumber, text, tail],
       },
       relatedOrder: params.orderId,
-    }).catch((err) => logger.error({ err }, 'Order notification failed'));
+      dedupeKey: params.dedupeKey,
+    }).catch((err) => logger.error({ err, orderNumber: params.orderNumber }, 'Order notification failed'));
   },
 
   async institutionReviewed(params: { phone: string; name: string; approved: boolean; reason?: string }) {
@@ -261,3 +293,29 @@ export const notifications = {
     }).catch((err) => logger.error({ err }, 'Staff alert failed'));
   },
 };
+
+/** Re-sends a logged message (System activity → Retry). Returns the new log entry's status. */
+export async function retryNotification(id: string) {
+  const entry = await NotificationLogModel.findById(id);
+  if (!entry) throw ApiError.notFound('Message');
+  if (entry.template === 'otp') throw ApiError.badRequest('Login codes cannot be re-sent; the customer requests a new one');
+  entry.retries += 1;
+  await entry.save();
+  await deliver({
+    to: entry.to,
+    kind: entry.template,
+    body: entry.body ?? '',
+    template: entry.params?.length
+      ? { name: templateFor(entry.template), lang: /[\u0900-\u097F]/.test(entry.body ?? '') ? 'hi' : 'en', params: entry.params }
+      : undefined,
+    relatedOrder: entry.relatedOrder ?? undefined,
+  });
+  const latest = await NotificationLogModel.findOne({ to: entry.to, template: entry.template }).sort({ createdAt: -1 }).lean();
+  return latest;
+}
+
+function templateFor(kind: string) {
+  if (kind.startsWith('order_')) return env.WHATSAPP_TEMPLATE_ORDER_STATUS;
+  if (kind.startsWith('institution_')) return env.WHATSAPP_TEMPLATE_ACCOUNT_UPDATE;
+  return env.WHATSAPP_TEMPLATE_STAFF_ALERT;
+}

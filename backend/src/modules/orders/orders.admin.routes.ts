@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
+import { idempotencyHeader } from '@/common/idempotency';
 import { escapeRegex, objectId, paginate } from '@/common/validation';
 import { requireAdmin } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
@@ -13,29 +14,36 @@ import {
   renderInvoicePdf,
 } from '@/modules/invoices/invoice.service';
 import { PaymentModel } from '@/modules/payments/payment.model';
+import { recordPayment, refundOrder } from '@/modules/payments/payment.service';
 import { round2 } from '@/modules/pricing/pricing.service';
+import { getSettings } from '@/modules/settings/settings.model';
 import { FileModel } from '@/modules/uploads/file.model';
 import { UserModel } from '@/modules/users/user.model';
-import { OrderModel, TERMINAL_STATUSES, type Order, type OrderStatus } from './order.model';
+import { completeHandover } from './handover.service';
+import { OrderModel, PRE_PRODUCTION_STATUSES, TERMINAL_STATUSES, type Order, type OrderStatus } from './order.model';
 import {
   adminOrderListQuery,
   assignSchema,
+  handoverSchema,
   quoteItemsSchema,
   recordPaymentSchema,
+  refundSchema,
   sendProofSchema,
   statusChangeSchema,
   walkInOrderSchema,
 } from './order.schema';
 import {
-  attachFilesToOrder,
+  amountDue,
+  assertTransition,
   buildItems,
   changeStatus,
   computeTotals,
-  generateOrderNumber,
+  findByIdempotencyKey,
+  netPaid,
   notifyStatus,
   ORDER_POPULATE,
+  persistOrder,
   recalculateTotals,
-  syncPaymentStatus,
 } from './order.service';
 
 export const adminOrdersRouter = Router();
@@ -52,9 +60,11 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
   const q = res.locals.query as z.infer<typeof adminOrderListQuery>;
   const filter: FilterQuery<Order> = {};
   if (q.status) filter.status = q.status;
-  else if (q.active) filter.status = { $nin: TERMINAL_STATUSES };
+  // "Active" is the production queue: unpaid online orders and unpriced quotes are left out.
+  else if (q.active) filter.status = { $nin: [...TERMINAL_STATUSES, ...PRE_PRODUCTION_STATUSES.filter((st) => st !== 'quote_pending')] };
   if (q.audience) filter.audience = q.audience;
   if (q.paymentStatus) filter['payment.status'] = q.paymentStatus;
+  if (q.fulfilment) filter['fulfilment.method'] = q.fulfilment;
   if (q.assignedTo) filter.assignedTo = q.assignedTo;
   if (q.q) {
     const rx = new RegExp(escapeRegex(q.q), 'i');
@@ -111,13 +121,58 @@ adminOrdersRouter.patch(
   '/:id/status',
   validate({ params: idParams, body: statusChangeSchema }),
   async (req, res) => {
-    const { status, note, notify } = req.body as z.infer<typeof statusChangeSchema>;
+    const { status, note, notify, override, refund } = req.body as z.infer<typeof statusChangeSchema>;
     const order = await loadOrder(req.params.id as string);
-    if (order.status === 'quote_pending' && !['cancelled', 'quote_pending'].includes(status)) {
+    if (order.status === status) {
+      res.json(order.toJSON());
+      return;
+    }
+    if (order.status === 'quote_pending' && status !== 'cancelled' && !override) {
       throw ApiError.conflict('Set the quote price before moving this order forward');
     }
-    await changeStatus(req, order, status as OrderStatus, { note, notify });
-    res.json(order.toJSON());
+    assertTransition(order, status as OrderStatus, { override, note, role: req.auth?.role });
+    if (status === 'cancelled') order.cancelReason = note || 'Cancelled by the shop';
+    await changeStatus(req, order, status as OrderStatus, { note: override ? `Override: ${note}` : note, notify });
+    // Cancelling a paid order can send the money back in the same step.
+    const result = status === 'cancelled' && refund && netPaid(order) > 0
+      ? await refundOrder(req, order, { reason: note || 'Order cancelled by the shop', idempotencyKey: `cancel:${order.id}` })
+      : order;
+    res.json(result?.toJSON());
+  },
+);
+
+/** Counter pickup: the customer shows their code; any balance is collected now. */
+adminOrdersRouter.post(
+  '/:id/handover',
+  validate({ params: idParams, body: handoverSchema }),
+  async (req, res) => {
+    const body = req.body as z.infer<typeof handoverSchema>;
+    const order = await completeHandover(req, req.params.id as string, 'picked_up', {
+      code: body.code,
+      overrideReason: body.overrideReason,
+      collected: body.amountCollected,
+      provider: body.provider,
+      note: body.note,
+      idempotencyKey: idempotencyHeader(req),
+    });
+    res.json(order?.toJSON());
+  },
+);
+
+adminOrdersRouter.post(
+  '/:id/refunds',
+  requireAdmin,
+  validate({ params: idParams, body: refundSchema }),
+  async (req, res) => {
+    const body = req.body as z.infer<typeof refundSchema>;
+    const order = await loadOrder(req.params.id as string);
+    const result = await refundOrder(req, order, {
+      amount: body.amount,
+      reason: body.reason,
+      cashOnly: body.method === 'cash',
+      idempotencyKey: idempotencyHeader(req),
+    });
+    res.json(result?.toJSON());
   },
 );
 
@@ -180,7 +235,13 @@ adminOrdersRouter.patch(
     });
 
     if (order.status === 'quote_pending') {
-      await changeStatus(req, order, 'received', {
+      // Individuals who chose online payment pay before work starts.
+      const payFirst = order.payment.method === 'online' && order.audience === 'retail' && amountDue(order) > 0;
+      if (payFirst) {
+        const settings = await getSettings();
+        order.payment.dueBy = new Date(Date.now() + settings.payments.quotePaymentDays * 86_400_000);
+      }
+      await changeStatus(req, order, payFirst ? 'awaiting_payment' : 'received', {
         note: body.note ?? `Price confirmed: ₹${order.totals.total}`,
       });
     } else {
@@ -216,29 +277,11 @@ adminOrdersRouter.post(
   '/:id/payments',
   validate({ params: idParams, body: recordPaymentSchema }),
   async (req, res) => {
-    const order = await loadOrder(req.params.id as string);
     const { amount, provider, note } = req.body as z.infer<typeof recordPaymentSchema>;
-    const due = round2(order.totals.total - (order.payment.amountPaid ?? 0));
-    if (amount > due + 0.009) throw ApiError.badRequest(`Only ₹${due} is due on this order`);
-
-    await PaymentModel.create({
-      order: order._id,
-      provider,
-      amount,
-      status: 'captured',
-      recordedBy: req.auth!.id,
-      note,
-    });
-    order.payment.amountPaid = round2((order.payment.amountPaid ?? 0) + amount);
-    syncPaymentStatus(order);
-    await order.save();
-    audit(req, {
-      action: 'payment.recorded',
-      entity: 'Order',
-      entityId: order._id,
-      summary: `${order.orderNumber}: ₹${amount} via ${provider}`,
-    });
-    res.json(order.toJSON());
+    const order = await loadOrder(req.params.id as string);
+    if (order.status === 'cancelled') throw ApiError.conflict('This order was cancelled');
+    const result = await recordPayment(req, order._id, { amount, provider, note, idempotencyKey: idempotencyHeader(req) });
+    res.json(result?.toJSON());
   },
 );
 
@@ -247,6 +290,12 @@ adminOrdersRouter.post('/walk-in', validate({ body: walkInOrderSchema }), async 
   const input = req.body as z.infer<typeof walkInOrderSchema>;
   if (input.fulfilment.method === 'delivery' && !input.fulfilment.address) {
     throw ApiError.badRequest('Delivery address is required');
+  }
+  const key = idempotencyHeader(req);
+  const previous = await findByIdempotencyKey(key);
+  if (previous) {
+    res.status(200).json(previous.toJSON());
+    return;
   }
 
   let customer = await UserModel.findOne({ phone: input.customer.phone });
@@ -260,8 +309,7 @@ adminOrdersRouter.post('/walk-in', validate({ body: walkInOrderSchema }), async 
   const totals = await computeTotals(subtotal, input.fulfilment.method);
   const status = items.some((i) => i.workflow === 'quote') ? 'quote_pending' : 'received';
 
-  const order = await OrderModel.create({
-    orderNumber: generateOrderNumber(),
+  const { order, replayed } = await persistOrder({
     audience: 'retail',
     customer: customer._id,
     contact: { name: input.customer.name, phone: input.customer.phone },
@@ -274,25 +322,20 @@ adminOrdersRouter.post('/walk-in', validate({ body: walkInOrderSchema }), async 
     payment: { method: 'counter', status: 'pending', amountPaid: 0 },
     assignedTo: req.auth!.id,
     internalNote: input.internalNote,
-  });
-  await attachFilesToOrder(order);
+  }, key);
+  if (replayed) {
+    res.status(200).json(order.toJSON());
+    return;
+  }
 
+  let result = order;
   if (input.amountPaid > 0) {
     const amount = Math.min(input.amountPaid, order.totals.total);
-    await PaymentModel.create({
-      order: order._id,
-      provider: input.paymentProvider,
-      amount,
-      status: 'captured',
-      recordedBy: req.auth!.id,
-    });
-    order.payment.amountPaid = amount;
-    syncPaymentStatus(order);
-    await order.save();
+    result = (await recordPayment(req, order._id, { amount, provider: input.paymentProvider, note: 'Paid at the counter' })) ?? order;
   }
-  await notifyStatus(order);
+  await notifyStatus(result);
   audit(req, { action: 'order.walk_in', entity: 'Order', entityId: order._id, summary: order.orderNumber });
-  res.status(201).json(order.toJSON());
+  res.status(201).json(result.toJSON());
 });
 
 adminOrdersRouter.delete('/:id', requireAdmin, validate({ params: idParams }), async (req, res) => {

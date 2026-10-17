@@ -42,9 +42,21 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
 });
 
 export function getErrorMessage(error: unknown, fallback = 'Something went wrong') {
-  if (axios.isAxiosError<{ error?: { message?: string } }>(error)) {
+  if (axios.isAxiosError<{ error?: { message?: string; requestId?: string } }>(error)) {
     if (!error.response) return 'Network error. Is the API running?';
-    return error.response.data?.error?.message ?? fallback;
+    const body = error.response.data?.error;
+    // Server faults carry the request id, which finds the exact line in the API logs.
+    if (error.response.status >= 500 && body?.requestId) return `${body.message ?? fallback} (Ref: ${body.requestId})`;
+    return body?.message ?? fallback;
   }
   return error instanceof Error ? error.message : fallback;
 }
+
+/** A fresh key per user action; the API returns the first result for repeats of the same action. */
+export function newIdempotencyKey() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export const idempotent = (key: string) => ({ headers: { 'Idempotency-Key': key } });

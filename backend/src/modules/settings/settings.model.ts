@@ -42,6 +42,10 @@ const paymentsSchema = new Schema(
   {
     onlineEnabled: { type: Boolean, default: true },
     counterEnabled: { type: Boolean, default: true },
+    /** Unpaid online orders are cancelled after this many minutes. */
+    onlineTimeoutMinutes: { type: Number, default: 30, min: 5, max: 1440 },
+    /** Days a customer has to pay once a custom quote is priced. */
+    quotePaymentDays: { type: Number, default: 3, min: 1, max: 30 },
   },
   { _id: false },
 );

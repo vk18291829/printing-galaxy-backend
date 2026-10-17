@@ -85,13 +85,13 @@ export default function TemplatesPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon" asChild aria-label={t('common.edit')}>
+                    <Button variant="outline" size="icon" asChild aria-label={t('common.edit')}>
                       <Link to={`/institution/templates/${tpl._id}`}>
                         <IconPencil />
                       </Link>
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="danger"
                       size="icon"
                       aria-label={t('common.remove')}
                       disabled={remove.isPending}

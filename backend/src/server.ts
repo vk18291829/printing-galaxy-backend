@@ -2,18 +2,22 @@ import { createApp } from '@/app';
 import { connectDb, disconnectDb } from '@/config/db';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
+import { checkProductionReadiness } from '@/config/readiness';
+import { scheduleOrderMaintenance } from '@/jobs/order-maintenance';
 import { scheduleFileRetention } from '@/jobs/file-retention';
 import { closeQueue, startWorker } from '@/jobs/queue';
 import { resumeBulkJobs } from '@/modules/bulk/bulk.service';
 import { ensureDevBuckets } from '@/modules/uploads/storage';
 
 async function main() {
+  checkProductionReadiness();
   await connectDb();
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 API ready on http://localhost:${env.PORT}/api/v1`);
   });
   scheduleFileRetention();
+  scheduleOrderMaintenance();
   void ensureDevBuckets();
 
   // With Redis, jobs can also run in a separate `npm run worker` process; RUN_WORKER=false opts out here.
@@ -32,6 +36,14 @@ async function main() {
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'Unhandled promise rejection');
+});
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception, exiting');
+  process.exit(1);
+});
 
 main().catch((err) => {
   logger.fatal({ err }, 'Failed to start server');

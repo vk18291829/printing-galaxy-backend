@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { SessionModel } from '@/modules/auth/session.model';
 import { api, bearer, connectTestDb, customerToken, disconnectTestDb, institutionToken, PASSWORD, seedBasics, staffToken } from './helpers';
 
 let seed: Awaited<ReturnType<typeof seedBasics>>;
@@ -22,8 +23,18 @@ describe('auth', () => {
 
     const refreshed = await api().post('/api/v1/auth/refresh').set('Cookie', cookie).expect(200);
     expect(refreshed.body.accessToken).toBeTruthy();
-    // The old refresh token is single-use.
+    const rotated = refreshed.headers['set-cookie'] as unknown as string[];
+    expect(rotated.join(';')).not.toEqual(cookie.join(';'));
+
+    // A second tab refreshing at the same moment still gets in, without a new cookie.
+    const sameMoment = await api().post('/api/v1/auth/refresh').set('Cookie', cookie).expect(200);
+    expect(sameMoment.body.accessToken).toBeTruthy();
+    expect(sameMoment.headers['set-cookie']).toBeUndefined();
+
+    // Used again later, the old token is treated as stolen: the whole sign-in is revoked.
+    await SessionModel.updateMany({ rotatedAt: { $ne: null } }, { $set: { rotatedAt: new Date(Date.now() - 60_000) } });
     await api().post('/api/v1/auth/refresh').set('Cookie', cookie).expect(401);
+    await api().post('/api/v1/auth/refresh').set('Cookie', rotated).expect(401);
   });
 
   it('keeps riders and customers out of the admin API', async () => {

@@ -1,8 +1,10 @@
+import crypto from 'node:crypto';
 import type { Request } from 'express';
 import { customAlphabet } from 'nanoid';
 import type { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import type { AuthContext } from '@/common/types';
+import { logEvent } from '@/config/logger';
 import { audit } from '@/modules/audit/audit.model';
 import { ProductModel } from '@/modules/catalog/product.model';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
@@ -13,8 +15,10 @@ import { getSettings } from '@/modules/settings/settings.model';
 import { FileModel } from '@/modules/uploads/file.model';
 import { UserModel } from '@/modules/users/user.model';
 import {
+  ALLOWED_TRANSITIONS,
   OrderModel,
   TERMINAL_STATUSES,
+  type Order,
   type OrderDoc,
   type OrderStatus,
 } from './order.model';
@@ -140,16 +144,76 @@ export async function recalculateTotals(order: OrderDoc) {
   syncPaymentStatus(order);
 }
 
-export function syncPaymentStatus(order: OrderDoc) {
-  const paid = order.payment?.amountPaid ?? 0;
-  const total = order.totals.total;
-  if (order.payment.status === 'refunded') return;
-  order.payment.status = paid <= 0 ? 'pending' : paid + 0.009 >= total ? 'paid' : 'partial';
+/** Money kept by the shop: paid minus refunded. */
+export const netPaid = (order: Pick<Order, 'payment'>) =>
+  round2((order.payment?.amountPaid ?? 0) - (order.payment?.amountRefunded ?? 0));
+
+export const amountDue = (order: Pick<Order, 'payment' | 'totals'>) =>
+  Math.max(0, round2(order.totals.total - netPaid(order)));
+
+export function paymentStatusFor(order: Pick<Order, 'payment' | 'totals'>) {
+  const net = netPaid(order);
+  if ((order.payment?.amountRefunded ?? 0) > 0 && net <= 0.009) return 'refunded' as const;
+  if (net <= 0) return 'pending' as const;
+  return net + 0.009 >= order.totals.total ? ('paid' as const) : ('partial' as const);
 }
 
-export async function attachFilesToOrder(order: OrderDoc) {
-  const fileIds = order.items.flatMap((i) => i.files);
-  if (fileIds.length) await FileModel.updateMany({ _id: { $in: fileIds } }, { $set: { order: order._id } });
+export function syncPaymentStatus(order: OrderDoc) {
+  order.payment.status = paymentStatusFor(order);
+}
+
+/**
+ * Attaches the order's uploads to it. Each file can belong to one order only: the update is
+ * conditional, so two orders racing for the same file cannot both get it.
+ */
+export async function claimFiles(order: OrderDoc) {
+  const fileIds = [...new Set(order.items.flatMap((i) => i.files.map(String)))];
+  if (!fileIds.length) return true;
+  const result = await FileModel.updateMany({ _id: { $in: fileIds }, order: null }, { $set: { order: order._id } });
+  if (result.modifiedCount === fileIds.length) return true;
+  await FileModel.updateMany({ _id: { $in: fileIds }, order: order._id }, { $unset: { order: 1 } });
+  return false;
+}
+
+const isDuplicate = (err: unknown, field: string) =>
+  (err as { code?: number }).code === 11000 &&
+  Object.keys((err as { keyPattern?: object }).keyPattern ?? (err as { keyValue?: object }).keyValue ?? {}).includes(field);
+
+export async function findByIdempotencyKey(key?: string) {
+  return key ? OrderModel.findOne({ idempotencyKey: key }) : null;
+}
+
+/**
+ * Saves a new order exactly once: a repeated idempotency key returns the first order
+ * (`replayed: true`), a clashing order number is regenerated, and files are claimed atomically.
+ */
+export async function persistOrder(data: Record<string, unknown>, key?: string) {
+  let order: OrderDoc | undefined;
+  for (let attempt = 0; attempt < 5 && !order; attempt += 1) {
+    try {
+      order = await OrderModel.create({ ...data, orderNumber: generateOrderNumber(), idempotencyKey: key });
+    } catch (err) {
+      if (key && isDuplicate(err, 'idempotencyKey')) {
+        const existing = await findByIdempotencyKey(key);
+        if (existing) return { order: existing, replayed: true };
+      }
+      if (!isDuplicate(err, 'orderNumber')) throw err;
+    }
+  }
+  if (!order) throw new Error('Could not allocate an order number');
+
+  if (!(await claimFiles(order))) {
+    await order.deleteOne();
+    throw ApiError.conflict('One of your files is already used in another order. Please upload it again.');
+  }
+  logEvent('order.created', {
+    orderNumber: order.orderNumber,
+    source: order.source,
+    status: order.status,
+    total: order.totals.total,
+    items: order.items.length,
+  });
+  return { order, replayed: false };
 }
 
 async function contactLanguage(order: OrderDoc): Promise<'en' | 'hi'> {
@@ -158,27 +222,76 @@ async function contactLanguage(order: OrderDoc): Promise<'en' | 'hi'> {
   return (user?.language as 'en' | 'hi') ?? 'en';
 }
 
+/** The customer's 4-digit handover code, created the first time it is needed. */
+export async function ensureHandoverCode(orderId: OrderDoc['_id']) {
+  const current = await OrderModel.findById(orderId).select('+handover.code').lean();
+  if (current?.handover?.code) return current.handover.code;
+  const code = String(crypto.randomInt(1000, 10_000));
+  await OrderModel.updateOne(
+    { _id: orderId, 'handover.code': { $exists: false } },
+    { $set: { 'handover.code': code, 'handover.issuedAt': new Date(), 'handover.wrongAttempts': 0 } },
+  );
+  const saved = await OrderModel.findById(orderId).select('+handover.code').lean();
+  return saved?.handover?.code ?? code;
+}
+
+const HANDOVER_TEXT = {
+  pickup: (c: string) => ({ en: `Show pickup code ${c} at the counter.`, hi: `काउंटर पर पिकअप कोड ${c} दिखाएँ।` }),
+  delivery: (c: string) => ({
+    en: `Delivery code: ${c}. Share it with the delivery person only after you get your order.`,
+    hi: `डिलीवरी कोड: ${c}। ऑर्डर मिलने के बाद ही इसे डिलीवरी वाले को बताएँ।`,
+  }),
+};
+
 export async function notifyStatus(order: OrderDoc, note?: string) {
+  const status = order.status as OrderStatus;
+  const method = (order.fulfilment?.method ?? 'pickup') as 'pickup' | 'delivery';
+  // A packed delivery order has nothing for the customer to do yet.
+  if (status === 'ready' && method === 'delivery') return;
+  // A new unpaid online order: the customer is still in checkout.
+  if (status === 'awaiting_payment' && order.statusHistory.length <= 1) return;
+
+  let extra: { en: string; hi: string } | undefined;
+  if ((status === 'ready' && method === 'pickup') || status === 'out_for_delivery') {
+    extra = HANDOVER_TEXT[method](await ensureHandoverCode(order._id));
+  }
   void notifications.orderStatus({
     phone: order.contact?.phone,
     lang: await contactLanguage(order),
     orderNumber: order.orderNumber,
-    status: order.status,
+    status,
     orderId: order._id,
     note,
+    extra,
+    dedupeKey: `order:${order.id}:${status}:${order.statusHistory.length}`,
   });
 }
 
-const FORWARD_FLOW: OrderStatus[] = [
-  'quote_pending',
-  'received',
-  'proof_sent',
-  'approved',
-  'printing',
-  'ready',
-  'out_for_delivery',
-  'delivered',
-];
+/**
+ * Checks a move made with the admin status control. Moves outside ALLOWED_TRANSITIONS need an
+ * admin override with a reason; handovers need the customer's code (or an override).
+ */
+export function assertTransition(
+  order: OrderDoc,
+  to: OrderStatus,
+  { override, note, role }: { override?: boolean; note?: string; role?: string },
+) {
+  const from = order.status as OrderStatus;
+  if (from === to) return;
+  if (TERMINAL_STATUSES.includes(from)) throw ApiError.conflict(`Order is already ${from.replace('_', ' ')}`);
+  if (ALLOWED_TRANSITIONS[from]?.includes(to)) return;
+  if (!override) {
+    if (to === 'picked_up' || to === 'delivered') {
+      throw ApiError.conflict("Hand the order over with the customer's code (Hand over button)");
+    }
+    if (from === 'awaiting_payment') {
+      throw ApiError.conflict('This order is waiting for online payment. Record a payment to move it forward.');
+    }
+    throw ApiError.conflict(`An order cannot go from "${from.replace(/_/g, ' ')}" to "${to.replace(/_/g, ' ')}"`);
+  }
+  if (role !== 'admin') throw ApiError.forbidden('Only the owner can override the order flow');
+  if (!note || note.trim().length < 5) throw ApiError.badRequest('Write a reason for the override (at least 5 characters)');
+}
 
 export async function changeStatus(
   req: Request | null,
@@ -202,6 +315,7 @@ export async function changeStatus(
 
   const previous = order.status;
   order.status = status;
+  if (status !== 'awaiting_payment') order.payment.dueBy = undefined;
   order.statusHistory.push({
     status,
     note: options.note,
@@ -222,6 +336,7 @@ export async function changeStatus(
   }
 
   await order.save();
+  logEvent('order.status', { orderNumber: order.orderNumber, from: previous, to: status, by: req?.auth?.id ?? 'system' });
   audit(req, {
     action: 'order.status',
     entity: 'Order',
@@ -231,10 +346,6 @@ export async function changeStatus(
   });
   if (options.notify !== false) await notifyStatus(order, options.note);
   return order;
-}
-
-export function isForwardMove(from: OrderStatus, to: OrderStatus) {
-  return FORWARD_FLOW.indexOf(to) >= FORWARD_FLOW.indexOf(from);
 }
 
 export async function resolveContact(auth: AuthContext, contactName?: string) {

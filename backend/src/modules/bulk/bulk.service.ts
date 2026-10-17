@@ -10,11 +10,10 @@ import { resolvePricingContext } from '@/modules/institutions/institution.servic
 import { notifications } from '@/modules/notifications/notification.service';
 import { OrderModel } from '@/modules/orders/order.model';
 import {
-  attachFilesToOrder,
   buildItems,
   changeStatus,
+  persistOrder,
   computeTotals,
-  generateOrderNumber,
   resolveContact,
 } from '@/modules/orders/order.service';
 import { quoteProduct } from '@/modules/pricing/pricing.service';
@@ -282,8 +281,8 @@ export async function placeBulkOrder(
 
   const totals = await computeTotals(item.lineTotal, input.fulfilment.method);
   const who = await resolveContact(auth);
-  const order = await OrderModel.create({
-    orderNumber: generateOrderNumber(),
+  // Keyed on the job: placing the same sheet twice returns the first order.
+  const { order, replayed } = await persistOrder({
     audience: ctx.audience,
     ...who,
     source: 'online',
@@ -294,8 +293,8 @@ export async function placeBulkOrder(
     totals,
     payment: { method: input.paymentMethod, status: 'pending', amountPaid: 0 },
     customerNote: input.customerNote,
-  });
-  await attachFilesToOrder(order);
+  }, `bulkjob:${job.id}`);
+  if (replayed) return order;
   await FileModel.updateOne({ _id: job.output.file }, { $set: { order: order._id } });
 
   // The generated sheet is the proof: the institution checks every card before printing.

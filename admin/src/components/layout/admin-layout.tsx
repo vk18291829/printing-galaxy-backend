@@ -8,6 +8,7 @@ import {
   IconDots,
   IconExternalLink,
   IconFileSpreadsheet,
+  IconActivityHeartbeat,
   IconHistory,
   IconLayoutDashboard,
   IconLogout,
@@ -106,6 +107,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/reports', label: 'Reports', icon: IconReportAnalytics, adminOnly: true },
       { to: '/settings', label: 'Settings', icon: IconSettings, adminOnly: true },
       { to: '/audit', label: 'Audit log', icon: IconHistory, adminOnly: true },
+      { to: '/system', label: 'System activity', icon: IconActivityHeartbeat, adminOnly: true },
     ],
   },
 ];
@@ -128,13 +130,13 @@ function readCollapsed() {
 
 function Brand({ collapsed }: { collapsed?: boolean }) {
   return (
-    <Link to="/" className="flex min-w-0 items-center gap-2.5">
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white shadow-xs ring-1 ring-black/5">
-        <img src="/logo.png" alt="" className="size-6 object-contain" />
-      </span>
+    <Link to="/" className="flex min-w-0 items-center gap-3">
+      {/* No box: the dark-theme file has light ink so the mark stays visible. */}
+      <img src="/logo-mark.png" alt="" width={40} height={40} className="size-10 shrink-0 object-contain dark:hidden" />
+      <img src="/logo-mark-dark.png" alt="" width={40} height={40} className="hidden size-10 shrink-0 object-contain dark:block" />
       {!collapsed && (
         <span className="min-w-0 leading-tight">
-          <span className="block truncate text-sm font-semibold text-foreground">Printing Galaxy</span>
+          <span className="block truncate text-base font-semibold text-foreground">Printing Galaxy</span>
           <span className="block truncate text-xs text-muted-foreground">Admin panel</span>
         </span>
       )}

@@ -19,6 +19,7 @@ const CustomersPage = lazy(() => import('@/pages/people/customers-page'));
 const StaffPage = lazy(() => import('@/pages/people/staff-page'));
 const SettingsPage = lazy(() => import('@/pages/system/settings-page'));
 const AuditPage = lazy(() => import('@/pages/system/audit-page'));
+const SystemPage = lazy(() => import('@/pages/system/system-page'));
 const InventoryPage = lazy(() => import('@/pages/system/inventory-page'));
 const ReportsPage = lazy(() => import('@/pages/system/reports-page'));
 const BulkJobsPage = lazy(() => import('@/pages/bulk/bulk-jobs-page'));
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
       { path: 'staff', element: page(<StaffPage />, true) },
       { path: 'settings', element: page(<SettingsPage />, true) },
       { path: 'audit', element: page(<AuditPage />, true) },
+      { path: 'system', element: page(<SystemPage />, true) },
       { path: 'reports', element: page(<ReportsPage />, true) },
       { path: 'inventory', element: page(<InventoryPage />) },
       { path: 'bulk-jobs', element: page(<BulkJobsPage />) },

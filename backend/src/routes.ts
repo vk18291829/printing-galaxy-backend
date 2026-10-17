@@ -9,6 +9,7 @@ import { catalogRouter } from '@/modules/catalog/catalog.routes';
 import { deliveryRouter } from '@/modules/delivery/delivery.routes';
 import { notificationsRouter } from '@/modules/notifications/notifications.routes';
 import { ordersRouter } from '@/modules/orders/orders.routes';
+import { trackingRouter } from '@/modules/orders/tracking.routes';
 import { paymentsRouter } from '@/modules/payments/payments.routes';
 import { reviewsRouter } from '@/modules/reviews/reviews.routes';
 import { settingsRouter } from '@/modules/settings/settings.routes';
@@ -17,10 +18,12 @@ import { accountRouter } from '@/modules/users/account.routes';
 
 export const apiRouter = Router();
 
+// 503 when the database is unreachable, so load balancers and uptime monitors notice.
 apiRouter.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    db: mongoose.connection.readyState === 1 ? 'up' : 'down',
+  const dbUp = mongoose.connection.readyState === 1;
+  res.status(dbUp ? 200 : 503).json({
+    status: dbUp ? 'ok' : 'degraded',
+    db: dbUp ? 'up' : 'down',
     queue: queueMode(),
     uptime: Math.round(process.uptime()),
   });
@@ -34,6 +37,7 @@ apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/account', accountRouter);
 apiRouter.use('/uploads', uploadsRouter);
 apiRouter.use('/orders', ordersRouter);
+apiRouter.use('/track', trackingRouter);
 apiRouter.use('/payments', paymentsRouter);
 apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/institution', institutionRouter);

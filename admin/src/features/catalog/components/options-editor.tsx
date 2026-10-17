@@ -43,14 +43,14 @@ function OptionValues({ control, register, index }: { control: Control<ProductFo
               </label>
             )}
           />
-          <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => values.remove(vi)} aria-label="Remove choice">
+          <Button type="button" variant="danger" size="icon" className="size-8" onClick={() => values.remove(vi)} aria-label="Remove choice">
             <IconTrash className="size-4" />
           </Button>
         </div>
       ))}
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={() => values.append({ value: '', label: { en: '', hi: '' }, unitDelta: 0, fixedFee: 0, minCopies: null, isDefault: false })}
       >
@@ -70,7 +70,7 @@ export function OptionsEditor({ control, register }: { control: Control<ProductF
             <Input placeholder="key (e.g. paperSize)" {...register(`options.${i}.key`)} />
             <Input placeholder="Option name (EN)" {...register(`options.${i}.label.en`)} />
             <Input placeholder="विकल्प का नाम (HI)" {...register(`options.${i}.label.hi`)} />
-            <Button type="button" variant="ghost" size="icon" onClick={() => options.remove(i)} aria-label="Remove option">
+            <Button type="button" variant="danger" size="icon" onClick={() => options.remove(i)} aria-label="Remove option">
               <IconTrash className="size-4" />
             </Button>
           </div>

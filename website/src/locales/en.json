@@ -26,7 +26,10 @@
     "comingSoon": "Coming soon",
     "free": "Free",
     "loadMore": "Load more",
-    "clear": "Clear"
+    "clear": "Clear",
+    "errorRef": "Ref: {{id}}",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "units": {
     "page_one": "page",
@@ -380,7 +383,19 @@
       "stepPhone": "Mobile number",
       "stepCode": "Verify code",
       "privacy": "We only use your number for order updates. No spam."
-    }
+    },
+    "forgotPassword": "Forgot password?",
+    "resetTitle": "Reset your password",
+    "resetSubtitle": "Enter your institution's email. We'll send a 6-digit code to the phone number on the account.",
+    "sendResetCode": "Send code",
+    "resetCodeSent": "If the email is registered, a code was sent to {{phone}}.",
+    "resetCodeSentGeneric": "If the email is registered, a code was sent to the phone number on the account.",
+    "code": "6-digit code",
+    "newPassword": "New password",
+    "resetPassword": "Set new password",
+    "resetDone": "Password changed. Please sign in with your new password.",
+    "backToLogin": "Back to sign in",
+    "changeEmail": "Use a different email"
   },
   "status": {
     "institution": {
@@ -405,7 +420,8 @@
       "out_for_delivery": "Out for delivery",
       "delivered": "Delivered",
       "picked_up": "Picked up",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "awaiting_payment": "Awaiting payment"
     },
     "payment": {
       "pending": "Unpaid",
@@ -484,7 +500,9 @@
     "confirmCheck": "I have checked the items, uploaded files, quantities and address.",
     "contact": "Contact",
     "needName": "Enter your name to continue.",
-    "needAddress": "Fill in the delivery address (house / street, city and 6-digit PIN) to continue."
+    "needAddress": "Fill in the delivery address (house / street, city and 6-digit PIN) to continue.",
+    "paymentLater": "Your order is saved. Pay within {{minutes}} minutes from My orders, otherwise it is cancelled automatically.",
+    "policyPrefix": "By placing the order you agree to our"
   },
   "orders": {
     "title": "My orders",
@@ -523,7 +541,21 @@
     },
     "awaitingQuote": "We're reviewing your order and will share the price shortly.",
     "back": "All orders",
-    "invoice": "Invoice"
+    "invoice": "Invoice",
+    "awaitingPaymentTitle": "Complete your payment",
+    "awaitingPayment": "Pay {{amount}} by {{time}} to confirm this order. Printing starts once we receive the payment; unpaid orders are cancelled automatically.",
+    "handoverPickupTitle": "Your pickup code",
+    "handoverPickupDesc": "Show this code at the counter to collect your order.",
+    "handoverDeliveryTitle": "Your delivery code",
+    "handoverDeliveryDesc": "Tell this code to the delivery person only after you have your order in hand.",
+    "refunds": "Refunds",
+    "refundPending": "Refund in progress",
+    "refundDone": "Refunded",
+    "refundFailed": "Refund failed — the shop will contact you",
+    "refundEta": "Online refunds reach your bank account in 5–7 working days.",
+    "cancelPaidConfirm": "Cancel this order? {{amount}} paid online will be refunded to your account in 5–7 working days.",
+    "autoCancelled": "This order was cancelled because the payment was not received in time.",
+    "track": "Track an order"
   },
   "account": {
     "profile": "Profile",
@@ -600,7 +632,9 @@
     "shop": "Shop",
     "company": "Help",
     "rights": "All rights reserved.",
-    "privacy": "Identity documents are deleted automatically after delivery."
+    "privacy": "Identity documents are deleted automatically after delivery.",
+    "legal": "Policies",
+    "track": "Track order"
   },
   "notFound": {
     "title": "Page not found",
@@ -904,5 +938,128 @@
     "reviewTitle": "Submit your review?",
     "reviewDesc": "It appears on the product page after our team approves it.",
     "reviewSubmitted": "Review submitted"
+  },
+  "track": {
+    "title": "Track your order",
+    "subtitle": "No account needed. Enter your order number and the mobile number used for the order.",
+    "orderNumber": "Order number",
+    "orderNumberHint": "Printed on your receipt and in our messages, e.g. PG261017-AB12",
+    "phone": "Mobile number",
+    "sendCode": "Send code",
+    "codeSent": "If the details match an order, we've sent a 6-digit code to +91 {{phone}}.",
+    "code": "6-digit code",
+    "verify": "Show status",
+    "another": "Track another order",
+    "placed": "Placed {{date}}",
+    "signInHint": "Sign in to see files, proofs, invoices and your pickup or delivery code.",
+    "signIn": "Sign in"
+  },
+  "legal": {
+    "updated": "Last updated: {{date}}",
+    "contactLine": "Questions? Contact {{name}} at {{phone}}{{email}}.",
+    "terms": {
+      "title": "Terms of service",
+      "intro": "These terms apply when you order from {{name}} on this website, by WhatsApp or at the counter.",
+      "sections": [
+        [
+          "Orders and prices",
+          "Prices are shown before you order and confirmed on the order page. Custom jobs are priced by the shop before you pay. Institution prices apply only to approved institution accounts."
+        ],
+        [
+          "Your files and designs",
+          "You confirm that you have the right to print everything you upload. We do not print material that is illegal, defamatory or infringes copyright or trademarks, and we may refuse such orders."
+        ],
+        [
+          "Proofs",
+          "For personalised items we send a proof. Please check names, spellings, photos and numbers carefully: once you approve a proof, we print exactly what you approved."
+        ],
+        [
+          "Payment",
+          "Online payments are processed by Razorpay. Orders paid online are started only after the payment is received. Unpaid online orders are cancelled automatically after the time shown at checkout."
+        ],
+        [
+          "Pickup and delivery",
+          "Pickup orders are handed over against the pickup code sent to you. Delivery orders are handed over against the delivery code; please share it only after you receive the order."
+        ],
+        [
+          "Liability",
+          "If we make a mistake, we reprint the affected items or refund their price. Our liability is limited to the value of the order."
+        ]
+      ]
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "intro": "We collect only what we need to make and deliver your order.",
+      "sections": [
+        [
+          "What we collect",
+          "Your name, mobile number, email (institutions), delivery address, the files you upload and your order history."
+        ],
+        [
+          "How we use it",
+          "To price, print and deliver your orders, send order updates by WhatsApp or SMS, issue invoices and answer your questions. We do not sell your data."
+        ],
+        [
+          "Identity documents",
+          "Aadhaar, PAN and other ID documents are stored privately, visible only to shop staff through short-lived links, and deleted automatically after the retention period once the order is completed."
+        ],
+        [
+          "Service providers",
+          "We use Amazon Web Services (file storage), Razorpay (payments), Meta WhatsApp and MSG91 (messages). They process data only to provide these services."
+        ],
+        [
+          "Your choices",
+          "You can ask us to correct or delete your account and data by contacting the shop. Invoices are kept as required by tax law."
+        ]
+      ]
+    },
+    "refund": {
+      "title": "Refund and cancellation policy",
+      "intro": "Printed and personalised items are made to order, so cancellations depend on how far the work has gone.",
+      "sections": [
+        [
+          "Cancelling",
+          "You can cancel online from My orders until work starts (while the order is received or waiting for payment or price). After that, please call the shop."
+        ],
+        [
+          "Refunds for online payments",
+          "If you cancel a paid order before work starts, the full amount is refunded automatically to the original payment method. Refunds reach your account in 5–7 working days."
+        ],
+        [
+          "Counter payments",
+          "Money paid at the counter is refunded at the counter."
+        ],
+        [
+          "Printing mistakes",
+          "If an item is damaged or differs from the approved proof because of our mistake, tell us within 3 days of pickup or delivery. We will reprint it or refund its price."
+        ],
+        [
+          "Not refundable",
+          "Items printed exactly as you approved them, mistakes in files or details you provided, and custom jobs already in production."
+        ]
+      ]
+    },
+    "shipping": {
+      "title": "Shipping and delivery policy",
+      "intro": "We deliver locally from our shop. Pickup from the shop is always available.",
+      "sections": [
+        [
+          "Where we deliver",
+          "Home delivery is offered in our local area when it is switched on at checkout. The delivery fee is shown before you order; delivery is free above the amount shown."
+        ],
+        [
+          "When",
+          "Most print orders are ready the same or next working day; personalised and bulk orders take longer and the order page shows their progress. We message you when your order is out for delivery."
+        ],
+        [
+          "Handover",
+          "The delivery person asks for the 4-digit delivery code sent to you. Cash on delivery is collected at the door when the order is not prepaid."
+        ],
+        [
+          "Missed deliveries",
+          "If nobody is available, we try again and let you know. After repeated failed attempts we will call you to arrange delivery or pickup."
+        ]
+      ]
+    }
   }
 }

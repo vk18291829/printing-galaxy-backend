@@ -49,6 +49,26 @@ export const statusChangeSchema = z.object({
   status: z.enum(ORDER_STATUSES),
   note: z.string().trim().max(500).optional(),
   notify: z.boolean().default(true),
+  /** Admin only: make a move outside the normal flow (needs a note). */
+  override: z.boolean().default(false),
+  /** When cancelling a paid order, refund what was paid. */
+  refund: z.boolean().default(false),
+});
+
+export const handoverSchema = z.object({
+  code: z.string().trim().optional(),
+  overrideReason: z.string().trim().max(300).optional(),
+  amountCollected: z.coerce.number().min(0).default(0),
+  provider: z.enum(['cash', 'upi_counter']).default('cash'),
+  note: z.string().trim().max(300).optional(),
+});
+
+export const refundSchema = z.object({
+  /** Leave empty to refund everything paid. */
+  amount: z.coerce.number().positive().optional(),
+  reason: z.string().trim().min(3, 'Write a reason for the refund').max(300),
+  /** `cash`: money handed back at the counter, even for online payments. */
+  method: z.enum(['original', 'cash']).default('original'),
 });
 
 export const assignSchema = z.object({
@@ -80,6 +100,7 @@ export const adminOrderListQuery = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
   audience: z.enum(['retail', 'institution']).optional(),
   paymentStatus: z.enum(['pending', 'partial', 'paid', 'refunded', 'failed']).optional(),
+  fulfilment: z.enum(['pickup', 'delivery']).optional(),
   assignedTo: objectId.optional(),
   q: z.string().trim().max(100).optional(),
   active: z

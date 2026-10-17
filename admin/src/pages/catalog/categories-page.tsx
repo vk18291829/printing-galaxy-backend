@@ -1,20 +1,20 @@
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
-import { DynamicIcon, ICON_NAMES } from '@/components/common/dynamic-icon';
+import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { IconPicker } from '@/components/common/icon-picker';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdminCategories, useDeleteCategory, useSaveCategory, type AdminCategory, type CategoryInput } from '@/features/catalog/api';
 import { ImageListEditor } from '@/features/catalog/components/image-list-editor';
-import { cn } from '@/lib/utils';
 
 const EMPTY: CategoryInput = {
   name: { en: '', hi: '' },
@@ -48,9 +48,10 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{category === 'new' ? 'New category' : 'Edit category'}</DialogTitle>
+          <DialogDescription>Categories group products in the website menu and on the home page.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -82,36 +83,33 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
             <ImageListEditor value={form.imageUrl ? [form.imageUrl] : []} onChange={(urls) => set('imageUrl', urls[0] ?? '')} max={1} />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Icon</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {ICON_NAMES.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => set('icon', name)}
-                  className={cn('grid size-9 place-items-center rounded-lg border', form.icon === name ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-accent')}
-                >
-                  <DynamicIcon name={name} className="size-4" />
-                </button>
-              ))}
-            </div>
+            <Label htmlFor="category-icon">Icon</Label>
+            <IconPicker id="category-icon" value={form.icon} onChange={(name) => set('icon', name)} />
           </div>
-          <div className="space-y-2">
-            <Label>Shown to</Label>
+          <fieldset className="space-y-2.5 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Shown to</legend>
             {(['retail', 'institution'] as const).map((a) => (
-              <label key={a} className="flex items-center gap-2 text-sm">
+              <label key={a} className="flex items-center gap-2.5 text-sm">
                 <Checkbox checked={form.audiences.includes(a)} onCheckedChange={(v) => toggleAudience(a, v === true)} />
                 {a === 'retail' ? 'Individuals' : 'Institutions'}
               </label>
             ))}
-          </div>
-          <label className="flex items-center justify-between self-start text-sm">
-            Active
-            <Switch checked={form.isActive} onCheckedChange={(v) => set('isActive', v)} />
-          </label>
+          </fieldset>
+          <fieldset className="rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Visibility</legend>
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span>
+                <span className="block font-medium">{form.isActive ? 'Active' : 'Hidden'}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {form.isActive ? 'Shown on the website' : 'Not shown on the website'}
+                </span>
+              </span>
+              <Switch checked={form.isActive} onCheckedChange={(v) => set('isActive', v)} aria-label="Active" />
+            </label>
+          </fieldset>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -190,13 +188,13 @@ export default function CategoriesPage() {
                 </TableCell>
                 <TableCell>{c.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Hidden</Badge>}</TableCell>
                 <TableCell className="pr-5 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>
+                  <Button variant="outline" size="sm" onClick={() => setEditing(c)}>
                     <IconPencil /> Edit
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
-                    className="text-destructive"
+                    
                     aria-label={`Delete ${c.name.en}`}
                     onClick={() =>
                       void confirmAction({

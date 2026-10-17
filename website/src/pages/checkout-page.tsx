@@ -7,9 +7,9 @@ import {
   IconInfoCircle,
   IconTruckDelivery,
 } from '@tabler/icons-react';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageNav } from '@/components/common/page-nav';
@@ -31,7 +31,7 @@ import { useCreateOrder } from '@/features/orders/api';
 import { payWithRazorpay } from '@/features/orders/razorpay';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
-import { getErrorMessage } from '@/lib/api-client';
+import { getErrorMessage, newIdempotencyKey } from '@/lib/api-client';
 import { formatINR } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Address } from '@/types/api';
@@ -83,6 +83,8 @@ export default function CheckoutPage() {
   const principal = useAuthStore((s) => s.principal);
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clear);
+  // One key per checkout: double taps and network retries can never create two orders.
+  const checkoutKey = useRef(newIdempotencyKey());
   const { lines, subtotal, hasQuoteItems, invalid } = useCartQuotes(items);
   const { data: settings, isLoading } = usePublicSettings();
   const createOrder = useCreateOrder();
@@ -137,6 +139,7 @@ export default function CheckoutPage() {
     if (!ok) return;
     createOrder.mutate(
       {
+        idempotencyKey: checkoutKey.current,
         items: items.map((i) => ({
           productId: i.productId,
           options: i.options,
@@ -160,7 +163,7 @@ export default function CheckoutPage() {
             try {
               const paid = await payWithRazorpay(order._id, i18n.language);
               if (paid) toast.success(t('checkout.paymentSuccess'));
-              else toast.info(t('checkout.paymentCancelled'));
+              else toast.info(t('checkout.paymentLater', { minutes: settings.payments.onlineTimeoutMinutes ?? 30 }));
             } catch (e) {
               toast.error(getErrorMessage(e));
             } finally {
@@ -386,7 +389,13 @@ export default function CheckoutPage() {
                         ? t('checkout.placeAndPay', { amount: formatINR(total) })
                         : t('checkout.placeOrder')}
                   </Button>
-                  <Button variant="ghost" className="w-full" onClick={() => goTo('details')}>
+                  <p className="text-center text-xs text-muted-foreground">
+                    {t('checkout.policyPrefix')}{' '}
+                    <Link to="/terms" className="underline hover:text-foreground">{t('legal.terms.title')}</Link>
+                    {' · '}
+                    <Link to="/refund-policy" className="underline hover:text-foreground">{t('legal.refund.title')}</Link>
+                  </p>
+                  <Button variant="outline" className="w-full" onClick={() => goTo('details')}>
                     <IconArrowLeft /> {t('checkout.backToDetails')}
                   </Button>
                 </>

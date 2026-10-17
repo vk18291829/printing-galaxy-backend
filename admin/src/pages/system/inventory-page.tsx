@@ -121,8 +121,8 @@ function MaterialDialog({ material, onClose }: { material: Material | 'new'; onC
         <DialogFooter className="sm:justify-between">
           {!isNew ? (
             <Button
-              variant="ghost"
-              className="text-destructive"
+              variant="danger"
+              
               disabled={archive.isPending}
               onClick={async () => {
                 const ok = await confirmAction({
@@ -142,7 +142,7 @@ function MaterialDialog({ material, onClose }: { material: Material | 'new'; onC
             <span />
           )}
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button onClick={() => void submit()} disabled={save.isPending || !form.name.trim()}>
@@ -203,7 +203,7 @@ function MovementDialog({ material, onClose }: { material: Material; onClose: ()
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={reason === 'purchase' ? 'Bill no., supplier' : 'Order no., reason'} />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -358,11 +358,11 @@ export default function InventoryPage() {
                           <IconTransferIn /> <span className="hidden sm:inline">Update stock</span>
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" className="size-8" onClick={() => setHistory(m)} aria-label="History">
+                      <Button variant="outline" size="icon" className="size-8" onClick={() => setHistory(m)} aria-label="History">
                         <IconHistory />
                       </Button>
                       {isAdmin && (
-                        <Button variant="ghost" size="icon" className="size-8" onClick={() => setEditing(m)} aria-label="Edit">
+                        <Button variant="outline" size="icon" className="size-8" onClick={() => setEditing(m)} aria-label="Edit">
                           <IconPencil />
                         </Button>
                       )}

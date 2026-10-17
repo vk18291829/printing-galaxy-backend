@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdminCategories, useAdminProducts, useToggleProduct, type AdminProduct } from '@/features/catalog/api';
+import { missingForProduct } from '@/features/catalog/completeness';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { formatINR } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
@@ -28,6 +29,18 @@ function BookSummary({ book, unit }: { book: PriceBook; unit: string }) {
       <p className="text-xs text-muted-foreground">
         min {book.minQty} · {book.tiers.length} tier{book.tiers.length > 1 ? 's' : ''}
       </p>
+    </div>
+  );
+}
+
+/** Green when the product page is complete; otherwise lists what is missing. */
+function Completeness({ product }: { product: AdminProduct }) {
+  const missing = missingForProduct(product);
+  if (!missing.length) return <Badge variant="success">Complete</Badge>;
+  return (
+    <div className="max-w-48 space-y-1">
+      <Badge variant="warning">{missing.length} to finish</Badge>
+      <p className="text-xs leading-snug text-muted-foreground">{missing.join(' · ')}</p>
     </div>
   );
 }
@@ -100,6 +113,7 @@ export default function ProductsPage() {
                   <TableHead className="hidden lg:table-cell">Workflow</TableHead>
                   <TableHead>Individual price</TableHead>
                   <TableHead>Institution price</TableHead>
+                  <TableHead className="hidden md:table-cell">Ready</TableHead>
                   <TableHead>Visible</TableHead>
                   <TableHead className="pr-5" />
                 </TableRow>
@@ -129,11 +143,14 @@ export default function ProductsPage() {
                     <TableCell>
                       <BookSummary book={p.pricing.institution} unit={p.unit} />
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Completeness product={p} />
+                    </TableCell>
                     <TableCell>
                       <Switch checked={p.isActive} onCheckedChange={(v) => setActive(p, v)} aria-label="Visible on website" />
                     </TableCell>
                     <TableCell className="pr-5 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/products/${p._id}`)}>
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/products/${p._id}`)}>
                         <IconPencil /> Edit
                       </Button>
                     </TableCell>

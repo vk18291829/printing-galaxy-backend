@@ -166,6 +166,14 @@ export default function SettingsPage() {
                 )}
               />
               <Controller control={control} name="payments.counterEnabled" render={({ field }) => <Toggle label="Pay at counter / on delivery" value={field.value} onChange={field.onChange} />} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Unpaid online orders cancel after (minutes)" hint="Individuals paying online: printing starts only after payment.">
+                  <Input type="number" min={5} max={1440} {...register('payments.onlineTimeoutMinutes', { valueAsNumber: true })} />
+                </Field>
+                <Field label="Days to pay a custom quote" hint="After you price a custom job for an online-paying customer.">
+                  <Input type="number" min={1} max={30} {...register('payments.quotePaymentDays', { valueAsNumber: true })} />
+                </Field>
+              </div>
             </CardContent>
           </Card>
 

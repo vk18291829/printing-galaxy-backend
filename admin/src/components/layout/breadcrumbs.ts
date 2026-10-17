@@ -14,6 +14,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   staff: 'Staff',
   settings: 'Settings',
   audit: 'Audit log',
+  system: 'System activity',
   reports: 'Reports',
   inventory: 'Materials & stock',
   'bulk-jobs': 'Bulk card lists',

@@ -6,7 +6,7 @@ import {
   IconTruckDelivery,
   IconX,
 } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { OrderStatusBadge } from '@/components/common/status-badge';
@@ -17,14 +17,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useAuthStore } from '@/features/auth/auth-store';
+import { useAuthStore, useIsAdmin } from '@/features/auth/auth-store';
 import { useCompleteDelivery, useDeliveries, useFailDelivery, useStartDelivery } from '@/features/operations/api';
+import { newIdempotencyKey } from '@/lib/api-client';
 import { formatDate, formatINR, formatNumber } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 import { cn } from '@/lib/utils';
 import type { DeliveryOrder } from '@/types/admin';
 
-const due = (o: DeliveryOrder) => Math.max(0, Math.round((o.totals.total - o.payment.amountPaid) * 100) / 100);
+const due = (o: DeliveryOrder) =>
+  Math.max(0, Math.round((o.totals.total - (o.payment.amountPaid - (o.payment.amountRefunded ?? 0))) * 100) / 100);
 
 function addressLine(o: DeliveryOrder) {
   const a = o.fulfilment.address;
@@ -33,19 +35,53 @@ function addressLine(o: DeliveryOrder) {
 
 function DeliveredDialog({ order, onClose }: { order: DeliveryOrder; onClose: () => void }) {
   const complete = useCompleteDelivery();
+  const isAdmin = useIsAdmin();
   const owed = due(order);
   const [amount, setAmount] = useState(owed ? String(owed) : '0');
   const [provider, setProvider] = useState<'cash' | 'upi_counter'>('cash');
   const [note, setNote] = useState('');
+  const [code, setCode] = useState('');
+  const [noCode, setNoCode] = useState(false);
+  const [reason, setReason] = useState('');
+  // Same key for every tap on this dialog: the cash is never counted twice.
+  const key = useRef(newIdempotencyKey());
   const value = Number(amount) || 0;
+  const locked = (order.handover?.wrongAttempts ?? 0) >= 5;
+  const onAccount = order.audience === 'institution';
+  const settled = value + 0.009 >= owed || onAccount || (noCode && isAdmin);
+  const codeOk = noCode ? reason.trim().length >= 5 : /^\d{4}$/.test(code);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Mark {order.orderNumber} delivered</DialogTitle>
-          <DialogDescription>{owed > 0 ? `${formatINR(owed)} is due on this order.` : 'This order is fully paid.'}</DialogDescription>
+          <DialogDescription>
+            Ask the customer for their 4-digit delivery code. {owed > 0 ? `${formatINR(owed)} is due on this order.` : 'This order is fully paid.'}
+          </DialogDescription>
         </DialogHeader>
+        {locked && !noCode ? (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">Too many wrong codes. Call the shop to confirm this delivery.</p>
+        ) : noCode ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="noreason">Why there is no code</Label>
+            <Textarea id="noreason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Customer's phone is off; spoke on call" className="min-h-16" />
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label htmlFor="dcode">Delivery code</Label>
+            <Input
+              id="dcode"
+              inputMode="numeric"
+              autoFocus
+              maxLength={4}
+              placeholder="••••"
+              className="h-14 text-center font-mono text-3xl tracking-[0.5em]"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            />
+          </div>
+        )}
         {owed > 0 && (
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -64,25 +100,44 @@ function DeliveredDialog({ order, onClose }: { order: DeliveryOrder; onClose: ()
                 </button>
               ))}
             </div>
-            {value < owed && <p className="text-xs text-amber-700 dark:text-warning">{formatINR(owed - value)} will stay due.</p>}
+            {value + 0.009 < owed && (
+              <p className={cn('text-xs', settled ? 'text-amber-700 dark:text-warning' : 'text-destructive')}>
+                {settled ? `${formatINR(owed - value)} stays due (billed to the institution's account).` : `Collect the full ${formatINR(owed)} before handing over.`}
+              </p>
+            )}
           </div>
         )}
         <div className="space-y-1.5">
           <Label htmlFor="dnote">Note (optional)</Label>
           <Input id="dnote" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Handed to security, etc." />
         </div>
+        {isAdmin && (
+          <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            Deliver without the code (owner)
+            <input type="checkbox" className="size-4 accent-primary" checked={noCode} onChange={(e) => setNoCode(e.target.checked)} />
+          </label>
+        )}
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
-            disabled={complete.isPending || value > owed + 0.009}
+            disabled={complete.isPending || value > owed + 0.009 || !settled || !codeOk || (locked && !noCode)}
             onClick={async () => {
               const ok = await confirmAction({
                 title: `Mark ${order.orderNumber} as delivered?`,
                 description: owed > 0 ? `You collected ${formatINR(value)} by ${provider === 'cash' ? 'cash' : 'UPI'}. The customer is notified.` : 'The customer is notified that the order was delivered.',
                 confirmLabel: 'Mark delivered',
-                action: () => complete.mutateAsync({ id: order._id, cashCollected: owed > 0 ? value : 0, provider, note: note || undefined }),
+                action: () =>
+                  complete.mutateAsync({
+                    id: order._id,
+                    key: key.current,
+                    code: noCode ? undefined : code,
+                    overrideReason: noCode ? reason.trim() : undefined,
+                    cashCollected: owed > 0 ? value : 0,
+                    provider,
+                    note: note || undefined,
+                  }),
                 successTitle: 'Delivered',
               });
               if (ok) onClose();
@@ -105,7 +160,10 @@ function FailedDialog({ order, onClose }: { order: DeliveryOrder; onClose: () =>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Couldn't deliver {order.orderNumber}</DialogTitle>
-          <DialogDescription>The order goes back to “ready” so the shop can plan another attempt.</DialogDescription>
+          <DialogDescription>
+            The order goes back to “ready” and the customer gets a message.
+            {(order.deliveryAttempts ?? 0) >= 2 ? ' This is the last attempt before the shop calls the customer.' : ''}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap gap-2">
           {reasons.map((r) => (
@@ -116,7 +174,7 @@ function FailedDialog({ order, onClose }: { order: DeliveryOrder; onClose: () =>
         </div>
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="What happened?" className="min-h-16" />
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -147,7 +205,7 @@ function DeliveryCard({ order, showRider }: { order: DeliveryOrder; showRider: b
   const [dialog, setDialog] = useState<'done' | 'failed' | null>(null);
   const owed = due(order);
   const address = addressLine(order);
-  const lastFail = [...(order.statusHistory ?? [])].reverse().find((h) => h.note?.startsWith('Delivery attempt failed'));
+  const lastFail = [...(order.statusHistory ?? [])].reverse().find((h) => /^Delivery attempt( \d+)? failed/.test(h.note ?? ''));
 
   return (
     <Card className={cn('gap-3 py-4', order.status === 'out_for_delivery' && 'border-primary/50 ring-1 ring-primary/20')}>
@@ -193,7 +251,7 @@ function DeliveryCard({ order, showRider }: { order: DeliveryOrder; showRider: b
           ))}
         </ul>
         {order.customerNote && <p className="text-sm text-muted-foreground">“{order.customerNote}”</p>}
-        {lastFail && order.status === 'ready' && <p className="text-xs text-amber-700 dark:text-warning">Last attempt: {lastFail.note?.replace('Delivery attempt failed: ', '')}</p>}
+        {lastFail && order.status === 'ready' && <p className="text-xs text-amber-700 dark:text-warning">Last attempt: {lastFail.note?.replace(/^Delivery attempt( \d+)? failed: /, '')}</p>}
 
         <div className="flex items-center justify-between gap-3 border-t pt-3">
           {owed > 0 ? (

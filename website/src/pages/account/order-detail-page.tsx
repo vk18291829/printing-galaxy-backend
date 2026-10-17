@@ -1,9 +1,11 @@
 import {
+  IconAlertTriangle,
   IconBuildingStore,
   IconClockHour4,
   IconCreditCard,
   IconFileInvoice,
   IconFileText,
+  IconKey,
   IconMapPin,
   IconX,
 } from '@tabler/icons-react';
@@ -17,7 +19,7 @@ import { PageNav } from '@/components/common/page-nav';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -54,10 +56,14 @@ export default function OrderDetailPage() {
     );
   }
 
-  const due = Math.max(0, order.totals.total - order.payment.amountPaid);
+  const refunded = order.payment.amountRefunded ?? 0;
+  const netPaid = Math.max(0, order.payment.amountPaid - refunded);
+  const due = Math.max(0, order.totals.total - netPaid);
   const canPay =
     due > 0 && settings?.payments.onlineEnabled && !['quote_pending', 'cancelled'].includes(order.status);
-  const canCancel = ['quote_pending', 'received'].includes(order.status) && order.payment.amountPaid === 0;
+  const canCancel = ['quote_pending', 'awaiting_payment', 'received'].includes(order.status);
+  const awaitingPayment = order.status === 'awaiting_payment';
+  const isDelivery = order.fulfilment.method === 'delivery';
 
   const pay = async () => {
     setPaying(true);
@@ -114,7 +120,7 @@ export default function OrderDetailPage() {
                 void confirmAction({
                   tone: 'danger',
                   title: t('confirm.cancelOrderTitle', { number: order.orderNumber }),
-                  description: t('orders.cancelConfirm'),
+                  description: netPaid > 0 ? t('orders.cancelPaidConfirm', { amount: formatINR(netPaid) }) : t('orders.cancelConfirm'),
                   confirmLabel: t('orders.cancel'),
                   cancelLabel: t('confirm.keepOrder'),
                   action: () => cancel.mutateAsync(undefined),
@@ -132,6 +138,26 @@ export default function OrderDetailPage() {
         <Alert variant="info" className="mb-6">
           <IconClockHour4 />
           <AlertDescription className="text-foreground">{t('orders.awaitingQuote')}</AlertDescription>
+        </Alert>
+      )}
+
+      {awaitingPayment && (
+        <Alert variant="warning" className="mb-6">
+          <IconCreditCard />
+          <AlertTitle>{t('orders.awaitingPaymentTitle')}</AlertTitle>
+          <AlertDescription className="text-foreground">
+            {t('orders.awaitingPayment', {
+              amount: formatINR(due),
+              time: order.payment.dueBy ? formatDate(order.payment.dueBy, i18n.language, true) : '—',
+            })}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {order.status === 'cancelled' && order.cancelReason?.startsWith('Online payment was not received') && (
+        <Alert variant="destructive" className="mb-6">
+          <IconAlertTriangle />
+          <AlertDescription>{t('orders.autoCancelled')}</AlertDescription>
         </Alert>
       )}
 
@@ -226,6 +252,24 @@ export default function OrderDetailPage() {
         </div>
 
         <aside className="space-y-6">
+          {order.handoverCode && (
+            <Card className="border-primary/40 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <IconKey className="size-5 text-primary" />
+                  {t(isDelivery ? 'orders.handoverDeliveryTitle' : 'orders.handoverPickupTitle')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="font-mono text-4xl font-bold tracking-[0.35em] tabular-nums" aria-live="polite">
+                  {order.handoverCode}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t(isDelivery ? 'orders.handoverDeliveryDesc' : 'orders.handoverPickupDesc')}
+                </p>
+              </CardContent>
+            </Card>
+          )}
           {order.status !== 'cancelled' && (
             <Card>
               <CardHeader>
@@ -263,6 +307,30 @@ export default function OrderDetailPage() {
                 <span>{t('orders.paid')}</span>
                 <span className="tabular-nums">{formatINR(order.payment.amountPaid)}</span>
               </div>
+              {refunded > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('status.payment.refunded')}</span>
+                  <span className="tabular-nums">−{formatINR(refunded)}</span>
+                </div>
+              )}
+              {order.refunds && order.refunds.length > 0 && (
+                <div className="mt-2 space-y-1.5 rounded-lg border p-3">
+                  <p className="text-xs font-semibold">{t('orders.refunds')}</p>
+                  {order.refunds.map((r) => (
+                    <div key={r._id} className="flex justify-between text-xs">
+                      <span className={r.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}>
+                        {t(r.status === 'refunded' ? 'orders.refundDone' : r.status === 'failed' ? 'orders.refundFailed' : 'orders.refundPending')}
+                        {' · '}
+                        {formatDate(r.createdAt, i18n.language)}
+                      </span>
+                      <span className="tabular-nums">{formatINR(r.amount)}</span>
+                    </div>
+                  ))}
+                  {order.refunds.some((r) => r.provider === 'razorpay' && r.status === 'refund_pending') && (
+                    <p className="pt-1 text-xs text-muted-foreground">{t('orders.refundEta')}</p>
+                  )}
+                </div>
+              )}
               {due > 0 && order.status !== 'cancelled' && (
                 <div className="flex justify-between font-semibold text-destructive">
                   <span>{t('orders.due')}</span>

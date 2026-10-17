@@ -170,6 +170,7 @@ export interface UploadedFile {
 
 export type OrderStatus =
   | 'quote_pending'
+  | 'awaiting_payment'
   | 'received'
   | 'proof_sent'
   | 'approved'
@@ -222,9 +223,13 @@ export interface Order {
   statusHistory?: { status: OrderStatus; note?: string; at: string }[];
   fulfilment: { method: 'pickup' | 'delivery'; address?: Address };
   totals: { subtotal: number; deliveryFee: number; taxRate: number; tax: number; total: number };
-  payment: { method: 'online' | 'counter'; status: PaymentStatus; amountPaid: number };
+  payment: { method: 'online' | 'counter'; status: PaymentStatus; amountPaid: number; amountRefunded?: number; dueBy?: string };
   contact: { name?: string; phone?: string; email?: string };
   customerNote?: string;
+  cancelReason?: string;
+  /** Pickup / delivery code; only sent while the customer needs it. */
+  handoverCode?: string;
+  refunds?: { _id: string; amount: number; status: 'refund_pending' | 'refunded' | 'failed'; provider: string; createdAt: string }[];
   invoice?: { number: string; issuedAt: string };
   createdAt: string;
 }
@@ -249,7 +254,7 @@ export interface PublicSettings {
   };
   tax: { enabled: boolean; rate: number; pricesIncludeTax: boolean };
   delivery: { enabled: boolean; fee: number; freeAbove: number };
-  payments: { onlineEnabled: boolean; counterEnabled: boolean };
+  payments: { onlineEnabled: boolean; counterEnabled: boolean; onlineTimeoutMinutes?: number };
 }
 
 export type BannerKind = 'hero' | 'promo' | 'feature' | 'offer';

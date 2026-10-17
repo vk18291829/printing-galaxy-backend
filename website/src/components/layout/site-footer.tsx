@@ -6,6 +6,7 @@ import { useCategories } from '@/features/catalog/api';
 import { InstallAppButton } from '@/features/pwa/pwa';
 import { usePublicSettings } from '@/features/settings/api';
 import { useLocalized } from '@/lib/i18n';
+import { LEGAL_PAGES } from '@/lib/legal';
 
 export function SiteFooter() {
   const { t } = useTranslation();
@@ -48,6 +49,7 @@ export function SiteFooter() {
             <li><Link to="/institutions/login" className="hover:text-foreground">{t('nav.institutionLogin')}</Link></li>
             <li><Link to="/institutions/register" className="hover:text-foreground">{t('nav.institutionRegister')}</Link></li>
             <li><Link to="/account/orders" className="hover:text-foreground">{t('nav.myOrders')}</Link></li>
+            <li><Link to="/track" className="hover:text-foreground">{t('footer.track')}</Link></li>
             <li><Link to="/contact" className="hover:text-foreground">{t('nav.contact')}</Link></li>
           </ul>
         </div>
@@ -90,10 +92,16 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t">
-        <div className="container-page flex flex-col items-center justify-between gap-2 py-5 text-xs text-muted-foreground sm:flex-row">
+        <div className="container-page flex flex-col items-center justify-between gap-3 py-5 text-xs text-muted-foreground lg:flex-row">
           <p>© {new Date().getFullYear()} Printing Galaxy. {t('footer.rights')}</p>
+          <nav aria-label={t('footer.legal')} className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+            {LEGAL_PAGES.map((p) => (
+              <Link key={p.kind} to={p.path} className="hover:text-foreground hover:underline">
+                {t(`legal.${p.kind}.title`)}
+              </Link>
+            ))}
+          </nav>
           <InstallAppButton />
-          <p>{t('common.tagline')}</p>
         </div>
       </div>
     </footer>

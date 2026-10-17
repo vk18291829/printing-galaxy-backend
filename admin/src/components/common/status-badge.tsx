@@ -5,6 +5,7 @@ type Variant = 'default' | 'secondary' | 'success' | 'warning' | 'destructive' |
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   quote_pending: 'Needs quote',
+  awaiting_payment: 'Awaiting payment',
   received: 'Received',
   proof_sent: 'Proof sent',
   approved: 'Approved',
@@ -18,6 +19,7 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
 
 const ORDER_VARIANT: Record<OrderStatus, Variant> = {
   quote_pending: 'warning',
+  awaiting_payment: 'warning',
   received: 'info',
   proof_sent: 'warning',
   approved: 'soft',

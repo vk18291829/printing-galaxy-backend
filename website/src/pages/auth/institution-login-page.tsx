@@ -71,7 +71,12 @@ export default function InstitutionLoginPage() {
           {errors.email && <p className="text-xs text-destructive">{t('auth.org.emailInvalid')}</p>}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">{t('auth.password')}</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="password">{t('auth.password')}</Label>
+            <Link to="/institutions/forgot-password" className="text-sm font-medium text-primary hover:underline">
+              {t('auth.forgotPassword')}
+            </Link>
+          </div>
           <PasswordInput id="password" autoComplete="current-password" className="h-11" aria-invalid={!!errors.password} {...form.register('password')} />
           {errors.password && <p className="text-xs text-destructive">{t('auth.org.passwordRequired')}</p>}
         </div>

@@ -24,6 +24,9 @@ const TemplateEditorPage = lazy(() => import('@/pages/institution/template-edito
 const BulkUploadPage = lazy(() => import('@/pages/institution/bulk-upload-page'));
 const BulkJobPage = lazy(() => import('@/pages/institution/bulk-job-page'));
 const NotFoundPage = lazy(() => import('@/pages/not-found-page'));
+const TrackPage = lazy(() => import('@/pages/track-page'));
+const LegalPage = lazy(() => import('@/pages/legal-page'));
+const InstitutionPasswordPage = lazy(() => import('@/pages/auth/institution-password-page'));
 
 const page = (node: ReactNode) => <Suspense fallback={<PageLoader />}>{node}</Suspense>;
 
@@ -37,11 +40,17 @@ export const router = createBrowserRouter([
       { path: 'pricing', element: page(<PricingPage />) },
       { path: 'institutions', element: page(<InstitutionsPage />) },
       { path: 'contact', element: page(<ContactPage />) },
+      { path: 'track', element: page(<TrackPage />) },
+      { path: 'terms', element: page(<LegalPage kind="terms" />) },
+      { path: 'privacy', element: page(<LegalPage kind="privacy" />) },
+      { path: 'refund-policy', element: page(<LegalPage kind="refund" />) },
+      { path: 'shipping-policy', element: page(<LegalPage kind="shipping" />) },
       { path: 'cart', element: page(<CartPage />) },
 
       { path: 'login', element: page(<GuestOnly><LoginPage /></GuestOnly>) },
       { path: 'institutions/login', element: page(<GuestOnly><InstitutionLoginPage /></GuestOnly>) },
       { path: 'institutions/register', element: page(<GuestOnly><InstitutionRegisterPage /></GuestOnly>) },
+      { path: 'institutions/forgot-password', element: page(<GuestOnly><InstitutionPasswordPage /></GuestOnly>) },
 
       { path: 'checkout', element: page(<RequireAuth><CheckoutPage /></RequireAuth>) },
       { path: 'account/orders', element: page(<RequireAuth><OrdersPage /></RequireAuth>) },

@@ -171,7 +171,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
                   </Button>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => {
                       setReply(review.reply?.text ?? '');
                       setReplying(false);
@@ -241,8 +241,8 @@ function ReviewCard({ review }: { review: AdminReview }) {
           {isAdmin && (
             <Button
               size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
+              variant="danger"
+              
               disabled={remove.isPending}
               onClick={() =>
                 void confirmAction({

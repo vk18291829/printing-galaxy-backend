@@ -55,7 +55,9 @@ export function useOrder(id: string) {
 export function useCreateOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: CreateOrderInput) => (await api.post<Order>('/orders', input)).data,
+    // The key stays the same for one checkout, so a retried request returns the same order.
+    mutationFn: async ({ idempotencyKey, ...input }: CreateOrderInput & { idempotencyKey: string }) =>
+      (await api.post<Order>('/orders', input, { headers: { 'Idempotency-Key': idempotencyKey } })).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }

@@ -1,12 +1,17 @@
 import {
+  IconAlertTriangle,
+  IconArrowBackUp,
+  IconBuildingStore,
   IconCash,
+  IconClockHour4,
   IconDownload,
   IconFileInvoice,
   IconFileUpload,
+  IconHandStop,
+  IconKey,
   IconLock,
   IconMapPin,
   IconPhone,
-  IconBuildingStore,
 } from '@tabler/icons-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
@@ -14,46 +19,40 @@ import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { ORDER_STATUS_LABEL, OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsAdmin } from '@/features/auth/auth-store';
 import { useStaff } from '@/features/management/api';
 import {
   openFile,
   useAdminOrder,
   useAssignOrder,
   useChangeStatus,
+  useHandover,
   useQuoteOrder,
   useRecordPayment,
+  useRefund,
   useSaveNote,
   useSendProof,
 } from '@/features/orders/api';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
-import { getErrorMessage } from '@/lib/api-client';
+import { getErrorMessage, newIdempotencyKey } from '@/lib/api-client';
 import { fetchFile } from '@/lib/download';
 import { cn } from '@/lib/utils';
 import { formatDate, formatFileSize, formatINR, formatNumber } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
+import { ALL_STATUSES, ALLOWED_TRANSITIONS, isClosed, netPaid } from '@/lib/order-flow';
 import type { AdminOrder } from '@/types/admin';
 import type { OrderItem, OrderStatus, UploadedFile } from '@/types/api';
-
-const NEXT_STATUSES: OrderStatus[] = [
-  'received',
-  'proof_sent',
-  'approved',
-  'printing',
-  'ready',
-  'out_for_delivery',
-  'delivered',
-  'picked_up',
-  'cancelled',
-];
 
 /** Asks first, runs the change, then shows the result in the same dialog. Resolves true on success. */
 const ask = (
@@ -234,77 +233,222 @@ function QuoteCard({ order }: { order: AdminOrder }) {
 
 function StatusCard({ order }: { order: AdminOrder }) {
   const change = useChangeStatus(order._id);
-  const options = NEXT_STATUSES.filter(
-    (s) =>
-      s !== order.status &&
-      !(order.fulfilment.method === 'delivery' && s === 'picked_up') &&
-      !(order.fulfilment.method === 'pickup' && (s === 'out_for_delivery' || s === 'delivered')),
-  );
+  const isAdmin = useIsAdmin();
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [note, setNote] = useState('');
   const [sendMsg, setSendMsg] = useState(true);
-  const closed = ['delivered', 'picked_up', 'cancelled'].includes(order.status);
+  const [override, setOverride] = useState(false);
+  const [refund, setRefund] = useState(true);
+  const closed = isClosed(order.status);
+  const method = order.fulfilment.method;
+  const paid = netPaid(order.payment);
+
+  // Normal moves follow the shop's flow; the owner can unlock any other step with a reason.
+  const allowed = ALLOWED_TRANSITIONS[order.status];
+  const options = (override ? ALL_STATUSES : allowed).filter(
+    (s) =>
+      s !== order.status &&
+      !(method === 'delivery' && s === 'picked_up') &&
+      !(method === 'pickup' && (s === 'out_for_delivery' || s === 'delivered')),
+  );
+  const needsReason = override && status !== '' && !allowed.includes(status);
+  const cancelling = status === 'cancelled';
+  const canSubmit = status !== '' && !change.isPending && (!needsReason || note.trim().length >= 5);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Update status</CardTitle>
+        <CardDescription>
+          {closed
+            ? 'This order is closed.'
+            : order.status === 'quote_pending'
+              ? 'Set the price first. You can still cancel it here.'
+              : order.status === 'awaiting_payment'
+                ? 'Waiting for online payment. It moves to Received automatically once paid, or record a counter payment below.'
+                : order.status === 'ready' && method === 'pickup'
+                  ? 'Use Hand over when the customer collects it.'
+                  : order.status === 'out_for_delivery'
+                    ? 'The rider completes delivery with the customer’s code.'
+                    : 'Move the order to its next step.'}
+        </CardDescription>
+      </CardHeader>
+      {!closed && (
+        <CardContent className="space-y-3">
+          <Select value={status} onValueChange={(v) => setStatus(v as OrderStatus)}>
+            <SelectTrigger aria-label="New status">
+              <SelectValue placeholder="Choose new status" />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {ORDER_STATUS_LABEL[s]}
+                  {override && !allowed.includes(s) ? ' (override)' : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={needsReason ? 'Reason for the override (required, saved in history)' : 'Note (included in the customer message)'}
+            className="min-h-16"
+            aria-invalid={needsReason && note.trim().length < 5}
+          />
+          <label className="flex items-center justify-between gap-3 text-sm">
+            Send WhatsApp / SMS update
+            <Switch checked={sendMsg} onCheckedChange={setSendMsg} />
+          </label>
+          {cancelling && paid > 0 && (
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+              <span>
+                <span className="block font-medium">Refund {formatINR(paid)}</span>
+                <span className="block text-xs text-muted-foreground">Online payments go back through Razorpay; cash is recorded as returned.</span>
+              </span>
+              <Switch checked={refund} onCheckedChange={setRefund} disabled={!isAdmin} />
+            </label>
+          )}
+          {isAdmin && (
+            <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+              Override the normal flow (owner)
+              <Switch checked={override} onCheckedChange={(v) => { setOverride(v); setStatus(''); }} />
+            </label>
+          )}
+          <Button
+            className="w-full"
+            variant={cancelling ? 'destructive' : 'default'}
+            disabled={!canSubmit}
+            onClick={() =>
+              status &&
+              void ask(
+                cancelling ? `Cancel order ${order.orderNumber}?` : `Mark as “${ORDER_STATUS_LABEL[status]}”?`,
+                [
+                  cancelling ? 'This cannot be undone.' : '',
+                  cancelling && paid > 0 ? (refund && isAdmin ? `${formatINR(paid)} is refunded to the customer.` : `${formatINR(paid)} was paid and is NOT refunded now.`) : '',
+                  sendMsg ? 'The customer gets a WhatsApp / SMS update.' : 'No message is sent to the customer.',
+                ].filter(Boolean).join(' '),
+                cancelling ? 'Cancel order' : 'Update status',
+                () => change.mutateAsync({ status, note: note || undefined, notify: sendMsg, override: needsReason, refund: cancelling && refund && isAdmin }),
+                `Marked as ${ORDER_STATUS_LABEL[status]}`,
+                cancelling ? 'danger' : 'default',
+              ).then((ok) => {
+                if (!ok) return;
+                setStatus('');
+                setNote('');
+                setOverride(false);
+              })
+            }
+          >
+            {change.isPending && <Spinner className="size-4 text-current" />} Update
+          </Button>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+/** Counter pickup: the customer's code, and any balance collected now. */
+function HandoverCard({ order }: { order: AdminOrder }) {
+  const handover = useHandover(order._id);
+  const isAdmin = useIsAdmin();
+  const due = Math.max(0, Math.round((order.totals.total - netPaid(order.payment)) * 100) / 100);
+  const [code, setCode] = useState('');
+  const [amount, setAmount] = useState(due > 0 ? String(due) : '');
+  const [provider, setProvider] = useState<'cash' | 'upi_counter'>('cash');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [noCode, setNoCode] = useState(false);
+  const key = useRef(newIdempotencyKey());
+  const locked = (order.handover?.wrongAttempts ?? 0) >= 5;
+  const collected = Number(amount) || 0;
+  const credit = order.audience === 'institution';
+  const settles = collected + 0.009 >= due || credit || (noCode && isAdmin);
+  const ready = (noCode ? overrideReason.trim().length >= 5 : /^\d{4}$/.test(code)) && settles && !handover.isPending;
+
+  return (
+    <Card className="border-primary/40">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <IconHandStop className="size-5 text-primary" /> Hand over
+        </CardTitle>
+        <CardDescription>Ask the customer for the 4-digit pickup code sent to their phone.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {closed ? (
-          <p className="text-sm text-muted-foreground">This order is closed.</p>
-        ) : order.status === 'quote_pending' ? (
-          <p className="text-sm text-muted-foreground">Set the price first. You can still cancel below.</p>
-        ) : null}
-        {!closed && (
-          <>
-            <Select value={status} onValueChange={(v) => setStatus(v as OrderStatus)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose new status" />
-              </SelectTrigger>
-              <SelectContent>
-                {options
-                  .filter((s) => order.status !== 'quote_pending' || s === 'cancelled')
-                  .map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {ORDER_STATUS_LABEL[s]}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (included in the customer message)" className="min-h-16" />
-            <label className="flex items-center justify-between text-sm">
-              Send WhatsApp / SMS update
-              <Switch checked={sendMsg} onCheckedChange={setSendMsg} />
-            </label>
-            <Button
-              className="w-full"
-              variant={status === 'cancelled' ? 'destructive' : 'default'}
-              disabled={!status || change.isPending}
-              onClick={() =>
-                status &&
-                void ask(
-                  status === 'cancelled' ? `Cancel order ${order.orderNumber}?` : `Mark as “${ORDER_STATUS_LABEL[status]}”?`,
-                  status === 'cancelled'
-                    ? `This cannot be undone.${sendMsg ? ' The customer is told by WhatsApp / SMS.' : ''}`
-                    : sendMsg
-                      ? 'The customer gets a WhatsApp / SMS update.'
-                      : 'No message is sent to the customer.',
-                  status === 'cancelled' ? 'Cancel order' : 'Update status',
-                  () => change.mutateAsync({ status, note: note || undefined, notify: sendMsg }),
-                  `Marked as ${ORDER_STATUS_LABEL[status]}`,
-                  status === 'cancelled' ? 'danger' : 'default',
-                ).then((ok) => {
-                  if (!ok) return;
-                  setStatus('');
-                  setNote('');
-                })
-              }
-            >
-              {change.isPending && <Spinner className="size-4 text-current" />} Update
-            </Button>
-          </>
+        {locked && (
+          <Alert variant="destructive">
+            <IconAlertTriangle />
+            <AlertDescription>Too many wrong codes. Only the owner can hand this over now.</AlertDescription>
+          </Alert>
         )}
+        {!noCode ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="handover-code">Pickup code</Label>
+            <Input
+              id="handover-code"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="••••"
+              className="h-12 text-center font-mono text-2xl tracking-[0.5em]"
+              value={code}
+              disabled={locked}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            />
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label htmlFor="handover-reason">Why there is no code</Label>
+            <Textarea id="handover-reason" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="e.g. Customer's phone is off; checked their ID" className="min-h-16" />
+          </div>
+        )}
+        {due > 0 && (
+          <div className="space-y-1.5">
+            <Label>Collect now {credit && <span className="font-normal text-muted-foreground">(institution: can be billed on account)</span>}</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+                <Input type="number" min={0} max={due} className="pl-7" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              </div>
+              <Select value={provider} onValueChange={(v) => setProvider(v as 'cash' | 'upi_counter')}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi_counter">UPI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {!settles && <p className="text-xs text-destructive">{formatINR(due)} is due. Collect the full amount before handing over.</p>}
+          </div>
+        )}
+        {isAdmin && (
+          <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            Hand over without the code (owner)
+            <Switch checked={noCode} onCheckedChange={setNoCode} />
+          </label>
+        )}
+        <Button
+          className="w-full"
+          size="lg"
+          disabled={!ready || (locked && !noCode)}
+          onClick={() =>
+            void ask(
+              `Hand over ${order.orderNumber}?`,
+              `${collected > 0 ? `${formatINR(collected)} received by ${provider === 'cash' ? 'cash' : 'UPI'}. ` : ''}The order is marked as picked up and the customer is thanked by message.`,
+              'Hand over',
+              () =>
+                handover.mutateAsync({
+                  key: key.current,
+                  code: noCode ? undefined : code,
+                  overrideReason: noCode ? overrideReason : undefined,
+                  amountCollected: due > 0 ? collected : 0,
+                  provider,
+                }),
+              'Order handed over',
+            )
+          }
+        >
+          {handover.isPending ? <Spinner className="size-4 text-current" /> : <IconKey />} Verify code and hand over
+        </Button>
       </CardContent>
     </Card>
   );
@@ -383,11 +527,94 @@ function AssignCard({ order }: { order: AdminOrder }) {
   );
 }
 
+const PROVIDER_LABEL = { razorpay: 'Online', cash: 'Cash', upi_counter: 'UPI (counter)' } as const;
+const PAYMENT_STATE: Record<string, string> = {
+  created: 'window opened',
+  captured: 'received',
+  failed: 'failed',
+  refund_pending: 'refund in progress',
+  refunded: 'refunded',
+};
+
+function RefundDialog({ order, max, onClose }: { order: AdminOrder; max: number; onClose: () => void }) {
+  const refund = useRefund(order._id);
+  const [amount, setAmount] = useState(String(max));
+  const [reason, setReason] = useState('');
+  const [method, setMethod] = useState<'original' | 'cash'>('original');
+  const key = useRef(newIdempotencyKey());
+  const value = Number(amount) || 0;
+  const hasOnline = order.payments.some((p) => p.provider === 'razorpay' && p.status === 'captured' && p.kind !== 'refund');
+  const valid = value > 0 && value <= max + 0.009 && reason.trim().length >= 3;
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Refund {order.orderNumber}</DialogTitle>
+          <DialogDescription>Up to {formatINR(max)} can be refunded. The customer is told by WhatsApp / SMS.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="refund-amount">Amount</Label>
+            <div className="relative">
+              <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+              <Input id="refund-amount" type="number" min={0} max={max} className="pl-7" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </div>
+          </div>
+          {hasOnline && (
+            <div className="space-y-1.5">
+              <Label>How</Label>
+              <Select value={method} onValueChange={(v) => setMethod(v as 'original' | 'cash')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="original">To the original payment (Razorpay, 5–7 days)</SelectItem>
+                  <SelectItem value="cash">Cash handed back at the counter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="refund-reason">Reason</Label>
+            <Textarea id="refund-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Misprint on 2 cards" className="min-h-16" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={!valid || refund.isPending}
+            onClick={() =>
+              void refund
+                .mutateAsync({ key: key.current, amount: value, reason: reason.trim(), method })
+                .then(() => {
+                  toast.success(`${formatINR(value)} refund started`);
+                  onClose();
+                })
+                .catch((e) => toast.error(getErrorMessage(e)))
+            }
+          >
+            {refund.isPending ? <Spinner className="size-4 text-current" /> : <IconArrowBackUp />} Refund {formatINR(value)}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PaymentCard({ order }: { order: AdminOrder }) {
   const record = useRecordPayment(order._id);
-  const due = Math.max(0, order.totals.total - order.payment.amountPaid);
+  const isAdmin = useIsAdmin();
+  const paid = netPaid(order.payment);
+  const refunded = order.payment.amountRefunded ?? 0;
+  const due = Math.max(0, Math.round((order.totals.total - paid) * 100) / 100);
   const [amount, setAmount] = useState('');
   const [provider, setProvider] = useState<'cash' | 'upi_counter'>('cash');
+  const [refunding, setRefunding] = useState(false);
+  const key = useRef(newIdempotencyKey());
 
   return (
     <Card>
@@ -396,35 +623,48 @@ function PaymentCard({ order }: { order: AdminOrder }) {
         <PaymentStatusBadge status={order.payment.status} />
       </CardHeader>
       <CardContent className="space-y-2">
+        {order.status === 'awaiting_payment' && order.payment.dueBy && (
+          <p className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs">
+            <IconClockHour4 className="size-4 shrink-0" /> Cancelled automatically if unpaid by {formatDate(order.payment.dueBy, 'en', true)}
+          </p>
+        )}
         <Row label="Subtotal">{formatINR(order.totals.subtotal)}</Row>
         {order.totals.deliveryFee > 0 && <Row label="Delivery">{formatINR(order.totals.deliveryFee)}</Row>}
         {order.totals.tax > 0 && <Row label={`GST ${order.totals.taxRate}%`}>{formatINR(order.totals.tax)}</Row>}
         <Separator className="my-2" />
         <Row label="Total">{formatINR(order.totals.total)}</Row>
         <Row label="Paid">{formatINR(order.payment.amountPaid)}</Row>
-        {due > 0 && <Row label="Due">{<span className="text-destructive">{formatINR(due)}</span>}</Row>}
+        {refunded > 0 && <Row label="Refunded">−{formatINR(refunded)}</Row>}
+        {due > 0 && order.status !== 'cancelled' && <Row label="Due">{<span className="text-destructive">{formatINR(due)}</span>}</Row>}
 
         {order.payments.length > 0 && (
-          <ul className="space-y-1 pt-2 text-xs text-muted-foreground">
+          <ul className="space-y-1.5 border-t pt-2 text-xs">
             {order.payments.map((p) => (
-              <li key={p._id} className="flex justify-between">
-                <span>
-                  {p.provider === 'razorpay' ? 'Online' : p.provider === 'cash' ? 'Cash' : 'UPI (counter)'} · {p.status} ·{' '}
-                  {formatDate(p.createdAt, 'en', true)}
+              <li key={p._id} className="flex justify-between gap-2">
+                <span className="text-muted-foreground">
+                  <span className={cn('font-medium', p.kind === 'refund' ? 'text-destructive' : 'text-foreground')}>
+                    {p.kind === 'refund' ? 'Refund' : PROVIDER_LABEL[p.provider]}
+                  </span>
+                  {' · '}
+                  {PAYMENT_STATE[p.status] ?? p.status} · {formatDate(p.createdAt, 'en', true)}
+                  {p.note && <span className="block">“{p.note}”</span>}
                 </span>
-                <span className="tabular-nums">{formatINR(p.amount)}</span>
+                <span className={cn('tabular-nums', p.kind === 'refund' && 'text-destructive')}>
+                  {p.kind === 'refund' ? '−' : ''}
+                  {formatINR(p.amount)}
+                </span>
               </li>
             ))}
           </ul>
         )}
 
-        {due > 0 && order.status !== 'cancelled' && order.status !== 'quote_pending' && (
+        {due > 0 && !['cancelled', 'quote_pending'].includes(order.status) && (
           <div className="space-y-2 border-t pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase">Record counter payment</p>
             <div className="flex gap-2">
-              <Input type="number" min={0} max={due} placeholder={String(due)} value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Input type="number" min={0} max={due} placeholder={String(due)} value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Amount" />
               <Select value={provider} onValueChange={(v) => setProvider(v as 'cash' | 'upi_counter')}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-32" aria-label="Paid by">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -436,21 +676,33 @@ function PaymentCard({ order }: { order: AdminOrder }) {
             <Button
               variant="outline"
               className="w-full"
-              disabled={record.isPending}
+              disabled={record.isPending || (Number(amount) || due) > due + 0.009}
               onClick={() =>
                 void ask(
                   `Record ${formatINR(Number(amount) || due)} received?`,
                   `Paid by ${provider === 'cash' ? 'cash' : 'UPI'} at the counter. This goes on the invoice and cannot be edited later.`,
                   'Record payment',
-                  () => record.mutateAsync({ amount: Number(amount) || due, provider }),
+                  () => record.mutateAsync({ key: key.current, amount: Number(amount) || due, provider }),
                   'Payment recorded',
-                ).then((ok) => ok && setAmount(''))
+                ).then((ok) => {
+                  // A new key only after success: a retry of a failed attempt is still recognised.
+                  if (!ok) return;
+                  key.current = newIdempotencyKey();
+                  setAmount('');
+                })
               }
             >
               <IconCash /> Record {formatINR(Number(amount) || due)}
             </Button>
           </div>
         )}
+
+        {isAdmin && paid > 0 && (
+          <Button variant="danger" className="w-full" onClick={() => setRefunding(true)}>
+            <IconArrowBackUp /> Refund…
+          </Button>
+        )}
+        {refunding && <RefundDialog order={order} max={paid} onClose={() => setRefunding(false)} />}
       </CardContent>
     </Card>
   );
@@ -564,6 +816,15 @@ function OrderDetail({ order }: { order: AdminOrder }) {
                   )}
                 </p>
                 {order.deliveryPerson && <p className="text-muted-foreground">Rider: {order.deliveryPerson.name}</p>}
+                {(order.deliveryAttempts ?? 0) > 0 && order.status !== 'delivered' && (
+                  <p className="text-warning">{order.deliveryAttempts} failed delivery attempt{order.deliveryAttempts === 1 ? '' : 's'}</p>
+                )}
+                {order.handover?.verifiedAt && (
+                  <p className="text-muted-foreground">
+                    Handed over {formatDate(order.handover.verifiedAt, 'en', true)}
+                    {order.handover.overrideReason ? ` without code: “${order.handover.overrideReason}”` : ' · code verified'}
+                  </p>
+                )}
               </div>
             </div>
             {order.customerNote && (
@@ -597,6 +858,7 @@ function OrderDetail({ order }: { order: AdminOrder }) {
         </div>
 
         <div className="space-y-6">
+          {order.status === 'ready' && order.fulfilment.method === 'pickup' && <HandoverCard order={order} />}
           <StatusCard order={order} />
           <PaymentCard order={order} />
           <AssignCard order={order} />

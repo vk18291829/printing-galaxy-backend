@@ -11,8 +11,9 @@ settingsRouter.get('/public', async (_req, res) => {
     tax: { enabled: s.tax.enabled, rate: s.tax.rate, pricesIncludeTax: s.tax.pricesIncludeTax },
     delivery: s.delivery,
     payments: {
-      onlineEnabled: s.payments.onlineEnabled && razorpayEnabled,
+      onlineEnabled: s.payments.onlineEnabled && razorpayEnabled(),
       counterEnabled: s.payments.counterEnabled,
+      onlineTimeoutMinutes: s.payments.onlineTimeoutMinutes,
     },
   });
 });

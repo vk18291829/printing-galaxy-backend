@@ -92,7 +92,7 @@ function PriceBookView({ audience }: { audience: Audience }) {
                         </span>
                       </div>
                       <TierChips product={p} audience={audience} />
-                      <Button size="sm" variant="ghost" className="justify-self-start md:justify-self-end" asChild>
+                      <Button size="sm" variant="outline" className="justify-self-start md:justify-self-end" asChild>
                         <Link to={`/products/${p.slug}`}>
                           {t('pricing.orderCta')} <IconArrowRight />
                         </Link>

@@ -90,7 +90,8 @@ order status `Your order {{1}} {{2}}. {{3}}` (in English and Hindi), account upd
 re-sent once by SMS. The MSG91 status flow receives the same values as `var1`, `var2`, `var3`.
 
 Razorpay webhook URL: `POST /api/v1/payments/razorpay/webhook` (events `payment.captured`,
-`order.paid`, `payment.failed`).
+`order.paid`, `payment.failed`, `refund.processed`, `refund.failed`). Each event is stored with
+Razorpay's event id, so a repeated delivery is acknowledged and skipped.
 
 ### Production storage (AWS S3)
 
@@ -101,6 +102,54 @@ straight to S3 with presigned URLs. Keep "Block public access" on for the privat
 
 Identity documents (PVC card products marked *sensitive*) get 60-second download links, are visible
 only to the owner and staff, and are deleted after the retention period set in Admin → Settings.
+
+## Order lifecycle
+
+```
+quote_pending ─┐
+               ├─> received ─> proof_sent ⇄ approved ─> printing ─> ready ─┬─> picked_up      (pickup code)
+awaiting_payment┘                                                          └─> out_for_delivery ─> delivered (delivery code)
+any open step ─> cancelled (refund if paid)
+```
+
+- **Pay first.** Individuals who choose online payment get `awaiting_payment`; staff do not see it in the
+  production queue. Once Razorpay confirms, it moves to `received`. Unpaid orders are cancelled after
+  *Settings → Unpaid online orders cancel after* (default 30 min); before cancelling, the API asks
+  Razorpay whether a payment went through. A payment that arrives after the cancel brings the order back.
+  Approved institutions are billed on account and start straight away.
+- **Allowed moves.** The status control only offers the next valid steps. The owner can override with a
+  written reason (saved in the history as `Override: …`).
+- **Handover codes.** When a pickup order is ready, or a delivery goes out, the customer gets a 4-digit code
+  by WhatsApp/SMS and on their order page. Staff (Hand over) or the rider (Delivered) must enter it; five
+  wrong codes lock the handover until the owner confirms it. Riders never see the code.
+- **Balance at handover.** Anything still due must be collected when the order is handed over (except
+  institutions). Failed delivery attempts message the customer; after three, the shop is alerted.
+- **Refunds.** Customers can cancel until work starts; money paid online is refunded automatically. The owner
+  can refund any amount from the order page (Razorpay or cash). Refund status updates arrive by webhook.
+
+### Idempotency
+
+Retries never create duplicates: checkout and walk-in orders, counter payments, cash on delivery,
+handovers and refunds send an `Idempotency-Key` header (a UUID per action) and the API returns the first
+result for a repeated key. Money is moved with atomic, guarded updates (never more than the total, never
+more refunded than paid), a file can belong to one order only, Razorpay webhooks are de-duplicated by
+event id, customer messages by order + step, and simultaneous edits to one order fail with *"This was just
+updated, refresh"* instead of overwriting each other.
+
+### Logs and monitoring
+
+- One readable line per request: `POST /api/v1/orders 201 · 143ms` with the request id, user and role.
+  Slow requests (> 1 s) are marked `(slow)`. Business events are logged as `order.created`,
+  `order.status`, `payment.captured`, `payment.refunded`, `handover.wrong_code`, `delivery.failed`…
+- Every response has an `X-Request-Id` header; server errors show it to the user as *Ref: …*, so a
+  customer's screenshot leads to the exact log line (`pm2 logs pg-api | grep <ref>`).
+- Phone numbers are masked (`98****3210`); tokens, codes and signatures are redacted. Login codes are
+  never written to the log in production.
+- `/api/v1/health` returns 503 when the database is down (use it for uptime monitoring).
+- **Admin → System activity** (owner): server health, setup warnings, failed WhatsApp/SMS messages with
+  a Retry button, all payments and refunds, and every webhook received.
+- In production the API refuses to start with the example JWT secrets and prints warnings for missing
+  integrations. Rotate logs with `pm2 install pm2-logrotate`.
 
 ## Institution bulk ID cards
 

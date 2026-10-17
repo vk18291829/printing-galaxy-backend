@@ -129,7 +129,7 @@ export function CardCropUploader({
                         <IconCrop /> {t('crop.recrop')}
                       </Button>
                     )}
-                    <Button type="button" size="sm" variant="ghost" onClick={() => choose(side)}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => choose(side)}>
                       <IconReplace /> {t('crop.replace')}
                     </Button>
                     <Button type="button" size="icon" variant="ghost" className="ml-auto size-8" onClick={() => remove(side)} aria-label={t('common.remove')}>
@@ -143,7 +143,7 @@ export function CardCropUploader({
                     {loading && pendingSide === side ? <Spinner className="size-4" /> : <IconPhotoPlus />} {t('crop.choose')}
                   </Button>
                   {source && side === 'back' && slots.front && (
-                    <Button type="button" size="sm" variant="ghost" onClick={() => setEditing('back')}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setEditing('back')}>
                       <IconCrop /> {t('crop.sameFile')}
                     </Button>
                   )}
@@ -206,7 +206,7 @@ export function CardCropUploader({
               />
               {password.wrong && <p className="text-sm text-destructive">{t('crop.passwordWrong')}</p>}
               <DialogFooter className="pt-2">
-                <Button type="button" variant="ghost" onClick={() => setPassword(null)}>
+                <Button type="button" variant="outline" onClick={() => setPassword(null)}>
                   {t('common.cancel')}
                 </Button>
                 <Button type="submit" disabled={!password.value || loading}>

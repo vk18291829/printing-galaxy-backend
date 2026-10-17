@@ -4,7 +4,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
-import { DynamicIcon, ICON_NAMES } from '@/components/common/dynamic-icon';
+import { IconPicker } from '@/components/common/icon-picker';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -140,8 +140,8 @@ export default function ProductFormPage() {
           {!isNew && (
             <Button
               type="button"
-              variant="ghost"
-              className="text-destructive"
+              variant="danger"
+              
               disabled={remove.isPending}
               onClick={async () => {
                 const ok = await confirmAction({
@@ -312,22 +312,7 @@ export default function ProductFormPage() {
                   control={control}
                   name="icon"
                   render={({ field }) => (
-                    <div className="flex flex-wrap gap-1.5">
-                      {ICON_NAMES.map((name) => (
-                        <button
-                          type="button"
-                          key={name}
-                          title={name}
-                          onClick={() => field.onChange(name)}
-                          className={cn(
-                            'grid size-9 place-items-center rounded-lg border transition-colors',
-                            field.value === name ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-accent',
-                          )}
-                        >
-                          <DynamicIcon name={name} className="size-4" />
-                        </button>
-                      ))}
-                    </div>
+                    <IconPicker value={field.value} onChange={field.onChange} />
                   )}
                 />
               </Field>

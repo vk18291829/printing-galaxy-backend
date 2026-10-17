@@ -11,9 +11,10 @@ export interface AdminOrderList extends Paginated<AdminOrderListItem> {
 
 export interface PaymentRecord {
   _id: string;
+  kind?: 'payment' | 'refund';
   provider: 'razorpay' | 'cash' | 'upi_counter';
   amount: number;
-  status: 'created' | 'captured' | 'failed' | 'refunded';
+  status: 'created' | 'captured' | 'failed' | 'refunded' | 'refund_pending';
   razorpayPaymentId?: string;
   note?: string;
   createdAt: string;
@@ -26,6 +27,9 @@ export interface AdminOrder extends Order {
   deliveryPerson?: { _id: string; name: string; role: string };
   institution?: Pick<Institution, '_id' | 'name' | 'type' | 'status' | 'phone' | 'email'>;
   payments: PaymentRecord[];
+  /** The code itself is never sent to staff. */
+  handover?: { wrongAttempts?: number; verifiedAt?: string; overrideReason?: string };
+  deliveryAttempts?: number;
 }
 
 export interface DashboardData {
@@ -123,6 +127,9 @@ export interface DeliveryOrder {
   customerNote?: string;
   deliveryPerson?: { _id: string; name: string };
   statusHistory?: { status: OrderStatus; note?: string; at: string }[];
+  audience?: 'retail' | 'institution';
+  deliveryAttempts?: number;
+  handover?: { wrongAttempts?: number };
   createdAt: string;
 }
 

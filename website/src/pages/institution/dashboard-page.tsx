@@ -152,7 +152,7 @@ export default function InstitutionDashboardPage() {
             <Button variant="outline" asChild>
               <Link to="/institution/templates">{t('templates.manage')}</Link>
             </Button>
-            <Button variant="ghost" asChild>
+            <Button variant="outline" asChild>
               <Link to="/institution/templates/new">+ {t('templates.new')}</Link>
             </Button>
           </CardContent>
@@ -162,7 +162,7 @@ export default function InstitutionDashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{t('institutionDashboard.recent')}</CardTitle>
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild>
             <Link to="/account/orders">
               {t('common.viewAll')} <IconArrowRight />
             </Link>

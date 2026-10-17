@@ -103,9 +103,15 @@ describe('orders', () => {
       .set(bearer(customer))
       .send({ items: [{ productId: seed.products.pvc._id, quantity: 1, fileIds: [file._id] }], fulfilment: { method: 'pickup' }, paymentMethod: 'counter' })
       .expect(201);
-    for (const status of ['printing', 'ready', 'picked_up']) {
+    for (const status of ['printing', 'ready']) {
       await api().patch(`/api/v1/admin/orders/${created.body._id}/status`).set(bearer(admin)).send({ status }).expect(200);
     }
+    // Pickup needs the customer's code and the balance paid.
+    await api().patch(`/api/v1/admin/orders/${created.body._id}/status`).set(bearer(admin)).send({ status: 'picked_up' }).expect(409);
+    const { body: mine } = await api().get(`/api/v1/orders/${created.body._id}`).set(bearer(customer)).expect(200);
+    expect(mine.handoverCode).toMatch(/^\d{4}$/);
+    await api().post(`/api/v1/admin/orders/${created.body._id}/handover`).set(bearer(admin)).send({ code: mine.handoverCode }).expect(409);
+    await api().post(`/api/v1/admin/orders/${created.body._id}/handover`).set(bearer(admin)).send({ code: mine.handoverCode, amountCollected: 60 }).expect(200);
     const stored = await FileModel.findById(file._id).lean();
     expect(stored?.deleteAfter).toBeInstanceOf(Date);
   });

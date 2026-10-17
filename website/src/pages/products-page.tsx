@@ -146,7 +146,7 @@ export default function ProductsPage() {
                 {t('products.count', { count: total })}
               </p>
               {filtered && (
-                <Button variant="ghost" size="sm" onClick={clearAll}>
+                <Button variant="outline" size="sm" onClick={clearAll}>
                   <IconX /> {t('products.clearFilters')}
                 </Button>
               )}

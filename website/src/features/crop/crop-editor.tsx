@@ -198,7 +198,7 @@ export function CropEditor({
           <Button type="button" variant="outline" size="sm" onClick={() => update({ rotation: ((view.rotation + 90) % 360) as View['rotation'], x: 0, y: 0 })}>
             <IconRotateClockwise /> {t('crop.rotate')}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setView(INITIAL)}>
+          <Button type="button" variant="outline" size="sm" onClick={() => setView(INITIAL)}>
             <IconRefresh /> {t('crop.reset')}
           </Button>
         </div>
@@ -216,7 +216,7 @@ export function CropEditor({
         )}
 
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
             {t('common.cancel')}
           </Button>
           <Button type="button" variant="brand" onClick={() => void render()} disabled={busy || !frameW}>

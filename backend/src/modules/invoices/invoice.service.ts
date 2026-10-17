@@ -33,6 +33,7 @@ export async function ensureInvoiceNumber(order: OrderDoc) {
 export function assertInvoiceable(order: OrderDoc) {
   if (order.status === 'cancelled') throw ApiError.conflict('Cancelled orders have no invoice');
   if (order.status === 'quote_pending') throw ApiError.conflict('The price for this order is not confirmed yet');
+  if (order.status === 'awaiting_payment') throw ApiError.conflict('The invoice is available once the order is paid');
 }
 
 interface Ctx {

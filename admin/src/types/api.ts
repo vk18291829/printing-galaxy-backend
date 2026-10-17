@@ -167,6 +167,7 @@ export interface UploadedFile {
 
 export type OrderStatus =
   | 'quote_pending'
+  | 'awaiting_payment'
   | 'received'
   | 'proof_sent'
   | 'approved'
@@ -219,7 +220,7 @@ export interface Order {
   statusHistory?: { status: OrderStatus; note?: string; at: string }[];
   fulfilment: { method: 'pickup' | 'delivery'; address?: Address };
   totals: { subtotal: number; deliveryFee: number; taxRate: number; tax: number; total: number };
-  payment: { method: 'online' | 'counter'; status: PaymentStatus; amountPaid: number };
+  payment: { method: 'online' | 'counter'; status: PaymentStatus; amountPaid: number; amountRefunded?: number; dueBy?: string };
   contact: { name?: string; phone?: string; email?: string };
   customerNote?: string;
   invoice?: { number: string; issuedAt: string };
@@ -246,5 +247,5 @@ export interface PublicSettings {
   };
   tax: { enabled: boolean; rate: number; pricesIncludeTax: boolean };
   delivery: { enabled: boolean; fee: number; freeAbove: number };
-  payments: { onlineEnabled: boolean; counterEnabled: boolean };
+  payments: { onlineEnabled: boolean; counterEnabled: boolean; onlineTimeoutMinutes?: number; quotePaymentDays?: number };
 }

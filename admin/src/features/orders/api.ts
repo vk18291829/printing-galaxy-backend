@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { api } from '@/lib/api-client';
+import { api, idempotent } from '@/lib/api-client';
 import type { AdminOrder, AdminOrderList } from '@/types/admin';
 import type { Address, OrderStatus } from '@/types/api';
 
@@ -48,8 +48,19 @@ function useOrderMutation<TInput>(fn: (input: TInput) => Promise<unknown>) {
 }
 
 export const useChangeStatus = (id: string) =>
-  useOrderMutation((input: { status: OrderStatus; note?: string; notify?: boolean }) =>
+  useOrderMutation((input: { status: OrderStatus; note?: string; notify?: boolean; override?: boolean; refund?: boolean }) =>
     api.patch(`/admin/orders/${id}/status`, input),
+  );
+
+/** Counter pickup with the customer's code; `key` makes a repeated tap harmless. */
+export const useHandover = (id: string) =>
+  useOrderMutation(({ key, ...input }: { key: string; code?: string; overrideReason?: string; amountCollected?: number; provider?: 'cash' | 'upi_counter'; note?: string }) =>
+    api.post(`/admin/orders/${id}/handover`, input, idempotent(key)),
+  );
+
+export const useRefund = (id: string) =>
+  useOrderMutation(({ key, ...input }: { key: string; amount?: number; reason: string; method: 'original' | 'cash' }) =>
+    api.post(`/admin/orders/${id}/refunds`, input, idempotent(key)),
   );
 
 export const useAssignOrder = (id: string) =>
@@ -66,8 +77,8 @@ export const useQuoteOrder = (id: string) =>
   );
 
 export const useRecordPayment = (id: string) =>
-  useOrderMutation((input: { amount: number; provider: 'cash' | 'upi_counter'; note?: string }) =>
-    api.post(`/admin/orders/${id}/payments`, input),
+  useOrderMutation(({ key, ...input }: { key: string; amount: number; provider: 'cash' | 'upi_counter'; note?: string }) =>
+    api.post(`/admin/orders/${id}/payments`, input, idempotent(key)),
   );
 
 export const useDeleteOrder = (id: string) => useOrderMutation(() => api.delete(`/admin/orders/${id}`));
@@ -96,7 +107,8 @@ export interface WalkInInput {
 export function useCreateWalkIn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: WalkInInput) => (await api.post<AdminOrder>('/admin/orders/walk-in', input)).data,
+    mutationFn: async ({ key, ...input }: WalkInInput & { key: string }) =>
+      (await api.post<AdminOrder>('/admin/orders/walk-in', input, idempotent(key))).data,
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }

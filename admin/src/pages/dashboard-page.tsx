@@ -141,7 +141,7 @@ export default function DashboardPage() {
         <Card className="gap-0 pb-0">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle>Recent orders</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild>
               <Link to="/orders">
                 All orders <IconArrowRight />
               </Link>
