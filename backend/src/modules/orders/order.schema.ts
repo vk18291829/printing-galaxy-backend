@@ -22,7 +22,7 @@ export const createOrderSchema = z
     paymentMethod: z.enum(PAYMENT_METHODS),
     customerNote: z.string().trim().max(1000).optional(),
     contactName: z.string().trim().max(80).optional(),
-    /** Needed once for customers who signed in by email, so the shop and rider can call. */
+    /** Optional, for customers who signed in by email: lets the shop or rider call. */
     contactPhone: indianPhone.optional(),
   })
   .refine((v) => v.fulfilment.method === 'pickup' || v.fulfilment.address, {

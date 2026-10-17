@@ -68,7 +68,7 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
   if (q.assignedTo) filter.assignedTo = q.assignedTo;
   if (q.q) {
     const rx = new RegExp(escapeRegex(q.q), 'i');
-    filter.$or = [{ orderNumber: rx }, { 'contact.phone': rx }, { 'contact.name': rx }];
+    filter.$or = [{ orderNumber: rx }, { 'contact.phone': rx }, { 'contact.email': rx }, { 'contact.name': rx }];
   }
 
   const { skip, limit } = paginate(q.page, q.limit);

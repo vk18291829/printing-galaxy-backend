@@ -490,7 +490,7 @@
     "payCounterDesc": "Cash or UPI when you collect",
     "contactName": "Your name",
     "contactPhone": "Mobile number",
-    "contactPhoneHint": "Only for this order: the shop or delivery person may call you. Saved to your account.",
+    "contactPhoneHint": "We send all updates by email. Add a number only if you want the shop or delivery person to be able to call you.",
     "note": "Note for the shop",
     "placeOrder": "Place order",
     "placeAndPay": "Place order & pay {{amount}}",
@@ -516,6 +516,7 @@
     "contact": "Contact",
     "needName": "Enter your name to continue.",
     "needAddress": "Fill in the delivery address (house / street, city and 6-digit PIN) to continue.",
+    "needPhone": "Enter a valid 10-digit mobile number, or leave it empty.",
     "paymentLater": "Your order is saved. Pay within {{minutes}} minutes from My orders, otherwise it is cancelled automatically.",
     "policyPrefix": "By placing the order you agree to our"
   },
@@ -1102,5 +1103,15 @@
     "doneDesc": "Order updates and sign-in codes still arrive. You can turn offers back on in your profile.",
     "failed": "This link is not valid or has expired.",
     "home": "Go to the home page"
+  },
+  "toast": {
+    "welcomeDesc": "Your account is ready. Order updates will come to {{to}}.",
+    "welcomeBackDesc": "Signed in as {{to}}.",
+    "orderPlacedDesc": "Order {{number}} · {{total}}. Track it any time under My orders.",
+    "paymentSuccessDesc": "Order {{number}} is confirmed. We start printing now.",
+    "paymentLaterTitle": "Order saved, payment pending",
+    "addedDesc": "{{product}} · about {{price}}",
+    "registeredDesc": "We usually review institutions within 1 working day and email you the result.",
+    "resetDoneDesc": "Use your new password the next time you sign in."
   }
 }

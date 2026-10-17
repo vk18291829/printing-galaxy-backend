@@ -94,7 +94,7 @@ export default function CheckoutPage() {
   const savedAddress =
     principal?.kind === 'institution' ? principal.institution.address : principal?.user.addresses?.[0];
   const needsName = principal?.kind === 'user' && !principal.user.name;
-  // Customers who signed in by email give a mobile number once, so the shop and rider can call.
+  // Customers who signed in by email may add a mobile number (optional) so the shop or rider can call.
   const needsPhone = principal?.kind === 'user' && !principal.user.phone;
 
   const [method, setMethod] = useState<'pickup' | 'delivery'>('pickup');
@@ -127,7 +127,7 @@ export default function CheckoutPage() {
     method === 'pickup' || (address.line1.trim().length >= 3 && address.city.trim() && /^\d{6}$/.test(address.pincode));
   const nameValid = !needsName || contactName.trim().length > 0;
   const cleanPhone = contactPhone.replace(/\D/g, '').slice(-10);
-  const phoneValid = !needsPhone || /^[6-9]\d{9}$/.test(cleanPhone);
+  const phoneValid = !needsPhone || !cleanPhone || /^[6-9]\d{9}$/.test(cleanPhone);
   const canReview = !invalid && addressValid && nameValid && phoneValid;
   const canSubmit = canReview && confirmed && !createOrder.isPending && !paying;
   const contact =
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
       description: hasQuoteItems
         ? t('confirm.placeOrderQuote')
         : t('confirm.placeOrderDesc', { total: formatINR(total), count: items.length, method: method === 'delivery' ? t('checkout.delivery') : t('checkout.pickup') }),
-      confirmLabel: paymentMethod === 'online' ? t('checkout.placeAndPay') : t('checkout.placeOrder'),
+      confirmLabel: paymentMethod === 'online' ? t('checkout.placeAndPay', { amount: formatINR(total) }) : t('checkout.placeOrder'),
     });
     if (!ok) return;
     createOrder.mutate(
@@ -160,20 +160,20 @@ export default function CheckoutPage() {
         paymentMethod,
         customerNote: note.trim() || undefined,
         contactName: contactName.trim() || undefined,
-        contactPhone: needsPhone ? cleanPhone : undefined,
+        contactPhone: needsPhone && cleanPhone ? cleanPhone : undefined,
       },
       {
         onSuccess: async (order) => {
           clearCart();
           // The number was saved to the account; refresh it so the next checkout does not ask again.
-          if (needsPhone) void authApi.me().then(useAuthStore.getState().setPrincipal).catch(() => undefined);
-          toast.success(t('checkout.success'), { description: order.orderNumber });
+          if (needsPhone && cleanPhone) void authApi.me().then(useAuthStore.getState().setPrincipal).catch(() => undefined);
+          toast.success(t('checkout.success'), { description: t('toast.orderPlacedDesc', { number: order.orderNumber, total: formatINR(order.totals.total) }) });
           if (paymentMethod === 'online' && order.status !== 'quote_pending') {
             setPaying(true);
             try {
               const paid = await payWithRazorpay(order._id, i18n.language);
-              if (paid) toast.success(t('checkout.paymentSuccess'));
-              else toast.info(t('checkout.paymentLater', { minutes: settings.payments.onlineTimeoutMinutes ?? 30 }));
+              if (paid) toast.success(t('checkout.paymentSuccess'), { description: t('toast.paymentSuccessDesc', { number: order.orderNumber }) });
+              else toast.info(t('toast.paymentLaterTitle'), { description: t('checkout.paymentLater', { minutes: settings.payments.onlineTimeoutMinutes ?? 30 }) });
             } catch (e) {
               toast.error(getErrorMessage(e));
             } finally {
@@ -326,7 +326,9 @@ export default function CheckoutPage() {
               )}
               {needsPhone && (
                 <div className="space-y-2">
-                  <Label htmlFor="contactPhone">{t('checkout.contactPhone')}</Label>
+                  <Label htmlFor="contactPhone">
+                    {t('checkout.contactPhone')} <span className="font-normal text-muted-foreground">({t('common.optional')})</span>
+                  </Label>
                   <PrefixedInput
                     id="contactPhone"
                     prefix="+91"
@@ -398,7 +400,7 @@ export default function CheckoutPage() {
                   </Button>
                   {!canReview && (
                     <p className="text-center text-sm text-destructive">
-                      {invalid ? t('cart.invalid') : !nameValid ? t('checkout.needName') : t('checkout.needAddress')}
+                      {invalid ? t('cart.invalid') : !nameValid ? t('checkout.needName') : !phoneValid ? t('checkout.needPhone') : t('checkout.needAddress')}
                     </p>
                   )}
                 </>

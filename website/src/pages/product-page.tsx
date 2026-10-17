@@ -281,6 +281,7 @@ export default function ProductPage() {
       estimate: quote.subtotal,
     });
     toast.success(t('product.added'), {
+      description: t('toast.addedDesc', { product: l(product.name), price: formatINR(quote.subtotal) }),
       action: { label: t('product.goToCart'), onClick: () => navigate('/cart') },
     });
     setFiles([]);

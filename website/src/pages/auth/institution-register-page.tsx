@@ -128,7 +128,7 @@ export default function InstitutionRegisterPage() {
         },
         {
           onSuccess: () => {
-            toast.success(t('auth.registered'));
+            toast.success(t('auth.registered'), { description: t('toast.registeredDesc') });
             navigate('/institution', { replace: true });
           },
           onError: (e) => toast.error(getErrorMessage(e)),

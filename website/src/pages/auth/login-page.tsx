@@ -72,7 +72,10 @@ export default function LoginPage() {
       { ...target, code, name: name.trim() || undefined },
       {
         onSuccess: (data) => {
-          toast.success(data.isNew ? t('auth.welcome') : t('auth.welcomeBack'));
+          const to = data.kind === 'user' ? (data.user.email ?? (data.user.phone ? `+91 ${data.user.phone}` : '')) : '';
+          toast.success(data.isNew ? t('auth.welcome') : t('auth.welcomeBack'), {
+            description: to ? t(data.isNew ? 'toast.welcomeDesc' : 'toast.welcomeBackDesc', { to }) : undefined,
+          });
           navigate(from, { replace: true });
         },
       },

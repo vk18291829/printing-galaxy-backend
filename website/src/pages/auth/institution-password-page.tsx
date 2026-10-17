@@ -41,7 +41,7 @@ export default function InstitutionPasswordPage() {
   const reset = useMutation({
     mutationFn: async () => (await api.post('/auth/institution/password/reset', { email, code, password })).data,
     onSuccess: () => {
-      toast.success(t('auth.resetDone'));
+      toast.success(t('auth.resetDone'), { description: t('toast.resetDoneDesc') });
       navigate('/institutions/login', { replace: true });
     },
   });

@@ -361,8 +361,8 @@ export async function resolveContact(auth: AuthContext, contactName?: string, co
   }
   const user = await UserModel.findById(auth.id);
   if (!user) throw ApiError.unauthorized();
-  const phone = user.phone || contactPhone;
-  if (!phone) throw new ApiError(400, 'Add your mobile number so the shop can reach you about this order', 'PHONE_REQUIRED');
+  // Optional: customers who sign in by email are reached by email; a number only helps the rider.
+  const phone = user.phone || contactPhone || undefined;
   if (contactName && !user.name) user.name = contactName;
   // Keep the number on the account, unless another account already uses it.
   if (!user.phone && contactPhone && !(await UserModel.exists({ phone: contactPhone }))) user.phone = contactPhone;

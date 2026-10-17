@@ -236,15 +236,17 @@ describe('order flow rules', () => {
 });
 
 describe('tracking and accounts', () => {
-  it('asks email-only customers for a mobile number once, then tracks their order by email', async () => {
+  it('lets email-only customers order without a phone, keeps one if given, and tracks by email', async () => {
     const restore = withEnv({ MESSAGING_CHANNEL: 'email' });
     try {
       const otp = await api().post('/api/v1/auth/otp/request').send({ email: 'meera@example.com' }).expect(200);
       const login = await api().post('/api/v1/auth/otp/verify').send({ email: 'meera@example.com', code: otp.body.devCode, name: 'Meera' }).expect(200);
       const token = login.body.accessToken as string;
 
-      const missing = await api().post('/api/v1/orders').set(bearer(token)).send(pickupOrder('counter')).expect(400);
-      expect(missing.body.error.code).toBe('PHONE_REQUIRED');
+      // The number is optional: updates go by email.
+      const noPhone = await api().post('/api/v1/orders').set(bearer(token)).send(pickupOrder('counter')).expect(201);
+      expect(noPhone.body.contact).toMatchObject({ email: 'meera@example.com' });
+      expect(noPhone.body.contact.phone).toBeUndefined();
       const order = await api().post('/api/v1/orders').set(bearer(token)).send({ ...pickupOrder('counter'), contactPhone: '9988776655' }).expect(201);
       expect(order.body.contact).toMatchObject({ phone: '9988776655', email: 'meera@example.com' });
       const me = await api().get('/api/v1/auth/me').set(bearer(token)).expect(200);
