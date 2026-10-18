@@ -59,6 +59,7 @@ export default function SettingsPage() {
       action: () =>
         save.mutateAsync({
           shop: values.shop,
+          social: values.social,
           tax: values.tax,
           delivery: values.delivery,
           payments: values.payments,
@@ -80,43 +81,69 @@ export default function SettingsPage() {
         }
       />
       <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Shop</CardTitle>
-            <CardDescription>Shown in the website footer, contact page and messages.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Shop name">
-              <Input {...register('shop.name')} />
-            </Field>
-            <Field label="Phone (10 digits)">
-              <Input inputMode="numeric" {...register('shop.phone')} />
-            </Field>
-            <Field label="WhatsApp chat number (empty = phone)">
-              <Input inputMode="numeric" {...register('shop.whatsapp')} />
-            </Field>
-            <Field label="Email (shop alerts go here)">
-              <Input type="email" {...register('shop.email')} />
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Address">
-                <Input {...register('shop.address')} />
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Shop</CardTitle>
+              <CardDescription>Shown in the website footer, contact page and messages.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <Field label="Shop name">
+                <Input {...register('shop.name')} />
               </Field>
-            </div>
-            <Field label="Google Maps link">
-              <Input {...register('shop.mapUrl')} />
-            </Field>
-            <Field label="Opening hours">
-              <Input {...register('shop.hours')} />
-            </Field>
-            <Field label="GSTIN">
-              <Input className="uppercase" maxLength={15} {...register('shop.gstin')} />
-            </Field>
-            <Field label="State (GST registration)" hint="Same state as the customer = CGST + SGST, otherwise IGST">
-              <Input placeholder="Uttar Pradesh" {...register('shop.state')} />
-            </Field>
-          </CardContent>
-        </Card>
+              <Field label="Phone (10 digits)">
+                <Input inputMode="numeric" {...register('shop.phone')} />
+              </Field>
+              <Field label="WhatsApp chat number (empty = phone)">
+                <Input inputMode="numeric" {...register('shop.whatsapp')} />
+              </Field>
+              <Field label="Email (shop alerts go here)">
+                <Input type="email" {...register('shop.email')} />
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Address">
+                  <Input {...register('shop.address')} />
+                </Field>
+              </div>
+              <Field label="Google Maps link">
+                <Input {...register('shop.mapUrl')} />
+              </Field>
+              <Field label="Opening hours">
+                <Input {...register('shop.hours')} />
+              </Field>
+              <Field label="GSTIN">
+                <Input className="uppercase" maxLength={15} {...register('shop.gstin')} />
+              </Field>
+              <Field label="State (GST registration)" hint="Same state as the customer = CGST + SGST, otherwise IGST">
+                <Input placeholder="Uttar Pradesh" {...register('shop.state')} />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Social media</CardTitle>
+              <CardDescription>Shown as icons in the website footer and on the contact page. Leave empty to hide.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <Field label="Instagram">
+                <Input type="url" placeholder="https://instagram.com/printinggalaxy" {...register('social.instagram')} />
+              </Field>
+              <Field label="Facebook">
+                <Input type="url" placeholder="https://facebook.com/printinggalaxy" {...register('social.facebook')} />
+              </Field>
+              <Field label="YouTube">
+                <Input type="url" placeholder="https://youtube.com/@printinggalaxy" {...register('social.youtube')} />
+              </Field>
+              <Field label="X (Twitter)">
+                <Input type="url" placeholder="https://x.com/printinggalaxy" {...register('social.x')} />
+              </Field>
+              <Field label="LinkedIn">
+                <Input type="url" placeholder="https://linkedin.com/company/printinggalaxy" {...register('social.linkedin')} />
+              </Field>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="space-y-6">
           <Card>

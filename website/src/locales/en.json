@@ -602,6 +602,8 @@
   "contact": {
     "title": "Visit or contact us",
     "subtitle": "We're happy to help with custom jobs and bulk orders.",
+    "followTitle": "Follow us",
+    "followDesc": "New designs, offers and finished work.",
     "call": "Call",
     "whatsapp": "WhatsApp",
     "email": "Email",

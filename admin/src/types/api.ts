@@ -234,6 +234,15 @@ export interface Paginated<T> {
   pages: number;
 }
 
+/** Full profile URLs; an empty string hides that icon on the website. */
+export interface SocialLinks {
+  instagram: string;
+  facebook: string;
+  youtube: string;
+  x: string;
+  linkedin: string;
+}
+
 export interface PublicSettings {
   shop: {
     name: string;
@@ -245,6 +254,7 @@ export interface PublicSettings {
     hours: string;
     gstin: string;
   };
+  social: SocialLinks;
   tax: { enabled: boolean; rate: number; pricesIncludeTax: boolean };
   delivery: { enabled: boolean; fee: number; freeAbove: number };
   payments: { onlineEnabled: boolean; counterEnabled: boolean; onlineTimeoutMinutes?: number; quotePaymentDays?: number };

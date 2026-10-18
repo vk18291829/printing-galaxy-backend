@@ -2,6 +2,7 @@ import { IconBrandWhatsapp, IconClock, IconMail, IconMapPin, IconPhone, IconShie
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Logo } from '@/components/common/logo';
+import { SocialLinks } from '@/components/common/social-links';
 import { useCategories } from '@/features/catalog/api';
 import { InstallAppButton } from '@/features/pwa/pwa';
 import { usePublicSettings } from '@/features/settings/api';
@@ -26,6 +27,7 @@ export function SiteFooter() {
             <IconShieldLock className="mt-0.5 size-4 shrink-0 text-success" />
             {t('footer.privacy')}
           </p>
+          <SocialLinks social={settings?.social} />
         </div>
 
         <div>

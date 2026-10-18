@@ -18,6 +18,18 @@ const shopSchema = new Schema(
   { _id: false },
 );
 
+/** Full profile URLs shown as icons in the website footer and contact page; empty = hidden. */
+const socialSchema = new Schema(
+  {
+    instagram: { type: String, default: '' },
+    facebook: { type: String, default: '' },
+    youtube: { type: String, default: '' },
+    x: { type: String, default: '' },
+    linkedin: { type: String, default: '' },
+  },
+  { _id: false },
+);
+
 const taxSchema = new Schema(
   {
     enabled: { type: Boolean, default: false },
@@ -54,6 +66,7 @@ const settingsSchema = new Schema(
   {
     key: { type: String, default: 'global', unique: true },
     shop: sub(shopSchema),
+    social: sub(socialSchema),
     tax: sub(taxSchema),
     delivery: sub(deliverySchema),
     payments: sub(paymentsSchema),

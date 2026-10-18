@@ -7,6 +7,14 @@ import { getSettings } from './settings.model';
 
 export const adminSettingsRouter = Router();
 
+/** A full https:// profile link, or empty to hide that icon. */
+const socialUrl = z
+  .string()
+  .trim()
+  .max(300)
+  .refine((v) => v === '' || /^https:\/\/\S+$/i.test(v), 'Paste the full link, starting with https://')
+  .default('');
+
 const settingsSchema = z.object({
   shop: z.object({
     name: z.string().trim().min(1).max(100),
@@ -19,6 +27,15 @@ const settingsSchema = z.object({
     hours: z.string().trim().max(120),
     gstin: z.string().trim().toUpperCase().max(15),
   }),
+  social: z
+    .object({
+      instagram: socialUrl,
+      facebook: socialUrl,
+      youtube: socialUrl,
+      x: socialUrl,
+      linkedin: socialUrl,
+    })
+    .default({ instagram: '', facebook: '', youtube: '', x: '', linkedin: '' }),
   tax: z.object({
     enabled: z.boolean(),
     rate: z.coerce.number().min(0).max(28),

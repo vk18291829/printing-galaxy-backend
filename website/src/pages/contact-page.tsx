@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { PageNav } from '@/components/common/page-nav';
+import { SocialLinks, socialLinks } from '@/components/common/social-links';
 import { PageLoader } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { usePublicSettings } from '@/features/settings/api';
@@ -134,6 +135,16 @@ export default function ContactPage() {
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+
+          {socialLinks(data.social).length > 0 && (
+            <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">{t('contact.followTitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('contact.followDesc')}</p>
+              </div>
+              <SocialLinks social={data.social} />
             </div>
           )}
 

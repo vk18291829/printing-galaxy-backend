@@ -8,6 +8,7 @@ settingsRouter.get('/public', async (_req, res) => {
   const s = await getSettings();
   res.json({
     shop: s.shop,
+    social: s.social,
     /** How customers sign in and get order updates. */
     messaging: env.MESSAGING_CHANNEL,
     tax: { enabled: s.tax.enabled, rate: s.tax.rate, pricesIncludeTax: s.tax.pricesIncludeTax },

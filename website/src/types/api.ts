@@ -243,6 +243,8 @@ export interface Paginated<T> {
   pages: number;
 }
 
+export type SocialNetwork = 'instagram' | 'facebook' | 'youtube' | 'x' | 'linkedin';
+
 export interface PublicSettings {
   shop: {
     name: string;
@@ -254,6 +256,8 @@ export interface PublicSettings {
     hours: string;
     gstin: string;
   };
+  /** Full profile URLs; empty = not shown. Missing on an API older than this field. */
+  social?: Partial<Record<SocialNetwork, string>>;
   tax: { enabled: boolean; rate: number; pricesIncludeTax: boolean };
   delivery: { enabled: boolean; fee: number; freeAbove: number };
   payments: { onlineEnabled: boolean; counterEnabled: boolean; onlineTimeoutMinutes?: number };
