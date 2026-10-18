@@ -32,8 +32,10 @@ function Toaster(props: ToasterProps) {
         unstyled: true,
         classNames: {
           toast:
-            'group/toast pointer-events-auto relative flex w-full items-start gap-3.5 overflow-hidden rounded-2xl border border-l-[5px] bg-card p-4 pr-11 font-sans text-card-foreground shadow-[0_18px_50px_-12px_rgb(0_0_0/0.35)] sm:p-5 sm:pr-12 ' +
-            'data-[type=success]:border-l-success data-[type=error]:border-l-destructive data-[type=warning]:border-l-warning data-[type=info]:border-l-primary data-[type=loading]:border-l-primary data-[type=default]:border-l-brand-magenta',
+            'group/toast pointer-events-auto relative flex w-full items-start gap-3.5 overflow-hidden rounded-2xl border-2 bg-card p-4 pr-11 font-sans text-card-foreground shadow-[0_18px_50px_-12px_rgb(0_0_0/0.35)] sm:p-5 sm:pr-12 ' +
+            // Full coloured border plus a faint wash of the same colour over the card.
+            'bg-linear-to-b data-[type=success]:border-success data-[type=success]:from-success/8 data-[type=error]:border-destructive data-[type=error]:from-destructive/8 data-[type=warning]:border-warning data-[type=warning]:from-warning/10 ' +
+            'data-[type=info]:border-primary data-[type=info]:from-primary/8 data-[type=loading]:border-primary data-[type=loading]:from-primary/8 data-[type=default]:border-brand-magenta data-[type=default]:from-brand-magenta/8 to-card',
           icon:
             'mt-0.5 grid size-10 shrink-0 place-items-center rounded-full [&_svg]:size-[22px] ' +
             'group-data-[type=success]/toast:bg-success/12 group-data-[type=success]/toast:text-success ' +

@@ -36,18 +36,27 @@ export function publicUrl(key: string) {
   return `${base.replace(/\/$/, '')}/${key}`;
 }
 
-export function presignUpload(kind: BucketKind, key: string, contentType: string, size: number) {
-  return getSignedUrl(
+/**
+ * Returns the URL plus the headers the browser must send with the PUT. Every header signed into
+ * the URL (Content-Type, and the encryption header on the private bucket) has to be sent back
+ * exactly, or S3 answers 403 SignatureDoesNotMatch.
+ */
+export async function presignUpload(kind: BucketKind, key: string, contentType: string, size: number) {
+  const encrypt = kind === 'private' && !env.S3_ENDPOINT;
+  const url = await getSignedUrl(
     s3,
     new PutObjectCommand({
       Bucket: bucketName(kind),
       Key: key,
       ContentType: contentType,
       ContentLength: size,
-      ...(kind === 'private' && !env.S3_ENDPOINT ? { ServerSideEncryption: 'AES256' } : {}),
+      ...(encrypt ? { ServerSideEncryption: 'AES256' } : {}),
     }),
     { expiresIn: 15 * 60 },
   );
+  const headers: Record<string, string> = { 'Content-Type': contentType };
+  if (encrypt) headers['x-amz-server-side-encryption'] = 'AES256';
+  return { url, headers };
 }
 
 export function presignDownload(kind: BucketKind, key: string, fileName: string, expiresIn = 300) {

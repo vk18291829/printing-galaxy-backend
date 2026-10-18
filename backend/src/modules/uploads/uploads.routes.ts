@@ -94,13 +94,8 @@ uploadsRouter.post('/presign', authenticate, validate({ body: presignSchema }), 
     publicUrl: bucket === 'public' ? publicUrl(key) : undefined,
   });
 
-  const uploadUrl = await presignUpload(bucket, key, input.mimeType, input.size);
-  res.status(201).json({
-    fileId: file.id,
-    uploadUrl,
-    method: 'PUT',
-    headers: { 'Content-Type': input.mimeType },
-  });
+  const { url: uploadUrl, headers } = await presignUpload(bucket, key, input.mimeType, input.size);
+  res.status(201).json({ fileId: file.id, uploadUrl, method: 'PUT', headers });
 });
 
 async function countPdfPages(bucket: 'private' | 'public', key: string) {

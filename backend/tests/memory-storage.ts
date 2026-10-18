@@ -10,8 +10,8 @@ export function publicUrl(key: string) {
   return `https://public.test/${key}`;
 }
 
-export async function presignUpload(kind: BucketKind, key: string) {
-  return `memory://${id(kind, key)}`;
+export async function presignUpload(kind: BucketKind, key: string, contentType: string) {
+  return { url: `memory://${id(kind, key)}`, headers: { 'Content-Type': contentType } };
 }
 
 export async function presignDownload(kind: BucketKind, key: string) {

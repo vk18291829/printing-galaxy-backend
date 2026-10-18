@@ -18,9 +18,9 @@ import type { InstitutionStatus } from '@/types/api';
 
 function Info({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{children || '—'}</p>
+      <p className="text-sm font-medium wrap-break-word">{children || '—'}</p>
     </div>
   );
 }
