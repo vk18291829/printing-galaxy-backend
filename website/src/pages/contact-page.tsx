@@ -23,7 +23,7 @@ import { useDocumentTitle } from '@/hooks/use-document-title';
 
 function Channel({ icon: Icon, title, value, action }: { icon: Icon; title: string; value: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+    <div className="flex flex-col gap-4 rounded-2xl shadow-card bg-card p-5">
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
           <Icon className="size-5" />
@@ -112,7 +112,7 @@ export default function ContactPage() {
           </div>
 
           {shop.address && (
-            <div className="relative isolate overflow-hidden rounded-2xl border bg-card">
+            <div className="relative isolate overflow-hidden rounded-2xl shadow-card bg-card">
               {/* Decorative map backdrop; directions open in the visitor's maps app. */}
               <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-70" aria-hidden />
               <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -139,7 +139,7 @@ export default function ContactPage() {
           )}
 
           {socialLinks(data.social).length > 0 && (
-            <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 rounded-2xl shadow-card bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-semibold">{t('contact.followTitle')}</p>
                 <p className="text-sm text-muted-foreground">{t('contact.followDesc')}</p>
@@ -150,7 +150,7 @@ export default function ContactPage() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             {help.map(({ icon: Icon, title, desc, to }) => (
-              <Link key={to} to={to} className="group rounded-2xl border bg-card p-5 transition-colors hover:border-foreground/20">
+              <Link key={to} to={to} className="group rounded-2xl shadow-card bg-card p-5 transition-colors hover:border-foreground/20">
                 <Icon className="mb-3 size-5 text-primary" />
                 <p className="flex items-center gap-1 font-semibold">
                   {title} <IconArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -163,7 +163,7 @@ export default function ContactPage() {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">{t('contact.faqTitle')}</h2>
-          <div className="divide-y overflow-hidden rounded-2xl border bg-card">
+          <div className="divide-y overflow-hidden rounded-2xl shadow-card bg-card">
             {faqs.map((f) => (
               <details key={f.q} className="group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium">

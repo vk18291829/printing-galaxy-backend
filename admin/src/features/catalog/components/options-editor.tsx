@@ -65,7 +65,7 @@ export function OptionsEditor({ control, register }: { control: Control<ProductF
   return (
     <div className="space-y-4">
       {options.fields.map((f, i) => (
-        <div key={f.id} className="space-y-3 rounded-xl border p-4">
+        <div key={f.id} className="space-y-3 rounded-xl shadow-card p-4">
           <div className="grid gap-2 sm:grid-cols-[0.8fr_1fr_1fr_auto]">
             <Input placeholder="key (e.g. paperSize)" {...register(`options.${i}.key`)} />
             <Input placeholder="Option name (EN)" {...register(`options.${i}.label.en`)} />

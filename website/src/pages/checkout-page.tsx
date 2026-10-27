@@ -61,7 +61,7 @@ function ChoiceCard({
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        'flex items-start gap-3 rounded-xl border p-4 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50',
+        'flex items-start gap-3 rounded-xl shadow-card p-4 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50',
         selected ? 'border-primary bg-primary/6 ring-2 ring-primary/20' : 'hover:border-primary/40',
       )}
     >
@@ -262,7 +262,7 @@ export default function CheckoutPage() {
               </div>
 
               {method === 'delivery' && (
-                <div className="grid gap-4 rounded-xl border bg-muted/30 p-4 sm:grid-cols-2">
+                <div className="grid gap-4 rounded-xl shadow-card bg-muted/30 p-4 sm:grid-cols-2">
                   <p className="font-semibold sm:col-span-2">{t('checkout.address')}</p>
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="line1">{t('auth.line1')}</Label>
@@ -407,7 +407,7 @@ export default function CheckoutPage() {
                 </>
               ) : (
                 <>
-                  <label htmlFor="confirm" className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-3 text-sm">
+                  <label htmlFor="confirm" className="flex items-start gap-2.5 rounded-lg shadow-card bg-muted/40 p-3 text-sm">
                     <Checkbox id="confirm" checked={confirmed} onCheckedChange={(v) => setConfirmed(v === true)} className="mt-0.5" />
                     {t('checkout.confirmCheck')}
                   </label>

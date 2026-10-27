@@ -114,7 +114,7 @@ export default function OrdersPage() {
               onClick={() => update({ segment: key === 'all' ? undefined : key })}
               aria-pressed={on}
               className={cn(
-                'flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors',
+                'flex h-10 shrink-0 items-center gap-2 rounded-full bg-muted px-4 text-sm font-semibold transition-colors',
                 on ? 'border-primary bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground',
               )}
             >
@@ -126,7 +126,7 @@ export default function OrdersPage() {
         })}
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1 [scrollbar-width:none]">
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl shadow-card bg-card p-1 [scrollbar-width:none]">
         {STATUS_TABS.map((t) => {
           const count = t !== 'active' && t !== 'all' ? data?.statusCounts[t] : undefined;
           return (

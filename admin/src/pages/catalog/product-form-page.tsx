@@ -386,7 +386,7 @@ export default function ProductFormPage() {
                             key={t}
                             onClick={() => field.onChange(on ? field.value.filter((x) => x !== t) : [...field.value, t])}
                             className={cn(
-                              'rounded-md border px-2 py-1 text-xs font-semibold uppercase',
+                              'rounded-md shadow-card px-2 py-1 text-xs font-semibold uppercase',
                               on ? 'border-primary bg-primary/10 text-primary' : 'text-muted-foreground',
                             )}
                           >

@@ -81,7 +81,7 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
   const [items, total, statusCounts, segmentCounts] = await Promise.all([
     OrderModel.find(filter)
       .select('-statusHistory -items.proofs')
-      .sort({ createdAt: -1 })
+      .sort(q.sort === 'due' ? { dueDate: 1, createdAt: 1 } : { createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('assignedTo', 'name')

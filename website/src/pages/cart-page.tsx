@@ -187,7 +187,7 @@ function EmptyCart() {
   return (
     <div className="container-page py-10">
       <PageNav items={[{ label: t('nav.home'), to: '/' }, { label: t('cart.title') }]} />
-      <div className="flex flex-col items-center rounded-3xl border bg-card px-6 py-14 text-center">
+      <div className="flex flex-col items-center rounded-3xl shadow-card bg-card px-6 py-14 text-center">
         <span className="mb-5 grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary">
           <IconShoppingBag className="size-8" />
         </span>
@@ -206,7 +206,7 @@ function EmptyCart() {
                 <Link
                   key={c._id}
                   to={categoryHome(c.slug)}
-                  className="flex h-9 items-center gap-2 rounded-full border bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                  className="flex h-9 items-center gap-2 rounded-full bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
                 >
                   <DynamicIcon name={c.icon} className="size-4" /> {l(c.name)}
                 </Link>
@@ -242,14 +242,14 @@ export default function CartPage() {
       </div>
 
       <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
-        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+        <ul className="divide-y overflow-hidden rounded-2xl shadow-card bg-card">
           {lines.map(({ item, quote, amount }) => (
             <Line key={item.id} item={item} quote={quote} amount={amount} />
           ))}
         </ul>
 
         <aside className="space-y-4 lg:sticky lg:top-32">
-          <div className="space-y-4 rounded-2xl border bg-card p-5 sm:p-6">
+          <div className="space-y-4 rounded-2xl shadow-card bg-card p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('cart.summary')}</h2>
               {loading && <Spinner className="size-4" />}
@@ -291,7 +291,7 @@ export default function CartPage() {
             </Button>
             <p className="text-center text-xs text-muted-foreground">{t('cart.estimatedNote')}</p>
           </div>
-          <ul className="grid gap-2.5 rounded-2xl border bg-card p-5 text-sm">
+          <ul className="grid gap-2.5 rounded-2xl shadow-card bg-card p-5 text-sm">
             {trust.map((line, i) => {
               const Icon = trustIcons[i % trustIcons.length]!;
               return (

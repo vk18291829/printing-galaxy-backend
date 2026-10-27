@@ -25,7 +25,7 @@ export default function BulkJobsPage() {
         title="Bulk card lists"
         description="Class lists and photo ZIPs uploaded by institutions, checked and turned into print sheets automatically."
       />
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1">
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl shadow-card bg-card p-1">
         {TABS.map((t) => (
           <button
             key={t}

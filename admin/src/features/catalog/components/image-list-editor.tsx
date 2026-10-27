@@ -70,7 +70,7 @@ export function ImageListEditor({ value, onChange, max }: { value: string[]; onC
     <div className="space-y-2">
       <div className={cn('grid gap-2', max > 1 ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-1')}>
         {value.map((url, i) => (
-          <div key={url} className={cn('group relative overflow-hidden rounded-lg border bg-muted', max > 1 ? 'aspect-square' : 'aspect-video')}>
+          <div key={url} className={cn('group relative overflow-hidden rounded-lg shadow-card bg-muted', max > 1 ? 'aspect-square' : 'aspect-video')}>
             <img src={url} alt="" className="size-full object-cover" />
             {i === 0 && max > 1 && (
               <span className="absolute top-1 left-1 flex items-center gap-1 rounded-md bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
@@ -97,7 +97,7 @@ export function ImageListEditor({ value, onChange, max }: { value: string[]; onC
           </div>
         ))}
         {Array.from({ length: uploading }, (_, i) => (
-          <div key={`up-${i}`} className={cn('grid place-items-center rounded-lg border bg-muted', max > 1 ? 'aspect-square' : 'aspect-video')}>
+          <div key={`up-${i}`} className={cn('grid place-items-center rounded-lg shadow-card bg-muted', max > 1 ? 'aspect-square' : 'aspect-video')}>
             <Spinner className="size-5" />
           </div>
         ))}

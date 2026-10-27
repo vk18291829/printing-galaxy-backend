@@ -48,7 +48,7 @@ export function IconPicker({ value, onChange, id }: { value: string; onChange: (
           <IconSearch className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input id={id} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search icons" className="pl-8" />
         </div>
-        <span className="flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm">
+        <span className="flex shrink-0 items-center gap-2 rounded-lg shadow-card px-2.5 py-1.5 text-sm">
           <DynamicIcon name={value} className="size-4 text-primary" />
           <span className="font-medium">{iconLabel(value)}</span>
         </span>
@@ -65,7 +65,7 @@ export function IconPicker({ value, onChange, id }: { value: string; onChange: (
               title={iconLabel(name)}
               onClick={() => onChange(name)}
               className={cn(
-                'flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-[11px] leading-tight transition-colors',
+                'flex flex-col items-center gap-1 rounded-lg shadow-card px-1 py-2 text-[11px] leading-tight transition-colors',
                 selected ? 'border-primary bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >

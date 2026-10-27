@@ -17,6 +17,7 @@ import {
 } from '@/modules/invoices/invoice.service';
 import { PaymentModel } from '@/modules/payments/payment.model';
 import { refundOrder } from '@/modules/payments/payment.service';
+import { notifyStaff } from '@/modules/push/push.service';
 import { getSettings } from '@/modules/settings/settings.model';
 import { FileModel } from '@/modules/uploads/file.model';
 import { FILE_OPEN_STATUSES, OrderModel, type Order, type OrderStatus } from './order.model';
@@ -99,7 +100,17 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
     reference: input.reference,
     quote: { requested: quoteRequested },
   }, key);
-  if (!replayed) await notifyStatus(order);
+  if (!replayed) {
+    await notifyStatus(order);
+    const segment = { individual: 'Individual', institution: 'School & College', business: 'Business', wedding: 'Wedding' }[order.segment ?? 'individual'];
+    void notifyStaff({
+      title: status === 'quote_pending' ? `Quote request ${order.orderNumber}` : `New order ${order.orderNumber}`,
+      body: `${segment} · ${order.contact?.name || 'Customer'} · ₹${order.totals.total} · ${order.items.map((i) => i.productName?.en).join(', ')}`,
+      path: `/orders/${order.id}`,
+      permission: 'orders',
+      tag: `order-${order.id}`,
+    });
+  }
 
   res.status(replayed ? 200 : 201).json(order.toJSON());
 });
@@ -192,6 +203,7 @@ ordersRouter.post('/:id/accept-quote', validate({ params: z.object({ id: objectI
   const payFirst = order.payment.method === 'online' && order.audience === 'retail' && order.totals.total > netPaid(order);
   if (payFirst) order.payment.dueBy = new Date(Date.now() + settings.payments.quotePaymentDays * 86_400_000);
   await changeStatus(req, order, payFirst ? 'awaiting_payment' : 'received', { note: 'Quote accepted' });
+  void notifyStaff({ title: `Quote accepted · ${order.orderNumber}`, body: `₹${order.totals.total}. Ready to start.`, path: `/orders/${order.id}`, permission: 'orders', tag: `order-${order.id}` });
   res.json(order.toJSON());
 });
 
@@ -244,6 +256,13 @@ ordersRouter.post(
 
     proof.status = decision;
     proof.customerComment = comment;
+    void notifyStaff({
+      title: decision === 'approved' ? `Proof approved · ${order.orderNumber}` : `Changes requested · ${order.orderNumber}`,
+      body: decision === 'approved' ? `${item.productName?.en}: ready to print.` : `${item.productName?.en}: “${comment ?? ''}”`,
+      path: `/orders/${order.id}`,
+      permission: 'proofs',
+      tag: `order-${order.id}`,
+    });
     proof.respondedAt = new Date();
 
     if (decision === 'changes_requested') {

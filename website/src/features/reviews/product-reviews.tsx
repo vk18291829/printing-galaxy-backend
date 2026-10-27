@@ -47,7 +47,7 @@ function ReviewForm({ slug, existing, onDone }: { slug: string; existing: Review
 
   return (
     <form
-      className="space-y-4 rounded-xl border bg-card p-5"
+      className="space-y-4 rounded-xl shadow-card bg-card p-5"
       onSubmit={(e) => {
         e.preventDefault();
         if (!rating) return toast.error(t('reviews.pickRating'));
@@ -180,7 +180,7 @@ export function ProductReviews({ slug }: { slug: string }) {
         <div className="min-w-0 space-y-6">
           {writing && <ReviewForm slug={slug} existing={mine} onDone={() => setWriting(false)} />}
           {mine && !writing && (
-            <ul className="rounded-xl border bg-muted/30 px-5 pt-5">
+            <ul className="rounded-xl shadow-card bg-muted/30 px-5 pt-5">
               <ReviewItem review={mine} own />
             </ul>
           )}

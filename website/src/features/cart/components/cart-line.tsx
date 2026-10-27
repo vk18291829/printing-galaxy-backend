@@ -13,7 +13,7 @@ export function CartThumb({ item, className = 'size-14' }: { item: Pick<CartItem
     <SafeImage
       src={item.image}
       alt=""
-      className={`${className} shrink-0 rounded-lg border object-cover`}
+      className={`${className} shrink-0 rounded-lg shadow-card object-cover`}
       fallback={
         <span className={`${className} grid shrink-0 place-items-center rounded-lg bg-primary/10 text-primary`}>
           <DynamicIcon name={item.icon} className="size-7" stroke={1.6} />

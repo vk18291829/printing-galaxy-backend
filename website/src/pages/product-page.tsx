@@ -166,7 +166,7 @@ function ProductContact({ product }: { product: Product }) {
   if (!phone && !whatsapp) return null;
   const message = encodeURIComponent(t('product.whatsappMessage', { product: l(product.name) }));
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/50 px-3 py-2.5">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl shadow-card bg-muted/50 px-3 py-2.5">
       <span className="mr-auto text-sm font-medium text-brand-navy">{t('product.questions')}</span>
       {phone && (
         <Button variant="outline" size="sm" asChild>
@@ -191,7 +191,7 @@ function LockedCard({ forInstitutions, className }: { forInstitutions: boolean; 
   const { t } = useTranslation();
   const location = useLocation();
   return (
-      <div className={cn('rounded-2xl border bg-card/95 p-6 text-center backdrop-blur sm:p-8', className)}>
+      <div className={cn('rounded-2xl shadow-card bg-card/95 p-6 text-center backdrop-blur sm:p-8', className)}>
         <span className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
           <IconLock className="size-7" />
         </span>
@@ -454,7 +454,7 @@ export default function ProductPage() {
                   <div className="space-y-2">
                     <Label htmlFor="pages">{t('product.pages')}</Label>
                     {pagesFromFiles ? (
-                      <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/50 px-3">
+                      <div className="flex h-11 items-center gap-2 rounded-xl shadow-card bg-muted/50 px-3">
                         <span className="text-base font-semibold tabular-nums">{formatNumber(pagesFromFiles)}</span>
                         <span className="text-xs text-muted-foreground">{t('product.pagesFromFiles')}</span>
                       </div>

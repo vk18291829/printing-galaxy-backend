@@ -7,7 +7,7 @@ import { useCartCount } from '@/features/cart/cart-store';
 import { cn } from '@/lib/utils';
 
 /** Screens with their own bottom action bar (price + add / order buttons). */
-const OWN_BAR = [/^\/products\/[^/]+$/, /^\/checkout/, /^\/institution\/orders\/new/];
+const OWN_BAR = [/^\/products\/[^/]+$/, /^\/checkout/, /^\/institution\/orders\/new/, /^\/p\//];
 
 export function useBottomTabsVisible() {
   const { pathname } = useLocation();

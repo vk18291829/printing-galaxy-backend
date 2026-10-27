@@ -122,7 +122,7 @@ export function CardCropUploader({
               <p className="text-sm font-semibold">{sideLabel(side)}</p>
               {slot ? (
                 <div className="group relative">
-                  <img src={slot.preview} alt={sideLabel(side)} className="aspect-[86/54] w-full rounded-xl border object-cover shadow-sm" />
+                  <img src={slot.preview} alt={sideLabel(side)} className="aspect-[86/54] w-full rounded-xl shadow-card object-cover" />
                   <div className="mt-2 flex flex-wrap gap-2">
                     {source && (
                       <Button type="button" size="sm" variant="outline" onClick={() => setEditing(side)}>

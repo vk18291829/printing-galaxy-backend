@@ -52,7 +52,7 @@ export function OrderList({ limit }: { limit?: number }) {
         <li key={order._id}>
           <Link
             to={`/account/orders/${order._id}`}
-            className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30"
+            className="flex items-center gap-4 rounded-xl shadow-card bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30"
           >
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">

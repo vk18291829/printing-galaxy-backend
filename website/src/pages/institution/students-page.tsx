@@ -2,6 +2,8 @@ import {
   IconCamera,
   IconDownload,
   IconFileSpreadsheet,
+  IconId,
+  IconLink,
   IconPencil,
   IconPlus,
   IconSearch,
@@ -11,6 +13,7 @@ import {
 } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageNav } from '@/components/common/page-nav';
@@ -25,6 +28,7 @@ import { rosterExportUrl, useDeletePerson, useRoster, type Person, type PersonKi
 import { ImportDialog } from '@/features/roster/import-dialog';
 import { PersonDialog } from '@/features/roster/person-dialog';
 import { PhotoDialog } from '@/features/roster/photo-dialog';
+import { ShareLinkDialog } from '@/features/roster/share-link-dialog';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { getErrorMessage } from '@/lib/api-client';
 import { fetchFile } from '@/lib/download';
@@ -40,7 +44,7 @@ function Thumb({ person, onClick, className }: { person: Person; onClick: () => 
       onClick={onClick}
       aria-label={t(person.hasPhoto ? 'roster.changePhoto' : 'roster.addPhoto', { name: person.name })}
       className={cn(
-        'group relative grid aspect-[3/4] w-10 shrink-0 place-items-center overflow-hidden rounded-md border',
+        'group relative grid aspect-[3/4] w-10 shrink-0 place-items-center overflow-hidden rounded-md shadow-card',
         person.hasPhoto ? 'bg-muted' : 'border-dashed border-primary/50 bg-primary/5 text-primary',
         className,
       )}
@@ -55,6 +59,7 @@ function Thumb({ person, onClick, className }: { person: Person; onClick: () => 
 
 export default function StudentsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [kind, setKind] = useState<PersonKind>('student');
   const { data, isLoading, error, refetch } = useRoster(kind);
   const remove = useDeletePerson();
@@ -65,6 +70,7 @@ export default function StudentsPage() {
   const [editing, setEditing] = useState<Person | null | 'new'>(null);
   const [importing, setImporting] = useState(false);
   const [photoFor, setPhotoFor] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   useDocumentTitle(t('roster.title'));
 
   const people = data?.items ?? [];
@@ -88,6 +94,21 @@ export default function StudentsPage() {
   const total = data?.total ?? 0;
   const done = data?.withPhoto ?? 0;
   const firstMissing = shown.find((p) => !p.hasPhoto) ?? people.find((p) => !p.hasPhoto);
+
+  // ID cards for exactly what is on screen (a class, a section, or everyone).
+  const orderCards = () => {
+    const scope = isStaff
+      ? t('roster.scopeStaff')
+      : cls !== ALL
+        ? t('roster.scopeClass', { cls: `${cls}${section !== ALL ? `-${section}` : ''}` })
+        : t('roster.scopeAll');
+    const next = new URLSearchParams({
+      product: isStaff ? 'teacher-id-card' : 'student-id-card',
+      qty: String(shown.length),
+      note: t('roster.cardsNote', { scope, count: shown.length }),
+    });
+    navigate(`/institution/orders/new?${next}`);
+  };
 
   const exportExcel = () =>
     void fetchFile(rosterExportUrl(kind), { fallbackName: `${isStaff ? 'staff' : 'students'}.xlsx`, mode: 'save' }).catch((e) => toast.error(getErrorMessage(e)));
@@ -122,13 +143,18 @@ export default function StudentsPage() {
           <Button variant="outline" onClick={exportExcel} disabled={total === 0}>
             <IconDownload /> {t('roster.export')}
           </Button>
+          {shown.length > 0 && (
+            <Button variant="navy" onClick={orderCards}>
+              <IconId /> {t('roster.orderCards', { count: shown.length })}
+            </Button>
+          )}
           <Button variant="brand" onClick={() => setEditing('new')}>
             <IconPlus /> {t(isStaff ? 'roster.addStaff' : 'roster.addStudent')}
           </Button>
         </div>
       </div>
 
-      <div className="mb-5 inline-flex rounded-xl border bg-muted/40 p-1" role="tablist">
+      <div className="mb-5 inline-flex rounded-xl shadow-card bg-muted/40 p-1" role="tablist">
         {(['student', 'staff'] as const).map((k) => (
           <button
             key={k}
@@ -179,11 +205,16 @@ export default function StudentsPage() {
                 </div>
                 <Progress value={total ? (done / total) * 100 : 0} />
               </div>
-              {firstMissing && (
-                <Button variant="navy" onClick={() => setPhotoFor(firstMissing._id)}>
-                  <IconCamera /> {t('roster.takePhotos')}
+              <div className="flex flex-wrap gap-2">
+                {firstMissing && (
+                  <Button variant="navy" onClick={() => setPhotoFor(firstMissing._id)}>
+                    <IconCamera /> {t('roster.takePhotos')}
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setSharing(true)}>
+                  <IconLink /> {t('photoLink.button')}
                 </Button>
-              )}
+              </div>
             </CardContent>
           </Card>
 
@@ -222,7 +253,7 @@ export default function StudentsPage() {
               type="button"
               onClick={() => setMissingOnly((v) => !v)}
               aria-pressed={missingOnly}
-              className={cn('h-11 rounded-xl border px-4 text-sm font-semibold', missingOnly ? 'border-primary bg-primary/8 text-primary' : 'text-muted-foreground')}
+              className={cn('h-11 rounded-xl shadow-card px-4 text-sm font-semibold', missingOnly ? 'border-primary bg-primary/8 text-primary' : 'text-muted-foreground')}
             >
               {t('roster.missingOnly')}
             </button>
@@ -292,7 +323,7 @@ export default function StudentsPage() {
 
           <ul className="space-y-2 md:hidden">
             {shown.map((p) => (
-              <li key={p._id} className="flex items-center gap-3 rounded-xl border bg-card p-2.5">
+              <li key={p._id} className="flex items-center gap-3 rounded-xl shadow-card bg-card p-2.5">
                 <Thumb person={p} onClick={() => setPhotoFor(p._id)} className="w-12" />
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setEditing(p)}>
                   <p className="truncate font-semibold text-brand-navy">{p.name}</p>
@@ -314,6 +345,9 @@ export default function StudentsPage() {
 
       {editing && <PersonDialog kind={kind} person={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       {importing && <ImportDialog kind={kind} onClose={() => setImporting(false)} />}
+      {sharing && (
+        <ShareLinkDialog kind={kind} cls={cls !== ALL ? cls : undefined} section={cls !== ALL && section !== ALL ? section : undefined} onClose={() => setSharing(false)} />
+      )}
       {photoFor && <PhotoDialog people={shown.length ? shown : people} personId={photoFor} onPersonChange={setPhotoFor} onClose={() => setPhotoFor(null)} />}
     </div>
   );

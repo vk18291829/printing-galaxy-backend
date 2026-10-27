@@ -94,7 +94,7 @@ function DeliveredDialog({ order, onClose }: { order: DeliveryOrder; onClose: ()
                   key={p}
                   type="button"
                   onClick={() => setProvider(p)}
-                  className={cn('rounded-xl border py-2.5 text-sm font-medium', provider === p && 'border-primary bg-primary/5 text-primary')}
+                  className={cn('rounded-xl shadow-card py-2.5 text-sm font-medium', provider === p && 'border-primary bg-primary/5 text-primary')}
                 >
                   {p === 'cash' ? 'Cash' : 'UPI'}
                 </button>
@@ -328,7 +328,7 @@ export default function DeliveriesPage() {
       {cashToday > 0 && (
         <div className="mt-8">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase">Delivered today ({cashToday})</h2>
-          <ul className="divide-y rounded-xl border bg-card">
+          <ul className="divide-y rounded-xl shadow-card bg-card">
             {data.doneToday.map((o) => (
               <li key={o._id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                 <span className="font-mono font-semibold">{o.orderNumber}</span>

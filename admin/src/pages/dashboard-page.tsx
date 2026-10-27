@@ -71,7 +71,7 @@ export default function DashboardPage() {
       {data.pendingInstitutions > 0 && (
         <Link
           to="/institutions?status=pending"
-          className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm font-medium"
+          className="flex items-center gap-3 rounded-xl shadow-card border-warning/40 bg-warning/10 px-4 py-3 text-sm font-medium"
         >
           <IconAlertTriangle className="size-5 text-amber-600 dark:text-warning" />
           {data.pendingInstitutions} institution{data.pendingInstitutions > 1 ? 's are' : ' is'} waiting for approval
@@ -82,7 +82,7 @@ export default function DashboardPage() {
       {data.lowStock.length > 0 && (
         <Link
           to="/inventory"
-          className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm font-medium"
+          className="flex items-center gap-3 rounded-xl shadow-card border-warning/40 bg-warning/10 px-4 py-3 text-sm font-medium"
         >
           <IconBoxSeam className="size-5 shrink-0 text-amber-600 dark:text-warning" />
           <span className="min-w-0">

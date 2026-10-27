@@ -76,7 +76,7 @@ function LineEditor({
   }, [quote, line.key, onTotal]);
 
   return (
-    <div className="space-y-4 rounded-xl border p-4">
+    <div className="space-y-4 rounded-xl shadow-card p-4">
       <div className="flex gap-2">
         <Select value={line.productId} onValueChange={(id) => onChange({ ...newLine(products.find((p) => p._id === id)), key: line.key })}>
           <SelectTrigger className="flex-1">

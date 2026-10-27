@@ -51,7 +51,7 @@ export default function LegalPage({ kind }: { kind: LegalKind }) {
               <p className="text-base leading-relaxed text-foreground/85">{body}</p>
             </section>
           ))}
-          <p className="rounded-xl border bg-muted/40 p-4 text-sm">
+          <p className="rounded-xl shadow-card bg-muted/40 p-4 text-sm">
             {t('legal.contactLine', {
               name,
               phone: shop?.phone ? `+91 ${shop.phone}` : t('nav.contact'),

@@ -67,7 +67,7 @@ export function RevenueChart({
                   style={{ height: `${(d.revenue / top) * 100}%`, minHeight: d.revenue > 0 ? 2 : 0 }}
                 />
                 {active === i && (
-                  <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 rounded-lg border bg-popover px-2.5 py-1.5 text-left text-xs whitespace-nowrap shadow-lg">
+                  <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 rounded-lg shadow-card bg-popover px-2.5 py-1.5 text-left text-xs whitespace-nowrap shadow-lg">
                     <span className="block font-medium text-muted-foreground">{formatLabel(d.date)}</span>
                     <span className="block font-bold text-foreground tabular-nums">{formatINR(d.revenue)}</span>
                     <span className="block text-muted-foreground">

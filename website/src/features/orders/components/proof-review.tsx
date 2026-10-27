@@ -19,7 +19,7 @@ function ProofHistory({ proofs, open: initiallyOpen }: { proofs: Proof[]; open?:
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState<string | null>(initiallyOpen ? (proofs.at(-1)?._id ?? null) : null);
   return (
-    <ul className="divide-y rounded-xl border">
+    <ul className="divide-y rounded-xl shadow-card">
       {proofs.map((p, i) => {
         const file = typeof p.file === 'string' ? null : (p.file as UploadedFile);
         const expanded = open === p._id;
@@ -68,7 +68,7 @@ export function ProofReview({ orderId, item }: { orderId: string; item: OrderIte
     });
 
   return (
-    <div className="space-y-3 rounded-xl border border-warning/50 bg-warning/8 p-4">
+    <div className="space-y-3 rounded-xl shadow-card border-warning/50 bg-warning/8 p-4">
       <div>
         <p className="font-semibold">
           {t('orders.proofTitle')}

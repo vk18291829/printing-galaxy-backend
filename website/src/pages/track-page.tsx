@@ -168,7 +168,7 @@ export default function TrackPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            <ul className="divide-y rounded-lg border">
+            <ul className="divide-y rounded-lg shadow-card">
               {order.items.map((item, i) => (
                 <li key={i} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                   <span className="font-medium">{l(item.productName)}</span>

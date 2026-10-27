@@ -15,7 +15,7 @@ export function QuantityStepper({
   id?: string;
 }) {
   return (
-    <div className="flex h-11 w-full max-w-[220px] items-center rounded-xl border bg-background">
+    <div className="flex h-11 w-full max-w-[220px] items-center rounded-xl shadow-card bg-background">
       <button
         type="button"
         className="grid h-full w-11 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-40"

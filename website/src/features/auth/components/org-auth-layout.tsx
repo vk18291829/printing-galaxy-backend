@@ -116,7 +116,7 @@ export function OrgAuthLayout({
 }) {
   return (
     <div className="container-page py-6 sm:py-10">
-      <div className={cn('grid overflow-hidden rounded-2xl border bg-card shadow-sm lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]', !brief && 'lg:min-h-[640px]')}>
+      <div className={cn('grid overflow-hidden rounded-2xl shadow-card bg-card lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]', !brief && 'lg:min-h-[640px]')}>
         <BrandPanel audience={audience} brief={brief} />
         <div className="flex items-start justify-center px-5 py-8 sm:px-10 sm:py-12 lg:items-center lg:px-14">
           <div className={cn('w-full', wide ? 'max-w-xl' : 'max-w-sm')}>
@@ -139,7 +139,7 @@ export function OrgBenefitsInline({ audience = 'institution' }: { audience?: Aut
   const { t } = useTranslation();
   const benefits = t(`${PANEL[audience].key}.benefits`, { returnObjects: true }) as string[];
   return (
-    <ul className="mb-8 grid gap-2 rounded-xl border bg-muted/40 p-4 text-sm lg:hidden">
+    <ul className="mb-8 grid gap-2 rounded-xl shadow-card bg-muted/40 p-4 text-sm lg:hidden">
       {benefits.slice(0, 3).map((b) => (
         <li key={b} className="flex items-center gap-2">
           <IconCheck className="size-4 shrink-0 text-success" /> {b}

@@ -24,7 +24,7 @@ export function Logo({ className, compact = false, inverted = false }: { classNa
       {!compact && (
         <span className="flex flex-col leading-none">
           <span className={cn('text-[17px] font-extrabold tracking-tight whitespace-nowrap sm:text-xl', inverted ? 'text-white' : 'text-brand-navy')}>
-            Printing <span className="text-brand-orange">Galaxy</span>
+            Printing <span className={inverted ? 'text-brand-amber' : 'text-logo-gradient'}>Galaxy</span>
           </span>
           <span className={cn('mt-1 hidden text-[8.5px] font-semibold tracking-[0.14em] whitespace-nowrap uppercase sm:block', inverted ? 'text-white/60' : 'text-muted-foreground')}>
             Print · Customize · Create

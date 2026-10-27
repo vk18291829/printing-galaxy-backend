@@ -4,29 +4,30 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-150 outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 active:scale-[0.98]",
+  "inline-flex shrink-0 items-center justify-center gap-2 text-sm font-semibold whitespace-nowrap transition-all duration-200 outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        // Disabled solid buttons turn neutral instead of fading, so their label stays readable.
-        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-brand-orange-hover disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
+        // Solid navy (logo colour). Disabled solid buttons turn neutral so their label stays readable.
+        default: 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
         destructive: 'bg-destructive text-white shadow-sm hover:bg-destructive/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
-        outline: 'border border-input bg-background shadow-xs hover:border-brand-navy/30 hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50',
-        // Visible destructive action for rows and dialogs (Delete, Remove, Archive).
-        danger: 'border border-destructive/40 bg-background text-destructive shadow-xs hover:bg-destructive/10 hover:text-destructive dark:bg-input/30 dark:hover:bg-destructive/15',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        // Dark brand button for secondary calls to action next to an orange one.
-        navy: 'bg-brand-navy text-white shadow-xs hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
+        // Secondary action: a soft navy-tinted fill (no border, no shadow).
+        outline: 'bg-secondary text-secondary-foreground hover:bg-[#dfe7f5]',
+        // Destructive action for rows and dialogs (Delete, Remove, Archive).
+        danger: 'bg-destructive/8 text-destructive hover:bg-destructive/14',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/70',
+        ghost: 'hover:bg-secondary hover:text-secondary-foreground',
+        navy: 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
         link: 'text-primary underline-offset-4 hover:underline',
-        brand: 'bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-brand-orange-hover disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none disabled:ring-0',
+        // The page's main call to action.
+        brand: 'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-brand-navy-deep hover:shadow-lg hover:shadow-primary/30 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
       },
       size: {
-        default: 'h-10 px-4 py-2 has-[>svg]:px-3',
-        sm: 'h-8 gap-1.5 rounded-md px-3 text-xs has-[>svg]:px-2.5',
-        lg: 'h-12 rounded-lg px-6 text-base has-[>svg]:px-5',
-        icon: 'size-10',
-        'icon-sm': 'size-8',
+        default: 'h-11 rounded-xl px-5 has-[>svg]:px-4',
+        sm: 'h-9 gap-1.5 rounded-lg px-3.5 text-[13px] has-[>svg]:px-3',
+        lg: 'h-12 rounded-xl px-6 text-[15px] has-[>svg]:px-5',
+        icon: 'size-11 rounded-xl',
+        'icon-sm': 'size-9 rounded-lg',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },

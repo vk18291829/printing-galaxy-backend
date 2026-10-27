@@ -127,6 +127,8 @@ export const adminOrderListQuery = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
   audience: z.enum(['retail', 'institution']).optional(),
   segment: z.enum(ORDER_SEGMENTS).optional(),
+  /** `due`: soonest ready-by date first (a staff member's work list). */
+  sort: z.enum(['newest', 'due']).default('newest'),
   overdue: z
     .enum(['true', 'false'])
     .optional()

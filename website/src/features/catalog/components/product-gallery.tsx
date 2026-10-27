@@ -53,7 +53,7 @@ export function ProductGallery({ product, className }: { product: Product; class
 
   if (!current) {
     return (
-      <div className={cn('grid aspect-4/3 place-items-center rounded-xl border bg-muted text-primary', className)}>
+      <div className={cn('grid aspect-4/3 place-items-center rounded-xl shadow-card bg-muted text-primary', className)}>
         <DynamicIcon name={product.icon} className="size-16" stroke={1.25} />
       </div>
     );
@@ -61,7 +61,7 @@ export function ProductGallery({ product, className }: { product: Product; class
 
   return (
     <div className={cn('space-y-2', className)}>
-      <div className="group relative aspect-4/3 overflow-hidden rounded-xl border bg-muted">
+      <div className="group relative aspect-4/3 overflow-hidden rounded-xl shadow-card bg-muted">
         {current.kind === 'video' ? (
           <VideoSlide key={index} video={current.video} poster={product.images[0]} title={l(product.name)} />
         ) : (

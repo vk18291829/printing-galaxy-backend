@@ -1,52 +1,55 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource-variable/geist-mono';
 @import '@fontsource-variable/noto-sans-devanagari';
 
 @custom-variant dark (&:is(.dark *));
 
-/* Premium print palette: navy for type and structure, orange for actions, light-gray canvas.
-   Cyan, magenta and amber come from the logo and are kept for small decorative details only. */
+/* Logo palette. Royal navy #0B2A65 (the "P") carries type, buttons and active states; amber
+   #FC9A01, cyan #00ACFA and magenta #F91570 are the logo's print colours, used as fills and small
+   accents only (never as text on white). Cool, near-white canvas with borderless white cards. */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.875rem;
 
-  --background: #ffffff;
-  --foreground: #142b4a;
+  --background: #f5f7fb;
+  --foreground: #0b1b3f;
   --card: #ffffff;
-  --card-foreground: #142b4a;
+  --card-foreground: #0b1b3f;
   --popover: #ffffff;
-  --popover-foreground: #142b4a;
-  --primary: #f65b2a;
+  --popover-foreground: #0b1b3f;
+  --primary: #0b2a65;
   --primary-foreground: #ffffff;
-  --secondary: #f4f6f8;
-  --secondary-foreground: #142b4a;
-  --muted: #f4f6f8;
-  --muted-foreground: #64748b;
-  --accent: #eef2f6;
-  --accent-foreground: #142b4a;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #e2e8f0;
-  --input: #d5dde7;
-  --ring: #f65b2a;
+  --secondary: #eaf0f9;
+  --secondary-foreground: #0b2a65;
+  --muted: #eef2f8;
+  --muted-foreground: #5a6a88;
+  --accent: #eaf0f9;
+  --accent-foreground: #0b2a65;
+  --destructive: #dc2626;
+  --border: #e4e9f2;
+  --input: #d6deeb;
+  --ring: #0b2a65;
 
-  --success: #15803d;
-  --warning: oklch(0.76 0.16 75);
-  --info: oklch(0.62 0.14 235);
+  --success: #12804a;
+  --warning: #f59e0b;
+  --info: #0b6fbf;
 
-  --scrollbar: oklch(0.552 0.016 255 / 35%);
-  --scrollbar-hover: oklch(0.552 0.016 255 / 60%);
+  --scrollbar: rgb(11 42 101 / 22%);
+  --scrollbar-hover: rgb(11 42 101 / 40%);
 
-  --brand-navy: #142b4a;
-  --brand-navy-deep: #0d1d33;
-  --brand-orange: #f65b2a;
-  --brand-orange-hover: #e04a1c;
-  /* Older components reference blue/sky; they now resolve to the navy family. */
-  --brand-blue: #1f3d66;
-  --brand-sky: #00aeef;
-  --brand-cyan: #00aeef;
-  --brand-magenta: #f0197d;
-  --brand-yellow: #ff9f0a;
+  --brand-navy: #0b2a65;
+  --brand-navy-deep: #071c45;
+  /* Kept for older class names: "orange" now means the logo's amber, "orange-hover" the navy hover. */
+  --brand-orange: #fc9a01;
+  --brand-orange-hover: #08214f;
+  --brand-amber: #fc9a01;
+  --brand-blue: #123a85;
+  --brand-sky: #00acfa;
+  --brand-cyan: #00acfa;
+  --brand-magenta: #f91570;
+  --brand-yellow: #fc9a01;
 }
 
 .dark {
@@ -79,17 +82,17 @@
 
 @theme inline {
   --font-sans: 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 
   /* Controls 8–10px, cards 12px, feature panels 16–20px. */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
-  --radius-3xl: 20px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -117,6 +120,7 @@
   --color-brand-navy-deep: var(--brand-navy-deep);
   --color-brand-orange: var(--brand-orange);
   --color-brand-orange-hover: var(--brand-orange-hover);
+  --color-brand-amber: var(--brand-amber);
   --color-brand-blue: var(--brand-blue);
   --color-brand-sky: var(--brand-sky);
   --color-brand-cyan: var(--brand-cyan);
@@ -226,6 +230,7 @@
 }
 
 /* Small uppercase label above section headings. */
+/* Small uppercase section labels, in navy. */
 @utility eyebrow {
   @apply text-xs font-bold tracking-[0.16em] text-primary uppercase;
 }
@@ -244,20 +249,21 @@
 }
 
 /* Banner colour presets, chosen per banner in the admin panel. */
+/* Offer banner themes, all from the logo palette (navy base, one print colour as the glow). */
 @utility banner-blue {
-  background: radial-gradient(120% 140% at 100% 0%, #2c5a94 0%, transparent 55%), linear-gradient(135deg, #0d1d33, #142b4a);
+  background: radial-gradient(120% 140% at 100% 0%, rgb(0 172 250 / 0.55) 0%, transparent 55%), linear-gradient(135deg, #071c45, #0b2a65);
 }
 @utility banner-magenta {
-  background: radial-gradient(120% 140% at 100% 0%, #ff6ab8 0%, transparent 55%), linear-gradient(135deg, #8a0b57, #d9138a);
+  background: radial-gradient(120% 140% at 100% 0%, rgb(249 21 112 / 0.6) 0%, transparent 55%), linear-gradient(135deg, #071c45, #0b2a65);
 }
 @utility banner-sunset {
-  background: radial-gradient(120% 140% at 100% 0%, #ff9f0a 0%, transparent 55%), linear-gradient(135deg, #c2410c, #f65b2a);
+  background: radial-gradient(120% 140% at 100% 0%, rgb(252 154 1 / 0.6) 0%, transparent 55%), linear-gradient(135deg, #071c45, #0b2a65);
 }
 @utility banner-mint {
-  background: radial-gradient(120% 140% at 100% 0%, #5eead4 0%, transparent 55%), linear-gradient(135deg, #065f46, #0f9f77);
+  background: radial-gradient(120% 140% at 100% 0%, rgb(0 172 250 / 0.45) 0%, transparent 50%), radial-gradient(90% 120% at 0% 100%, rgb(249 21 112 / 0.3) 0%, transparent 55%), linear-gradient(135deg, #071c45, #0b2a65);
 }
 @utility banner-dark {
-  background: radial-gradient(120% 140% at 100% 0%, rgb(246 91 42 / 0.35) 0%, transparent 55%), linear-gradient(135deg, #0a1628, #142b4a);
+  background: radial-gradient(120% 140% at 100% 0%, rgb(46 91 216 / 0.45) 0%, transparent 55%), linear-gradient(135deg, #050f2a, #0b2a65);
 }
 
 
@@ -269,4 +275,72 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px var(--background) inset;
   caret-color: var(--foreground);
   transition: background-color 9999s;
+}
+
+/* Respect "reduce motion": no slides, fades or smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Cards and panels: no border and no shadow; they stand out from the cool-grey page by colour
+   alone (white on #F5F7FB). The class marks a card surface. */
+@utility shadow-card {
+  box-shadow: none;
+}
+/* Tappable cards rise slightly on hover and press in on tap. */
+@utility lift {
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms ease;
+  &:hover {
+    transform: translateY(-2px);
+  }
+  &:active {
+    transform: translateY(0) scale(0.99);
+  }
+}
+/* Headline highlight in the logo's print colours. */
+@utility text-logo-gradient {
+  background: linear-gradient(90deg, #00acfa 0%, #2e5bd8 45%, #f91570 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Screens fade up gently when they open. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@utility page-enter {
+  animation: page-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* A box inside a white card sits on a soft tint, so it still reads as a box without a line or shadow.
+   Unlayered on purpose: it must win over the bg-card utility on the nested box. */
+[data-slot='card'] .shadow-card.bg-card,
+[data-slot='card'] .shadow-card:not([class*='bg-']) {
+  background-color: var(--muted);
 }

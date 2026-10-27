@@ -31,7 +31,7 @@ export default function NotFoundPage() {
 
   return (
     <div className="container-page py-12 sm:py-16">
-      <div className="relative isolate mx-auto max-w-3xl overflow-hidden rounded-3xl border bg-card px-6 py-12 text-center sm:px-12">
+      <div className="relative isolate mx-auto max-w-3xl overflow-hidden rounded-3xl shadow-card bg-card px-6 py-12 text-center sm:px-12">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-60" aria-hidden />
         <p className="text-7xl font-bold text-brand-gradient sm:text-8xl">404</p>
         <div className="mx-auto my-5 h-1.5 w-28 rounded-full cmyk-strip" />
@@ -67,7 +67,7 @@ export default function NotFoundPage() {
               <Link
                 key={c._id}
                 to={categoryHome(c.slug)}
-                className="group flex items-center gap-3 rounded-xl border bg-card p-3 text-sm font-medium transition-colors hover:border-foreground/20"
+                className="group flex items-center gap-3 rounded-xl shadow-card bg-card p-3 text-sm font-medium transition-colors hover:border-foreground/20"
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                   <DynamicIcon name={c.icon} className="size-4.5" />

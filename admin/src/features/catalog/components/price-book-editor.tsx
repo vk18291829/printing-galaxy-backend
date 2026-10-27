@@ -23,7 +23,7 @@ export function PriceBookEditor({
   const enabled = useWatch({ control, name: `pricing.${audience}.enabled` });
 
   return (
-    <div className="space-y-4 rounded-xl border p-4">
+    <div className="space-y-4 rounded-xl shadow-card p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-semibold">{title}</p>

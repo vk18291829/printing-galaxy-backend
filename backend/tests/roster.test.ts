@@ -120,3 +120,44 @@ describe('student list', () => {
     expect((await FileModel.findById(fileId))?.status).toBe('deleted');
   });
 });
+
+describe('ID cards from the list', () => {
+  it('prints a class as ready-to-cut PDF sheets for the shop only', async () => {
+    const base = `/api/v1/admin/institutions/${seed.institutions.school._id}/roster`;
+    const pdf = await api().get(`${base}/cards.pdf?kind=student&class=5`).set(bearer(admin)).buffer(true).parse(binary).expect(200);
+    expect(pdf.headers['content-type']).toMatch(/pdf/);
+    expect(pdf.headers['content-disposition']).toMatch(/student-id-cards-class-5\.pdf/);
+    expect(Buffer.from(pdf.body).subarray(0, 4).toString()).toBe('%PDF');
+    await api().get('/api/v1/institution/roster/cards.pdf').set(bearer(school)).expect(404);
+    await api().get(`${base}/cards.pdf?kind=student&class=99`).set(bearer(admin)).expect(400);
+  });
+});
+
+describe('teacher photo links', () => {
+  it('lets a teacher photograph one class without an account, until the school switches it off', async () => {
+    const created = await api().post('/api/v1/institution/roster/links').set(bearer(school)).send({ kind: 'student', class: '5', section: 'A' }).expect(201);
+    expect(created.body).toMatchObject({ label: 'Class 5-A' });
+    expect(created.body.tokenHash).toBeUndefined();
+    const token = created.body.token as string;
+
+    const page = await api().get(`/api/v1/roster-links/${token}`).expect(200);
+    expect(page.body.label).toBe('Class 5-A');
+    expect(page.body.items.length).toBeGreaterThan(0);
+    // No contact details or birthdays over a shared link.
+    expect(page.body.items[0].phone).toBeUndefined();
+    expect(page.body.items[0].dob).toBeUndefined();
+
+    const kabir = page.body.items.find((p: { name: string }) => p.name === 'Kabir Khan');
+    const bytes = await photo();
+    await api().put(`/api/v1/roster-links/${token}/people/${kabir._id}/photo`).set('Content-Type', 'image/jpeg').send(bytes).expect(200);
+    const list = await api().get('/api/v1/institution/roster').set(bearer(school)).expect(200);
+    expect(list.body.items.find((p: { name: string }) => p.name === 'Kabir Khan').photoSource).toBe('camera');
+
+    // Someone from another class is out of reach.
+    const other = await api().post('/api/v1/institution/roster').set(bearer(school)).send({ kind: 'student', name: 'Ravi', class: '6', section: 'A' }).expect(201);
+    await api().put(`/api/v1/roster-links/${token}/people/${other.body._id}/photo`).set('Content-Type', 'image/jpeg').send(bytes).expect(404);
+
+    await api().delete(`/api/v1/institution/roster/links/${created.body._id}`).set(bearer(school)).expect(204);
+    await api().get(`/api/v1/roster-links/${token}`).expect(404);
+  });
+});

@@ -52,6 +52,12 @@ const schema = z.object({
   MAIL_FROM_NAME: z.string().default('Printing Galaxy'),
   /** Website address used for links in emails. */
   WEBSITE_URL: z.string().url().default('http://localhost:5173'),
+  /** Admin panel address, for links in staff phone notifications. */
+  ADMIN_URL: z.string().url().default('http://localhost:5174'),
+  /** Web Push keys for staff phone notifications (npx web-push generate-vapid-keys). Empty = off. */
+  VAPID_PUBLIC_KEY: optional,
+  VAPID_PRIVATE_KEY: optional,
+  VAPID_SUBJECT: z.string().default('mailto:hello@printinggalaxy.in'),
 
   MSG91_AUTH_KEY: optional,
   MSG91_OTP_TEMPLATE_ID: optional,
@@ -87,5 +93,6 @@ export const isProd = env.NODE_ENV === 'production';
 /** Read on every call so tests (and a restart-free key change) see the current env. */
 export const razorpayEnabled = () => Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
 export const emailEnabled = () => Boolean(env.GMAIL_USER && env.GMAIL_APP_PASSWORD);
+export const pushEnabled = () => Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY);
 /** True when customers sign in and get messages by email rather than SMS. */
 export const emailChannel = () => env.MESSAGING_CHANNEL === 'email';

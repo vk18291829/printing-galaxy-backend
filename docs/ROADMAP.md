@@ -28,8 +28,8 @@ sticky primary actions, and no horizontal tables on phones.
 | 2.1 | Admin PWA: manifest, icons, theme colour, service worker (app shell cached, API never cached), "Install app" in the menu. | ✅ |
 | 2.2 | Bottom tab bar on phones: Home · Orders · New order · Deliveries · More (the full menu in a sheet). | ✅ |
 | 2.3 | Orders list as cards on phones (already) + segment tabs (see 3). | ✅ |
-| 2.4 | Order detail on phones: status + next action pinned at the bottom; proof upload from camera. | ⏳ |
-| 2.5 | Push notifications for new orders / proof replies (Web Push). | ⏳ |
+| 2.4 | Order detail on phones: status + next action pinned at the bottom; proof upload from camera. | ✅ |
+| 2.5 | Push notifications for new orders / proof replies (Web Push). | ✅ |
 
 ## 3. Keep each business separate in admin
 
@@ -45,7 +45,7 @@ set when it is created and back-filled for old orders:
 |---|---|---|
 | 3.1 | `segment` on every order (API), filter on the admin list, counts per tab. | ✅ |
 | 3.2 | Segment tabs on the admin Orders page (phone: scrollable chips). | ✅ |
-| 3.3 | Dashboard and reports split by segment. | ⏳ |
+| 3.3 | Dashboard and reports split by segment. | ✅ |
 
 ## 4. Staff, roles and permissions
 
@@ -70,7 +70,7 @@ checks a permission (not a role). The owner (`admin`) always has everything.
 | 4.1 | `staffRoles[]` on users + permission map + `requirePermission()` on routes. | ✅ |
 | 4.2 | Staff page: pick several roles per person. | ✅ |
 | 4.3 | Admin menu and actions shown by permission. | ✅ |
-| 4.4 | Each staff member's own dashboard ("My work": orders assigned to me). | ⏳ |
+| 4.4 | Each staff member's own dashboard ("My work": orders assigned to me). | ✅ |
 
 ## 5. Products
 
@@ -87,7 +87,7 @@ checks a permission (not a role). The owner (`admin`) always has everything.
 |---|---|---|
 | 6.1 | **Proof preview** inline (image or PDF) for the customer and staff, with version history (Proof 1, 2, 3…). | ✅ |
 | 6.2 | Customer can approve or ask for changes from the preview, with a comment. | ✅ (existed) |
-| 6.3 | Pinch-zoom / full-screen preview on phones. | ⏳ |
+| 6.3 | Pinch-zoom / full-screen preview on phones. | ✅ |
 
 ## 7. School & college journey
 
@@ -97,17 +97,17 @@ codes, admin export (Excel + photos ZIP).
 
 | # | Next | Status |
 |---|---|---|
-| 7.1 | Generate the ID card print PDF straight from the student list (renderer exists). | ⏳ |
-| 7.2 | Order ID cards for "Class 5-A" or "all missing" directly from the list. | ⏳ |
-| 7.3 | Share a photo-capture link with class teachers (no login, limited to one class). | ⏳ |
+| 7.1 | Generate the ID card print PDF straight from the student list (renderer exists). | ✅ |
+| 7.2 | Order ID cards for "Class 5-A" or "all missing" directly from the list. | ✅ |
+| 7.3 | Share a photo-capture link with class teachers (no login, limited to one class). | ✅ |
 
 ## 8. Website for individuals
 
 | # | Item | Status |
 |---|---|---|
 | 8.1 | Products page by category rows. | ✅ |
-| 8.2 | App-like phone view: bottom bar (Home · Products · Orders · Account) when installed or on phones. | ⏳ |
-| 8.3 | Reorder from a past order in one tap. | ⏳ |
+| 8.2 | App-like phone view: bottom bar (Home · Products · Orders · Account) when installed or on phones. | ✅ |
+| 8.3 | Reorder from a past order in one tap. | ✅ |
 
 ## 9. Trust, privacy and standards
 
@@ -115,7 +115,7 @@ codes, admin export (Excel + photos ZIP).
 |---|---|---|
 | 9.1 | Terms, privacy, refund, shipping pages exist (Razorpay requirement). Privacy must also cover **student data and photos** (who sees them, retention, deletion on request). | ✅ |
 | 9.2 | Cookie / storage notice is not needed (no tracking cookies). Keep it that way. | — |
-| 9.3 | Accessibility: labels on icon buttons, focus rings, colour contrast of orange on white (3.3:1 — fine for large text, use navy for small text). | ongoing |
+| 9.3 | Accessibility: reduce-motion respected; small orange labels use a deeper orange (AA). Still open: white text on the brand orange buttons is 3.3:1 (below AA 4.5:1) — needs a decision on the brand colour. | partly |
 
 ---
 

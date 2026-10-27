@@ -68,7 +68,7 @@ export function OtpInput({
           onKeyDown={(e) => handleKey(i, e)}
           onFocus={(e) => e.target.select()}
           className={cn(
-            'size-12 rounded-xl border bg-background text-center text-xl font-bold tabular-nums transition-all outline-none focus:border-foreground/40 sm:size-13 dark:bg-input/30',
+            'size-12 rounded-xl shadow-card bg-background text-center text-xl font-bold tabular-nums transition-all outline-none focus:border-foreground/40 sm:size-13 dark:bg-input/30',
             invalid && 'border-destructive',
           )}
         />

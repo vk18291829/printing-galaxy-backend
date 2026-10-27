@@ -34,7 +34,7 @@ export function OfferChips({ product, className }: { product: Product; className
         <span
           key={tier.minQty}
           className={cn(
-            'inline-flex items-baseline gap-1 rounded-lg border px-2 py-1 text-xs tabular-nums',
+            'inline-flex items-baseline gap-1 rounded-lg shadow-card px-2 py-1 text-xs tabular-nums',
             i === tiers.length - 1 && tiers.length > 1 && 'border-success/40 bg-success/8',
           )}
         >
@@ -98,7 +98,7 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group @container flex h-full flex-col overflow-hidden rounded-xl border bg-card transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:border-brand-navy/20 hover:shadow-lg hover:shadow-brand-navy/8 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group @container flex h-full flex-col overflow-hidden rounded-xl shadow-card bg-card transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:border-brand-navy/20 hover:shadow-lg hover:shadow-brand-navy/8 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <div className="relative aspect-4/3 overflow-hidden border-b bg-muted">
         <div className="size-full transition-transform duration-500 group-hover:scale-[1.03]">

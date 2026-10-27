@@ -54,7 +54,7 @@ function StatTile({ label, value, hint, active, onClick }: { label: string; valu
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={cn(
-        'rounded-xl border bg-card p-4 text-left transition-colors',
+        'rounded-xl shadow-card bg-card p-4 text-left transition-colors',
         onClick && 'hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
         active && 'border-primary ring-1 ring-primary',
       )}
@@ -93,7 +93,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
     <Card className="gap-0 py-0">
       <div className="flex flex-col gap-4 p-5 md:flex-row">
         <div className="flex min-w-0 flex-1 gap-4">
-          <div className="hidden size-14 shrink-0 overflow-hidden rounded-lg border bg-muted sm:block">
+          <div className="hidden size-14 shrink-0 overflow-hidden rounded-lg shadow-card bg-muted sm:block">
             {review.product?.images?.[0] ? (
               <img src={review.product.images[0]} alt="" className="size-full object-cover" />
             ) : (

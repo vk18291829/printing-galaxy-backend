@@ -86,7 +86,7 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
             <Label htmlFor="category-icon">Icon</Label>
             <IconPicker id="category-icon" value={form.icon} onChange={(name) => set('icon', name)} />
           </div>
-          <fieldset className="space-y-2.5 rounded-lg border p-3">
+          <fieldset className="space-y-2.5 rounded-lg shadow-card p-3">
             <legend className="px-1 text-sm font-medium">Shown to</legend>
             {(['retail', 'institution'] as const).map((a) => (
               <label key={a} className="flex items-center gap-2.5 text-sm">
@@ -95,7 +95,7 @@ function CategoryDialog({ category, onClose }: { category: AdminCategory | 'new'
               </label>
             ))}
           </fieldset>
-          <fieldset className="rounded-lg border p-3">
+          <fieldset className="rounded-lg shadow-card p-3">
             <legend className="px-1 text-sm font-medium">Visibility</legend>
             <label className="flex items-center justify-between gap-3 text-sm">
               <span>

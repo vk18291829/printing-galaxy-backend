@@ -261,7 +261,7 @@ function BannerDialog({ banner, kind, onClose }: { banner: AdminBanner | null; k
             <Label htmlFor="b-sort">Order</Label>
             <Input id="b-sort" type="number" value={form.sortOrder} onChange={(e) => set('sortOrder', Number(e.target.value))} />
           </div>
-          <label className="flex items-center justify-between gap-3 self-end rounded-lg border px-3 py-2.5 text-sm font-medium">
+          <label className="flex items-center justify-between gap-3 self-end rounded-lg shadow-card px-3 py-2.5 text-sm font-medium">
             Active
             <Switch checked={form.isActive} onCheckedChange={(v) => set('isActive', v)} />
           </label>

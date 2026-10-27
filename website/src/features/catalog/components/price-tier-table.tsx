@@ -24,7 +24,7 @@ export function PriceTierTable({
   if (tiers.length === 0) return <p className="text-sm font-medium text-primary">{t('pricing.onRequest')}</p>;
 
   return (
-    <div className={cn('overflow-hidden rounded-xl border', className)}>
+    <div className={cn('overflow-hidden rounded-xl shadow-card', className)}>
       <div className="grid grid-cols-2 bg-muted/60 px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         <span>{t('pricing.qty')}</span>
         <span className="text-right">{t('product.tiers', { unit: t(`units.${unit}`, { count: 1 }) })}</span>

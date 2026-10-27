@@ -1,4 +1,13 @@
 import {
+  IconX,
+  IconSend,
+  IconEye,
+  IconBrandWhatsapp,
+  IconMail,
+  IconMessage,
+  IconProgressCheck,
+  IconRulerMeasure,
+  IconCamera,
   IconAlertTriangle,
   IconArrowBackUp,
   IconBuildingStore,
@@ -13,7 +22,7 @@ import {
   IconMapPin,
   IconPhone,
 } from '@tabler/icons-react';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
@@ -75,102 +84,234 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** A picked file shown before it goes anywhere: the image itself, or the PDF in a frame. */
+function LocalPreview({ file, url, className }: { file: File; url: string; className?: string }) {
+  if (file.type.startsWith('image/')) {
+    return <img src={url} alt={file.name} className={cn('mx-auto max-h-full w-auto object-contain', className)} />;
+  }
+  if (file.type === 'application/pdf') {
+    return <iframe src={`${url}#view=FitH&toolbar=0`} title={file.name} className={cn('size-full bg-white', className)} />;
+  }
+  return <p className="p-4 text-sm">{file.name}</p>;
+}
+
 function ProofUpload({ order, item }: { order: AdminOrder; item: OrderItem }) {
   const sendProof = useSendProof(order._id);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => {
+    if (url) URL.revokeObjectURL(url);
+  }, [url]);
+
+  const pick = (f?: File | null) => {
+    if (!f) return;
+    if (f.size > 25 * 1024 * 1024) return toast.error('Proofs must be under 25 MB');
+    setFile(f);
+  };
+  const clear = () => {
+    setFile(null);
+    setMessage('');
+    if (inputRef.current) inputRef.current.value = '';
+    if (cameraRef.current) cameraRef.current.value = '';
+  };
+  const send = () =>
+    file &&
+    sendProof.mutate(
+      { itemId: item._id, file, message: message.trim() || undefined },
+      {
+        onSuccess: () => {
+          toast.success('Proof sent', { description: `${order.contact.name || 'The customer'} has been asked to approve it.` });
+          setConfirming(false);
+          clear();
+        },
+        onError: (e) => toast.error(getErrorMessage(e)),
+      },
+    );
+  const version = item.proofs.length + 1;
 
   return (
-    <div className="space-y-2 rounded-xl border border-dashed p-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase">Send proof for approval</p>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()} className="sm:w-auto">
-          <IconFileUpload /> {file ? file.name.slice(0, 24) : 'Choose image / PDF'}
-        </Button>
-        <input ref={inputRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Message to customer (optional)" className="h-8 text-sm" />
-        <Button
-          size="sm"
-          disabled={!file || sendProof.isPending}
-          onClick={() =>
-            file &&
-            void ask(
-              'Send this proof to the customer?',
-              `“${file.name}” is sent for approval${message ? ' with your message' : ''}. Printing waits until they approve it.`,
-              'Send proof',
-              () => sendProof.mutateAsync({ itemId: item._id, file, message: message || undefined }),
-              'Proof sent to customer',
-            ).then((ok) => {
-              if (!ok) return;
-              setFile(null);
-              setMessage('');
-            })
-          }
-        >
-          {sendProof.isPending && <Spinner className="size-4 text-current" />} Send
-        </Button>
-      </div>
+    <div id={`proof-${item._id}`} className="scroll-mt-20 space-y-3 rounded-xl border border-dashed p-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase">Send proof {version > 1 ? `${version} ` : ''}for approval</p>
+      <input ref={inputRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => pick(e.target.files?.[0])} />
+      {/* Phones: photograph a printed sample straight from the camera. */}
+      <input ref={cameraRef} type="file" hidden accept="image/*" capture="environment" onChange={(e) => pick(e.target.files?.[0])} />
+
+      {!file || !url ? (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+            <IconFileUpload /> Choose image / PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => cameraRef.current?.click()} className="sm:hidden">
+            <IconCamera /> Take photo
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Preview first, so a wrong file is caught before the customer sees it. */}
+          <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="relative grid h-44 place-items-center overflow-hidden rounded-lg shadow-card bg-muted"
+              aria-label="Preview proof"
+            >
+              <LocalPreview file={file} url={url} className="pointer-events-none" />
+            </button>
+            <div className="min-w-0 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {file.type === 'application/pdf' ? 'PDF' : 'Image'} · {formatFileSize(file.size)}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={clear}>
+                  <IconX /> Change
+                </Button>
+              </div>
+              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Message to the customer (optional), e.g. Please check the spelling of the school name" className="min-h-16 text-sm" maxLength={500} />
+              <Button className="w-full sm:w-auto" onClick={() => setConfirming(true)}>
+                <IconEye /> Preview & send
+              </Button>
+            </div>
+          </div>
+
+          <Dialog open={confirming} onOpenChange={(o) => !sendProof.isPending && setConfirming(o)}>
+            <DialogContent className="max-h-[94dvh] overflow-y-auto sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Send this proof?</DialogTitle>
+                <DialogDescription>
+                  Proof {version} for <span className="font-semibold text-foreground">{en(item.productName)}</span> goes to{' '}
+                  <span className="font-semibold text-foreground">{order.contact.name || 'the customer'}</span>
+                  {order.contact.email ? ` (${order.contact.email})` : order.contact.phone ? ` (+91 ${order.contact.phone})` : ''}. Printing waits until they approve it.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="h-[55dvh] overflow-hidden rounded-xl shadow-card bg-muted">
+                <LocalPreview file={file} url={url} />
+              </div>
+              <div className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
+                <p className="text-xs font-medium text-muted-foreground">Message</p>
+                <p className={cn(!message.trim() && 'text-muted-foreground italic')}>{message.trim() || 'No message: the customer sees “Please check the design carefully before approving.”'}</p>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setConfirming(false)} disabled={sendProof.isPending}>
+                  Back
+                </Button>
+                <Button onClick={send} disabled={sendProof.isPending}>
+                  {sendProof.isPending ? <Spinner className="size-4 text-current" /> : <IconSend />} Send proof
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
 
-function ItemCard({ order, item }: { order: AdminOrder; item: OrderItem }) {
+function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</p>
+        {aside}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; index: number }) {
   const qty =
     item.unit === 'page'
-      ? `${formatNumber(item.pageCount ?? 0)} pages × ${item.copies} ${unitLabel('copy', item.copies)} = ${formatNumber(item.units)} pages`
+      ? `${formatNumber(item.pageCount ?? 0)} pages × ${item.copies} ${unitLabel('copy', item.copies)}`
       : `${formatNumber(item.quantity)} ${unitLabel(item.unit, item.quantity)}`;
   const files = item.files.filter((f): f is UploadedFile => typeof f !== 'string');
   const showProofs = item.workflow === 'design' || item.proofs.length > 0;
 
   return (
-    <div className="space-y-3 py-5 first:pt-0 last:pb-0">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-semibold">{en(item.productName)}</p>
-          <p className="text-sm text-muted-foreground">{qty}</p>
-          {item.customSize && (
-            <p className="text-xs font-medium text-warning">
-              Custom size: {item.customSize.width} × {item.customSize.height} {item.customSize.unit}
-            </p>
-          )}
-          {item.options.length > 0 && (
-            <p className="text-xs text-muted-foreground">{item.options.map((o) => `${en(o.label)}: ${en(o.valueLabel)}`).join(' · ')}</p>
-          )}
+    <div className="space-y-4 rounded-xl shadow-card bg-card p-4 sm:p-5">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">{index + 1}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-lg leading-snug font-semibold">{en(item.productName)}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-md bg-foreground px-2 py-0.5 text-sm font-semibold text-background tabular-nums">{qty}</span>
+            {item.unit === 'page' && <span className="text-xs text-muted-foreground">= {formatNumber(item.units)} pages</span>}
+            {item.workflow === 'design' && <Badge variant="info">Design proof</Badge>}
+            {item.workflow === 'quote' && <Badge variant="warning">Priced on quote</Badge>}
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-bold tabular-nums">{formatINR(item.lineTotal)}</p>
+        <div className="shrink-0 text-right">
+          <p className="text-lg font-bold tabular-nums">{formatINR(item.lineTotal)}</p>
           <p className="text-xs text-muted-foreground tabular-nums">
-            {formatINR(item.unitPrice)}/{unitLabel(item.unit, 1)}
+            {formatINR(item.unitPrice)} / {unitLabel(item.unit, 1)}
             {item.fixedFees > 0 && ` + ${formatINR(item.fixedFees)}`}
           </p>
         </div>
       </div>
-      {item.notes && <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm">“{item.notes}”</p>}
-      {files.length > 0 && (
+
+      {(item.options.length > 0 || item.customSize) && (
         <div className="flex flex-wrap gap-2">
-          {files.map((f) => (
-            <Button
-              key={f._id}
-              variant="outline"
-              size="sm"
-              disabled={f.status === 'deleted'}
-              onClick={() => void openFile(f._id).catch((e) => toast.error(getErrorMessage(e)))}
-            >
-              {f.sensitive ? <IconLock className="text-amber-600" /> : <IconDownload />}
-              <span className="max-w-44 truncate">{f.originalName}</span>
-              <span className="text-xs text-muted-foreground">
-                {f.status === 'deleted' ? 'deleted' : `${formatFileSize(f.size)}${f.pageCount ? ` · ${f.pageCount}p` : ''}`}
+          {item.customSize && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg shadow-card border-warning/50 bg-warning/10 px-2.5 py-1 text-sm">
+              <IconRulerMeasure className="size-4 text-amber-600" />
+              <span className="text-muted-foreground">Custom size</span>
+              <span className="font-semibold">
+                {item.customSize.width} × {item.customSize.height} {item.customSize.unit}
               </span>
-            </Button>
+            </span>
+          )}
+          {item.options.map((o) => (
+            <span key={o.key} className="inline-flex items-center gap-1.5 rounded-lg shadow-card bg-muted/50 px-2.5 py-1 text-sm">
+              <span className="text-muted-foreground">{en(o.label)}</span>
+              <span className="font-semibold">{en(o.valueLabel)}</span>
+            </span>
           ))}
         </div>
       )}
-      {showProofs && (
-        <div className="space-y-2">
-          <ProofList proofs={item.proofs} />
-          {!['cancelled', 'delivered', 'picked_up'].includes(order.status) && <ProofUpload order={order} item={item} />}
+
+      {item.notes && (
+        <div className="flex gap-2.5 rounded-lg border-l-4 border-primary bg-primary/5 px-3 py-2.5 text-sm">
+          <IconMessage className="mt-0.5 size-4 shrink-0 text-primary" />
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground">Customer instructions</p>
+            <p className="mt-0.5">{item.notes}</p>
+          </div>
         </div>
+      )}
+
+      {files.length > 0 && (
+        <Section title={`Files (${files.length})`}>
+          <div className="flex flex-wrap gap-2">
+            {files.map((f) => (
+              <Button
+                key={f._id}
+                variant="outline"
+                size="sm"
+                disabled={f.status === 'deleted'}
+                onClick={() => void openFile(f._id).catch((e) => toast.error(getErrorMessage(e)))}
+              >
+                {f.sensitive ? <IconLock className="text-amber-600" /> : <IconDownload />}
+                <span className="max-w-44 truncate">{f.originalName}</span>
+                <span className="text-xs text-muted-foreground">
+                  {f.status === 'deleted' ? 'deleted' : `${formatFileSize(f.size)}${f.pageCount ? ` · ${f.pageCount}p` : ''}`}
+                </span>
+              </Button>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {showProofs && (
+        <Section title={item.proofs.length ? `Proofs (${item.proofs.length})` : 'Proof'}>
+          {item.proofs.length > 0 && <ProofList proofs={item.proofs} />}
+          {!['cancelled', 'delivered', 'picked_up'].includes(order.status) && <ProofUpload order={order} item={item} />}
+        </Section>
       )}
     </div>
   );
@@ -180,7 +321,7 @@ function ItemCard({ order, item }: { order: AdminOrder; item: OrderItem }) {
 function ProofList({ proofs }: { proofs: OrderItem['proofs'] }) {
   const [open, setOpen] = useState<string | null>(proofs.at(-1)?._id ?? null);
   return (
-    <ul className="divide-y rounded-lg border">
+    <ul className="divide-y rounded-lg shadow-card">
       {proofs.map((p, i) => {
         const file = typeof p.file === 'string' ? null : (p.file as UploadedFile);
         const expanded = open === p._id;
@@ -211,7 +352,7 @@ function QuoteCard({ order }: { order: AdminOrder }) {
   const requested = Boolean(order.quote?.requested);
   const resend = order.status === 'quote_sent';
   return (
-    <Card className="border-warning/50 bg-warning/5">
+    <Card id="quote" className="scroll-mt-20 border-warning/50 bg-warning/5">
       <CardHeader>
         <CardTitle>{requested ? (resend ? 'Quote sent' : 'Send a quote') : 'Set the price'}</CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -300,7 +441,31 @@ function DueCard({ order }: { order: AdminOrder }) {
   );
 }
 
-function StatusCard({ order }: { order: AdminOrder }) {
+/** What each next step means, shown on its choice card. */
+const STATUS_HINT: Partial<Record<OrderStatus, string>> = {
+  received: 'Reopen the order',
+  printing: 'Work has started on the machine',
+  ready: 'Packed and ready for pickup or the rider',
+  cancelled: 'Stop the order; the customer is told',
+};
+
+/** Why the order can't move on by hand right now, or what to do instead. */
+function statusHelp(order: AdminOrder, proofPending: boolean) {
+  const method = order.fulfilment.method;
+  if (isClosed(order.status)) return 'This order is closed.';
+  if (order.status === 'quote_pending') return 'Set the price first. You can still cancel it here.';
+  if (order.status === 'quote_sent') return 'Waiting for the customer to accept the quote. You can still cancel it here.';
+  if (order.status === 'awaiting_payment') return 'Waiting for online payment. It moves to Received once paid, or record a counter payment.';
+  if (order.status === 'proof_sent') return 'Waiting for the customer to approve the proof. It moves to Approved by itself.';
+  if (proofPending) return 'Send a proof from the item. Printing unlocks once the customer approves it.';
+  if (order.status === 'ready' && method === 'pickup') return 'Use Hand over when the customer collects it.';
+  if (order.status === 'ready') return 'The rider starts the delivery; it moves to Out for delivery by itself.';
+  if (order.status === 'out_for_delivery') return 'The rider completes delivery with the customer’s code.';
+  return 'Choose the next step.';
+}
+
+/** Change the status in a dialog: pick the step, add a note, decide who is told. */
+function StatusDialog({ order, open, onOpenChange }: { order: AdminOrder; open: boolean; onOpenChange: (open: boolean) => void }) {
   const change = useChangeStatus(order._id);
   const isAdmin = useIsAdmin();
   const [status, setStatus] = useState<OrderStatus | ''>('');
@@ -308,7 +473,6 @@ function StatusCard({ order }: { order: AdminOrder }) {
   const [sendMsg, setSendMsg] = useState(true);
   const [override, setOverride] = useState(false);
   const [refund, setRefund] = useState(true);
-  const closed = isClosed(order.status);
   const method = order.fulfilment.method;
   const paid = netPaid(order.payment);
 
@@ -326,107 +490,127 @@ function StatusCard({ order }: { order: AdminOrder }) {
   const cancelling = status === 'cancelled';
   const canSubmit = status !== '' && !change.isPending && (!needsReason || note.trim().length >= 5);
 
+  const reset = () => {
+    setStatus('');
+    setNote('');
+    setOverride(false);
+  };
+  const close = (next: boolean) => {
+    if (!next) reset();
+    onOpenChange(next);
+  };
+
+  const submit = () =>
+    status &&
+    change.mutate(
+      { status, note: note || undefined, notify: sendMsg, override: needsReason, refund: cancelling && refund && isAdmin },
+      {
+        onSuccess: () => {
+          toast.success(cancelling ? `Order ${order.orderNumber} cancelled` : `Marked as ${ORDER_STATUS_LABEL[status]}`, {
+            description: sendMsg ? 'The customer has been told.' : 'No message was sent.',
+          });
+          close(false);
+        },
+        onError: (e) => toast.error(getErrorMessage(e)),
+      },
+    );
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Update status</CardTitle>
-        <CardDescription>
-          {closed
-            ? 'This order is closed.'
-            : order.status === 'quote_pending'
-              ? 'Set the price first. You can still cancel it here.'
-              : order.status === 'quote_sent'
-                ? 'Waiting for the customer to accept the quote. You can still cancel it here.'
-              : order.status === 'awaiting_payment'
-                ? 'Waiting for online payment. It moves to Received automatically once paid, or record a counter payment below.'
-                : order.status === 'ready' && method === 'pickup'
-                  ? 'Use Hand over when the customer collects it.'
-                  : order.status === 'ready'
-                    ? 'The rider starts the delivery; it moves to Out for delivery by itself.'
-                    : order.status === 'proof_sent'
-                      ? 'Waiting for the customer to approve the proof. It moves to Approved by itself.'
-                      : proofPending
-                        ? 'Send a proof from the item below. Printing unlocks once the customer approves it.'
-                  : order.status === 'out_for_delivery'
-                    ? 'The rider completes delivery with the customer’s code.'
-                    : 'Move the order to its next step.'}
-        </CardDescription>
-      </CardHeader>
-      {!closed && (
-        <CardContent className="space-y-3">
-          <Select value={status} onValueChange={(v) => setStatus(v as OrderStatus)}>
-            <SelectTrigger aria-label="New status">
-              <SelectValue placeholder="Choose new status" />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {ORDER_STATUS_LABEL[s]}
-                  {override && !allowed.includes(s) ? ' (override)' : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={needsReason ? 'Reason for the override (required, saved in history)' : 'Note (included in the customer message)'}
-            className="min-h-16"
-            aria-invalid={needsReason && note.trim().length < 5}
-          />
-          <label className="flex items-center justify-between gap-3 text-sm">
-            Notify the customer
-            <Switch checked={sendMsg} onCheckedChange={setSendMsg} />
-          </label>
-          {cancelling && paid > 0 && (
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Update status</DialogTitle>
+          <DialogDescription className="flex flex-wrap items-center gap-1.5">
+            <span className="font-mono font-semibold text-foreground">{order.orderNumber}</span> is now <OrderStatusBadge status={order.status} />
+          </DialogDescription>
+        </DialogHeader>
+
+        <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">{statusHelp(order, proofPending)}</p>
+
+        {options.length > 0 ? (
+          <div className="grid gap-2" role="radiogroup" aria-label="New status">
+            {options.map((s) => {
+              const on = status === s;
+              const danger = s === 'cancelled';
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setStatus(s)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl shadow-card p-3 text-left transition-colors',
+                    on ? (danger ? 'border-destructive bg-destructive/5 ring-2 ring-destructive/20' : 'border-primary bg-primary/5 ring-2 ring-primary/20') : 'hover:bg-accent/60',
+                  )}
+                >
+                  <span className={cn('grid size-5 shrink-0 place-items-center rounded-full border-2', on ? (danger ? 'border-destructive' : 'border-primary') : 'border-muted-foreground/40')}>
+                    {on && <span className={cn('size-2.5 rounded-full', danger ? 'bg-destructive' : 'bg-primary')} />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={cn('block font-semibold', danger && 'text-destructive')}>
+                      {ORDER_STATUS_LABEL[s]}
+                      {override && !allowed.includes(s) && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(override)</span>}
+                    </span>
+                    {STATUS_HINT[s] && <span className="block text-xs text-muted-foreground">{STATUS_HINT[s]}</span>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No manual step is available right now.</p>
+        )}
+
+        {status && (
+          <div className="space-y-3">
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={needsReason ? 'Reason for the override (required, saved in history)' : 'Note for the customer (optional)'}
+              className="min-h-16"
+              aria-invalid={needsReason && note.trim().length < 5}
+            />
+            <label className="flex items-center justify-between gap-3 rounded-lg shadow-card p-3 text-sm">
               <span>
-                <span className="block font-medium">Refund {formatINR(paid)}</span>
-                <span className="block text-xs text-muted-foreground">Online payments go back through Razorpay; cash is recorded as returned.</span>
+                <span className="block font-medium">Notify the customer</span>
+                <span className="block text-xs text-muted-foreground">Email or SMS with the new status{note ? ' and your note' : ''}.</span>
               </span>
-              <Switch checked={refund} onCheckedChange={setRefund} disabled={!isAdmin} />
+              <Switch checked={sendMsg} onCheckedChange={setSendMsg} />
             </label>
-          )}
-          {isAdmin && (
-            <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-              Override the normal flow (owner)
-              <Switch checked={override} onCheckedChange={(v) => { setOverride(v); setStatus(''); }} />
-            </label>
-          )}
-          <Button
-            className="w-full"
-            variant={cancelling ? 'destructive' : 'default'}
-            disabled={!canSubmit}
-            onClick={() =>
-              status &&
-              void ask(
-                cancelling ? `Cancel order ${order.orderNumber}?` : `Mark as “${ORDER_STATUS_LABEL[status]}”?`,
-                [
-                  cancelling ? 'This cannot be undone.' : '',
-                  cancelling && paid > 0 ? (refund && isAdmin ? `${formatINR(paid)} is refunded to the customer.` : `${formatINR(paid)} was paid and is NOT refunded now.`) : '',
-                  sendMsg ? 'The customer is notified.' : 'No message is sent to the customer.',
-                ].filter(Boolean).join(' '),
-                cancelling ? 'Cancel order' : 'Update status',
-                () => change.mutateAsync({ status, note: note || undefined, notify: sendMsg, override: needsReason, refund: cancelling && refund && isAdmin }),
-                `Marked as ${ORDER_STATUS_LABEL[status]}`,
-                cancelling ? 'danger' : 'default',
-              ).then((ok) => {
-                if (!ok) return;
-                setStatus('');
-                setNote('');
-                setOverride(false);
-              })
-            }
-          >
-            {change.isPending && <Spinner className="size-4 text-current" />} Update
+            {cancelling && paid > 0 && (
+              <label className="flex items-center justify-between gap-3 rounded-lg shadow-card border-warning/40 bg-warning/10 p-3 text-sm">
+                <span>
+                  <span className="block font-medium">Refund {formatINR(paid)}</span>
+                  <span className="block text-xs text-muted-foreground">Online payments go back through Razorpay; cash is recorded as returned.</span>
+                </span>
+                <Switch checked={refund} onCheckedChange={setRefund} disabled={!isAdmin} />
+              </label>
+            )}
+          </div>
+        )}
+
+        {isAdmin && !isClosed(order.status) && (
+          <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            Override the normal flow (owner)
+            <Switch checked={override} onCheckedChange={(v) => { setOverride(v); setStatus(''); }} />
+          </label>
+        )}
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => close(false)}>
+            Close
           </Button>
-        </CardContent>
-      )}
-    </Card>
+          <Button variant={cancelling ? 'destructive' : 'default'} disabled={!canSubmit} onClick={submit}>
+            {change.isPending && <Spinner className="size-4 text-current" />}
+            {cancelling ? 'Cancel order' : status ? `Mark as ${ORDER_STATUS_LABEL[status]}` : 'Choose a step'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-/** Counter pickup: the customer's code, and any balance collected now. */
 function HandoverCard({ order }: { order: AdminOrder }) {
   const handover = useHandover(order._id);
   const isAdmin = useIsAdmin();
@@ -444,7 +628,7 @@ function HandoverCard({ order }: { order: AdminOrder }) {
   const ready = (noCode ? overrideReason.trim().length >= 5 : /^\d{4}$/.test(code)) && settles && !handover.isPending;
 
   return (
-    <Card className="border-primary/40">
+    <Card id="handover" className="scroll-mt-20 border-primary/40">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <IconHandStop className="size-5 text-primary" /> Hand over
@@ -540,7 +724,7 @@ function AssignCard({ order }: { order: AdminOrder }) {
   const riders = staff?.filter((s) => s.isActive && s.role === 'delivery') ?? [];
 
   return (
-    <Card>
+    <Card id="assign" className="scroll-mt-20">
       <CardHeader>
         <CardTitle>Assignment</CardTitle>
       </CardHeader>
@@ -820,105 +1004,258 @@ export default function OrderDetailPage() {
   return <OrderDetail order={order} />;
 }
 
+/**
+ * Phones: the one next step for this order, pinned above the tab bar so it is always in reach.
+ * Steps that need more input (price, proof file, handover code) scroll to their card.
+ */
+function NextActionBar({ order, onUpdate }: { order: AdminOrder; onUpdate: () => void }) {
+  const change = useChangeStatus(order._id);
+  const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const move = (status: OrderStatus, label: string) =>
+    void ask(`${label}?`, `${order.orderNumber} moves to “${ORDER_STATUS_LABEL[status]}” and the customer is told.`, label, () => change.mutateAsync({ status }), `Marked ${ORDER_STATUS_LABEL[status].toLowerCase()}`);
+  const waitingProof = order.items.find((i) => i.workflow === 'design' && i.proofs.at(-1)?.status !== 'approved' && i.proofs.at(-1)?.status !== 'pending');
+
+  let action: { label: string; run: () => void } | null = null;
+  if (order.status === 'quote_pending') action = { label: order.quote?.requested ? 'Send quote' : 'Set the price', run: () => go('quote') };
+  else if (order.status === 'received' && waitingProof) action = { label: 'Send proof', run: () => go(`proof-${waitingProof._id}`) };
+  else if (order.status === 'received' && !awaitingProofApproval(order)) action = { label: 'Start printing', run: () => move('printing', 'Start printing') };
+  else if (order.status === 'approved') action = { label: 'Start printing', run: () => move('printing', 'Start printing') };
+  else if (order.status === 'printing') action = { label: 'Mark ready', run: () => move('ready', 'Mark ready') };
+  else if (order.status === 'ready' && order.fulfilment.method === 'pickup') action = { label: 'Hand over', run: () => go('handover') };
+  else if (order.status === 'ready' && !order.deliveryPerson) action = { label: 'Assign rider', run: () => go('assign') };
+  if (!action && !isClosed(order.status)) action = { label: 'Update status', run: onUpdate };
+  if (!action) return null;
+
+  return (
+    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t bg-card/95 px-4 py-2.5 backdrop-blur-xl lg:hidden">
+      <div className="mx-auto flex max-w-lg items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-xs font-semibold">{order.orderNumber}</p>
+          <OrderStatusBadge status={order.status} />
+        </div>
+        <Button className="shrink-0" onClick={action.run} disabled={change.isPending}>
+          {change.isPending && <Spinner className="size-4 text-current" />} {action.label}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const SEGMENT_LABEL = { individual: 'Individual', institution: 'School & College', business: 'Business', wedding: 'Wedding' } as const;
+
+/** The main road an order travels, for the progress strip in the summary. */
+function stagesOf(order: AdminOrder): { key: string; label: string; reached: OrderStatus[] }[] {
+  const proof = order.items.some((i) => i.workflow === 'design' || i.proofs.length > 0);
+  const delivery = order.fulfilment.method === 'delivery';
+  return [
+    { key: 'received', label: 'Received', reached: ['received', 'proof_sent', 'approved', 'printing', 'ready', 'out_for_delivery', 'delivered', 'picked_up'] },
+    ...(proof ? [{ key: 'proof', label: 'Proof approved', reached: ['approved', 'printing', 'ready', 'out_for_delivery', 'delivered', 'picked_up'] as OrderStatus[] }] : []),
+    { key: 'printing', label: 'Printing', reached: ['printing', 'ready', 'out_for_delivery', 'delivered', 'picked_up'] },
+    { key: 'ready', label: delivery ? 'Packed' : 'Ready', reached: ['ready', 'out_for_delivery', 'delivered', 'picked_up'] },
+    { key: 'done', label: delivery ? 'Delivered' : 'Picked up', reached: ['delivered', 'picked_up'] },
+  ];
+}
+
+function Fact({ label, value, tone, sub }: { label: string; value: ReactNode; tone?: 'danger' | 'success'; sub?: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-muted/50 px-3 py-2.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn('truncate text-base font-bold tabular-nums', tone === 'danger' && 'text-destructive', tone === 'success' && 'text-success')}>{value}</p>
+      {sub && <p className="truncate text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+function OrderSummary({ order, onUpdate }: { order: AdminOrder; onUpdate: () => void }) {
+  const paid = netPaid(order.payment);
+  const due = Math.max(0, Math.round((order.totals.total - paid) * 100) / 100);
+  const stages = stagesOf(order);
+  const cancelled = order.status === 'cancelled';
+  const late = order.dueDate && !isClosed(order.status) && !['ready', 'out_for_delivery'].includes(order.status) && new Date(order.dueDate) < new Date(new Date().toDateString());
+
+  return (
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="h-1 bg-primary" />
+      <div className="space-y-5 p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <h1 className="font-mono text-2xl font-bold tracking-tight sm:text-3xl">{order.orderNumber}</h1>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <OrderStatusBadge status={order.status} />
+              <Badge variant="soft">{SEGMENT_LABEL[order.segment ?? (order.audience === 'institution' ? 'institution' : 'individual')]}</Badge>
+              <Badge variant="outline">{order.source === 'walk_in' ? 'Walk-in' : 'Online'}</Badge>
+              <span className="text-sm text-muted-foreground">Placed {formatDate(order.createdAt, 'en', true)}</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!isClosed(order.status) && (
+              <Button onClick={onUpdate}>
+                <IconProgressCheck /> Update status
+              </Button>
+            )}
+            {!['cancelled', 'quote_pending', 'quote_sent'].includes(order.status) && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  void fetchFile(`/admin/orders/${order._id}/invoice`, { fallbackName: `${order.orderNumber}.pdf`, mode: 'open' }).catch((e) =>
+                    toast.error(getErrorMessage(e)),
+                  )
+                }
+              >
+                <IconFileInvoice /> {order.invoice?.number ? `Invoice ${order.invoice.number}` : 'Invoice'}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {!cancelled && !['quote_pending', 'quote_sent', 'awaiting_payment'].includes(order.status) && (
+          <ol className="grid gap-1" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }} aria-label="Progress">
+            {stages.map((st) => {
+              const done = st.reached.includes(order.status);
+              return (
+                <li key={st.key} className="min-w-0">
+                  <span className={cn('block h-1.5 rounded-full', done ? 'bg-primary' : 'bg-muted')} />
+                  <span className={cn('mt-1.5 block truncate text-[11px] font-medium sm:text-xs', done ? 'text-foreground' : 'text-muted-foreground')}>{st.label}</span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        {cancelled && order.cancelReason && (
+          <p className="rounded-lg bg-destructive/8 px-3 py-2 text-sm text-destructive">Cancelled: {order.cancelReason}</p>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <Fact label="Total" value={formatINR(order.totals.total)} sub={`${order.items.length} item${order.items.length === 1 ? '' : 's'}`} />
+          <Fact label="Paid" value={formatINR(paid)} tone={paid > 0 ? 'success' : undefined} sub={order.payment.method === 'online' ? 'Online' : 'Counter / account'} />
+          <Fact label="Due" value={formatINR(due)} tone={due > 0 && !cancelled ? 'danger' : undefined} />
+          <Fact
+            label="Ready by"
+            value={order.dueDate ? formatDate(order.dueDate, 'en') : '—'}
+            tone={late ? 'danger' : undefined}
+            sub={late ? 'Overdue' : undefined}
+          />
+          <Fact
+            label={order.fulfilment.method === 'delivery' ? 'Delivery' : 'Pickup'}
+            value={order.fulfilment.method === 'delivery' ? order.fulfilment.address?.city || 'Delivery' : 'At the shop'}
+            sub={order.deliveryPerson ? `Rider: ${order.deliveryPerson.name}` : order.assignedTo ? `Staff: ${order.assignedTo.name}` : undefined}
+          />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CustomerCard({ order }: { order: AdminOrder }) {
+  const address = order.fulfilment.address;
+  const phone = order.contact.phone;
+  return (
+    <Card className="gap-0 py-0">
+      <div className="flex items-start gap-3 p-4 sm:p-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-foreground text-base font-bold text-background">
+          {(order.contact.name || '?').trim().charAt(0).toUpperCase()}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-muted-foreground">Customer</p>
+          <p className="truncate text-lg font-semibold">{order.contact.name || '—'}</p>
+          {order.institution && (
+            <Link to={`/institutions/${order.institution._id}`} className="text-sm font-medium text-primary hover:underline">
+              {order.institution.name}
+            </Link>
+          )}
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {phone && (
+              <>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={`tel:+91${phone}`}>
+                    <IconPhone /> +91 {phone}
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(`Hi, about your order ${order.orderNumber}`)}`} target="_blank" rel="noopener noreferrer">
+                    <IconBrandWhatsapp className="text-[#25D366]" /> WhatsApp
+                  </a>
+                </Button>
+              </>
+            )}
+            {order.contact.email && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`mailto:${order.contact.email}?subject=${encodeURIComponent(`Order ${order.orderNumber}`)}`}>
+                  <IconMail /> <span className="max-w-44 truncate">{order.contact.email}</span>
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid divide-y border-t sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="flex gap-3 p-4 text-sm sm:p-5">
+          {order.fulfilment.method === 'delivery' ? <IconMapPin className="mt-0.5 size-5 shrink-0 text-primary" /> : <IconBuildingStore className="mt-0.5 size-5 shrink-0 text-primary" />}
+          <div className="min-w-0 space-y-1">
+            <p className="font-semibold">{order.fulfilment.method === 'delivery' ? 'Deliver to' : 'Pickup from shop'}</p>
+            {order.fulfilment.method === 'delivery' && (
+              <p className="text-muted-foreground">{[address?.line1, address?.line2, address?.city, address?.state, address?.pincode].filter(Boolean).join(', ')}</p>
+            )}
+            {(order.deliveryAttempts ?? 0) > 0 && order.status !== 'delivered' && (
+              <p className="text-warning">{order.deliveryAttempts} failed delivery attempt{order.deliveryAttempts === 1 ? '' : 's'}</p>
+            )}
+            {order.handover?.verifiedAt && (
+              <p className="text-muted-foreground">
+                Handed over {formatDate(order.handover.verifiedAt, 'en', true)}
+                {order.handover.overrideReason ? ` without code: “${order.handover.overrideReason}”` : ' · code verified'}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="space-y-3 p-4 text-sm sm:p-5">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Reference / PO</p>
+            <p className="font-mono font-medium">{order.reference || '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Payment method</p>
+            <p className="font-medium">{order.payment.method === 'online' ? 'Pay online' : order.audience === 'institution' ? 'Institution account' : 'Pay at counter'}</p>
+          </div>
+        </div>
+      </div>
+
+      {order.customerNote && (
+        <div className="flex gap-2.5 border-t bg-primary/5 p-4 text-sm sm:p-5">
+          <IconMessage className="mt-0.5 size-4 shrink-0 text-primary" />
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground">Note from the customer</p>
+            <p className="mt-0.5">{order.customerNote}</p>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function OrderDetail({ order }: { order: AdminOrder }) {
   useBreadcrumbLabel(order.orderNumber);
-  const address = order.fulfilment.address;
+  const [statusOpen, setStatusOpen] = useState(false);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-mono text-2xl font-semibold tracking-tight">{order.orderNumber}</h1>
-            <OrderStatusBadge status={order.status} />
-            <Badge variant="outline">{order.audience === 'institution' ? 'Institution' : 'Individual'}</Badge>
-            {order.source === 'walk_in' && <Badge variant="outline">Walk-in</Badge>}
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">Placed {formatDate(order.createdAt, 'en', true)}</p>
-        </div>
-        {!['cancelled', 'quote_pending', 'quote_sent'].includes(order.status) && (
-          <Button
-            variant="outline"
-            onClick={() =>
-              void fetchFile(`/admin/orders/${order._id}/invoice`, { fallbackName: `${order.orderNumber}.pdf`, mode: 'open' }).catch((e) =>
-                toast.error(getErrorMessage(e)),
-              )
-            }
-          >
-            <IconFileInvoice /> {order.invoice?.number ? `Invoice ${order.invoice.number}` : 'Invoice'}
-          </Button>
-        )}
-      </div>
+      <OrderSummary order={order} onUpdate={() => setStatusOpen(true)} />
 
       <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
           {(order.status === 'quote_pending' || order.status === 'quote_sent') && <QuoteCard order={order} />}
-          <Card>
-            <CardHeader>
-              <CardTitle>Items ({order.items.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="divide-y">
-              {order.items.map((item) => (
-                <ItemCard key={item._id} order={order} item={item} />
-              ))}
-            </CardContent>
-          </Card>
+          {order.status === 'ready' && order.fulfilment.method === 'pickup' && <HandoverCard order={order} />}
 
-          <Card className="gap-0 py-0">
-            <div className="grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-              <div className="space-y-1.5 p-4 text-sm sm:p-5">
-                <p className="text-xs font-medium text-muted-foreground">Customer</p>
-                <p className="font-semibold">{order.contact.name || '—'}</p>
-                {order.contact.phone && (
-                  <a href={`tel:+91${order.contact.phone}`} className="flex items-center gap-2 text-primary hover:underline">
-                    <IconPhone className="size-4" /> +91 {order.contact.phone}
-                  </a>
-                )}
-                {order.institution && (
-                  <Link to={`/institutions/${order.institution._id}`} className="block text-primary hover:underline">
-                    {order.institution.name}
-                  </Link>
-                )}
-              </div>
-              <div className="space-y-1.5 p-4 text-sm sm:p-5">
-                <p className="text-xs font-medium text-muted-foreground">{order.fulfilment.method === 'delivery' ? 'Delivery' : 'Pickup'}</p>
-                <p className="flex items-start gap-2">
-                  {order.fulfilment.method === 'delivery' ? (
-                    <>
-                      <IconMapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                      {[address?.line1, address?.line2, address?.city, address?.state, address?.pincode].filter(Boolean).join(', ')}
-                    </>
-                  ) : (
-                    <>
-                      <IconBuildingStore className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> Pickup from shop
-                    </>
-                  )}
-                </p>
-                {order.deliveryPerson && <p className="text-muted-foreground">Rider: {order.deliveryPerson.name}</p>}
-                {(order.deliveryAttempts ?? 0) > 0 && order.status !== 'delivered' && (
-                  <p className="text-warning">{order.deliveryAttempts} failed delivery attempt{order.deliveryAttempts === 1 ? '' : 's'}</p>
-                )}
-                {order.handover?.verifiedAt && (
-                  <p className="text-muted-foreground">
-                    Handed over {formatDate(order.handover.verifiedAt, 'en', true)}
-                    {order.handover.overrideReason ? ` without code: “${order.handover.overrideReason}”` : ' · code verified'}
-                  </p>
-                )}
-              </div>
-            </div>
-            {order.reference && (
-              <div className="border-t p-4 text-sm sm:p-5">
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Customer reference / PO</p>
-                <p className="font-mono">{order.reference}</p>
-              </div>
-            )}
-            {order.customerNote && (
-              <div className="border-t p-4 text-sm sm:p-5">
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Customer note</p>
-                <p>{order.customerNote}</p>
-              </div>
-            )}
-          </Card>
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">
+              Items <span className="text-muted-foreground">({order.items.length})</span>
+            </h2>
+            {order.items.map((item, i) => (
+              <ItemCard key={item._id} order={order} item={item} index={i} />
+            ))}
+          </section>
+
+          <CustomerCard order={order} />
 
           <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
             <Card>
@@ -943,13 +1280,15 @@ function OrderDetail({ order }: { order: AdminOrder }) {
         </div>
 
         <div className="space-y-6">
-          {order.status === 'ready' && order.fulfilment.method === 'pickup' && <HandoverCard order={order} />}
-          <StatusCard order={order} />
           <DueCard key={order.dueDate ?? 'none'} order={order} />
           <PaymentCard order={order} />
           <AssignCard order={order} />
         </div>
       </div>
+      {/* Keeps the last card clear of the pinned action bar on phones. */}
+      <div className="h-14 lg:hidden" />
+      <NextActionBar order={order} onUpdate={() => setStatusOpen(true)} />
+      <StatusDialog order={order} open={statusOpen} onOpenChange={setStatusOpen} />
     </div>
   );
 }

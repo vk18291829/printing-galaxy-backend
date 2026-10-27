@@ -3,6 +3,7 @@ import {
   IconDownload,
   IconFileSpreadsheet,
   IconFileZip,
+  IconId,
   IconPencil,
   IconPlus,
   IconSearch,
@@ -136,7 +137,7 @@ function ImportDialog({ kind, actions, onClose }: { kind: PersonKind; actions: A
               <b>{result.created}</b> added · <b>{result.updated}</b> updated · <b>{result.photos}</b> photos matched
             </p>
             {result.skipped.length > 0 && (
-              <ul className="max-h-32 overflow-y-auto rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs">
+              <ul className="max-h-32 overflow-y-auto rounded-lg shadow-card border-warning/40 bg-warning/10 p-2 text-xs">
                 {result.skipped.map((s) => (
                   <li key={`${s.row}-${s.reason}`}>Row {s.row}: {s.reason}</li>
                 ))}
@@ -188,7 +189,7 @@ export default function InstitutionRosterPage() {
   const [editing, setEditing] = useState<Person | null | 'new'>(null);
   const [importing, setImporting] = useState(false);
   const [photoFor, setPhotoFor] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<'xlsx' | 'zip' | null>(null);
+  const [exporting, setExporting] = useState<'xlsx' | 'zip' | 'pdf' | null>(null);
 
   const people = data?.items ?? [];
   const classes = useMemo(() => [...new Set(people.map((p) => p.class).filter(Boolean))] as string[], [people]);
@@ -208,15 +209,16 @@ export default function InstitutionRosterPage() {
   const total = data?.total ?? 0;
   const done = data?.withPhoto ?? 0;
   // Exports follow the class filter, so one class can be printed at a time.
-  const params = { kind, ...(cls !== ALL ? { class: cls } : {}) };
+  const params = { kind, ...(cls !== ALL ? { class: cls } : {}), ...(cls !== ALL && section !== ALL ? { section } : {}) };
   const scope = cls !== ALL ? `class ${cls}` : `all ${isStaff ? 'staff' : 'students'}`;
 
-  const download = async (type: 'xlsx' | 'zip') => {
+  const download = async (type: 'xlsx' | 'zip' | 'pdf') => {
     setExporting(type);
+    const file = { xlsx: 'export.xlsx', zip: 'photos.zip', pdf: 'cards.pdf' }[type];
     try {
-      await fetchFile(`${rosterBase(id)}/${type === 'xlsx' ? 'export.xlsx' : 'photos.zip'}`, {
+      await fetchFile(`${rosterBase(id)}/${file}`, {
         params,
-        fallbackName: type === 'xlsx' ? `${kind}.xlsx` : `${kind}-photos.zip`,
+        fallbackName: `${kind}-${file}`,
         mode: 'save',
       });
     } catch (e) {
@@ -253,13 +255,16 @@ export default function InstitutionRosterPage() {
           <Button variant="outline" disabled={done === 0 || exporting !== null} onClick={() => void download('zip')}>
             {exporting === 'zip' ? <Spinner className="size-4" /> : <IconFileZip />} Photos ZIP ({scope})
           </Button>
+          <Button variant="outline" disabled={total === 0 || exporting !== null} onClick={() => void download('pdf')}>
+            {exporting === 'pdf' ? <Spinner className="size-4" /> : <IconId />} ID cards PDF ({scope})
+          </Button>
           <Button onClick={() => setEditing('new')}>
             <IconPlus /> Add {isStaff ? 'staff' : 'student'}
           </Button>
         </div>
       </div>
 
-      <div className="inline-flex rounded-lg border bg-muted/40 p-1">
+      <div className="inline-flex rounded-lg shadow-card bg-muted/40 p-1">
         {(['student', 'staff'] as const).map((k) => (
           <button
             key={k}
@@ -354,7 +359,7 @@ export default function InstitutionRosterPage() {
                         type="button"
                         onClick={() => setPhotoFor(p._id)}
                         aria-label={`Photo of ${p.name}`}
-                        className={cn('grid aspect-[3/4] w-10 place-items-center overflow-hidden rounded border', !p.hasPhoto && 'border-dashed text-muted-foreground')}
+                        className={cn('grid aspect-[3/4] w-10 place-items-center overflow-hidden rounded shadow-card', !p.hasPhoto && 'border-dashed text-muted-foreground')}
                       >
                         {p.photoUrl ? <img src={p.photoUrl} alt="" loading="lazy" className="size-full object-cover" /> : <IconCamera className="size-4" />}
                       </button>

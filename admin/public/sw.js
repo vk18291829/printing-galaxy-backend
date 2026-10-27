@@ -1,6 +1,6 @@
 /* Printing Galaxy admin service worker: installable app and fast start-up. Shop data always comes
  * live from the API (another origin, never cached); only the app shell and build files are. */
-const VERSION = 'pga-v1';
+const VERSION = 'pga-v2';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/logo-mark.png', '/icons/icon-192.png'];
@@ -54,4 +54,37 @@ self.addEventListener('fetch', (event) => {
       ),
     );
   }
+});
+
+// Staff phone notifications (new orders, proof replies, accepted quotes).
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Printing Galaxy', body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Printing Galaxy', {
+      body: data.body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: data.tag,
+      renotify: Boolean(data.tag),
+      data: { url: data.url || '/' },
+    }),
+  );
+});
+
+// Tapping opens the order in an open admin window, or a new one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => w.url.startsWith(self.location.origin));
+      if (open) return open.navigate(url).then((w) => w?.focus());
+      return self.clients.openWindow(url);
+    }),
+  );
 });

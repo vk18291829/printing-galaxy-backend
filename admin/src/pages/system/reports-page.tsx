@@ -119,7 +119,7 @@ export default function ReportsPage() {
         }
       />
 
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1">
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl shadow-card bg-card p-1">
         {REPORTS.map((r) => (
           <button
             key={r.type}
@@ -165,7 +165,7 @@ export default function ReportsPage() {
               ))}
             </div>
             {type === 'sales' && (
-              <div className="flex gap-1 rounded-lg border p-1 lg:ml-auto">
+              <div className="flex gap-1 rounded-lg shadow-card p-1 lg:ml-auto">
                 {(['day', 'month'] as const).map((g) => (
                   <button
                     key={g}

@@ -14,6 +14,7 @@ import {
   IconMenu2,
   IconMessage2,
   IconPackage,
+  IconChecklist,
   IconPlus,
   IconReceipt,
   IconReportAnalytics,
@@ -51,6 +52,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useStaffLogout } from '@/features/auth/api';
 import type { Permission } from '@/lib/permissions';
+import { PushToggle } from '@/lib/push';
 import { InstallAppButton } from '@/lib/pwa';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useDashboard } from '@/features/management/api';
@@ -75,6 +77,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { to: '/', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
       { to: '/orders', label: 'Orders', icon: IconPackage, badge: 'orders', end: true, perm: 'orders' },
+      { to: '/my-work', label: 'My work', icon: IconChecklist, perm: 'orders' },
       { to: '/orders/new', label: 'Walk-in order', icon: IconReceipt, perm: 'walkin' },
       { to: '/deliveries', label: 'Deliveries', icon: IconTruckDelivery, perm: 'orders' },
       { to: '/inventory', label: 'Materials & stock', icon: IconBoxSeam, badge: 'stock', perm: 'inventory' },
@@ -304,6 +307,7 @@ function SidebarBody({ collapsed, onNavigate, onToggle }: { collapsed?: boolean;
           </Button>
         )}
         {!collapsed && <InstallAppButton className="w-full" />}
+        {!collapsed && <PushToggle className="w-full" />}
         <UserMenu collapsed={collapsed} />
       </div>
     </div>
@@ -462,7 +466,7 @@ export function AdminLayout() {
           </header>
 
           <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:pb-6">
-            <div className="page-container">
+            <div key={pathname} className="page-container page-enter">
               <Outlet />
             </div>
           </main>

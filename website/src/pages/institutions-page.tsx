@@ -90,7 +90,7 @@ export default function InstitutionsPage() {
               key={to}
               to={to}
               className={cn(
-                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl border p-6 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-brand-navy/8',
+                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl shadow-card p-6 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-brand-navy/8',
                 featured ? 'bg-primary text-white sm:col-span-2 lg:row-span-2' : 'bg-card hover:border-brand-navy/20',
               )}
             >
@@ -138,7 +138,7 @@ export default function InstitutionsPage() {
         <h2 className="mb-10 text-center text-[1.75rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">{t('institutions.benefitsTitle')}</h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="rounded-xl border bg-card p-6">
+            <div key={title} className="rounded-xl shadow-card bg-card p-6">
               <span className="mb-4 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
                 <Icon className="size-6" />
               </span>
@@ -154,7 +154,7 @@ export default function InstitutionsPage() {
           <h2 className="mb-10 text-center text-[1.75rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">{t('institutions.stepsTitle')}</h2>
           <ol className="mx-auto grid max-w-4xl gap-5 md:grid-cols-3">
             {steps.map((step, i) => (
-              <li key={step} className="flex gap-4 rounded-xl border bg-card p-6 md:flex-col">
+              <li key={step} className="flex gap-4 rounded-xl shadow-card bg-card p-6 md:flex-col">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-bold text-white">
                   {i + 1}
                 </span>

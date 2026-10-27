@@ -116,7 +116,7 @@ function UserProfile({ user }: { user: User }) {
               </SelectContent>
             </Select>
           </div>
-          <label className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
+          <label className="flex items-center justify-between gap-4 rounded-lg shadow-card p-3 sm:col-span-2">
             <span className="min-w-0">
               <span className="block text-sm font-medium">{t('account.offers')}</span>
               <span className="block text-xs text-muted-foreground">{t('account.offersDesc')}</span>

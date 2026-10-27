@@ -112,7 +112,7 @@ export default function ProductsPage() {
             <PageNav className="mb-5" items={[{ label: t('nav.home'), to: '/' }, { label: t('nav.products') }]} />
             <p className="eyebrow mb-3">{t('products.heroEyebrow')}</p>
             <h1 className="text-[2.1rem] leading-[1.1] font-extrabold tracking-tight text-brand-navy sm:text-5xl">
-              {t('products.heroLead')} <span className="text-primary">{t('products.heroHighlight')}</span>
+              {t('products.heroLead')} <span className="text-logo-gradient">{t('products.heroHighlight')}</span>
             </h1>
             <p className="mt-4 max-w-lg text-muted-foreground sm:text-lg">{t('products.subtitle')}</p>
 
@@ -123,7 +123,7 @@ export default function ProductsPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('products.searchPlaceholder')}
                 aria-label={t('common.search')}
-                className="h-14 w-full rounded-full border bg-background pr-12 pl-13 text-base shadow-sm shadow-brand-navy/5 outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
+                className="h-14 w-full rounded-full bg-background pr-12 pl-13 text-base shadow-sm shadow-brand-navy/5 outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
               />
               {search && (
                 <button
@@ -158,7 +158,7 @@ export default function ProductsPage() {
                     if (needle) setQuery('');
                     requestAnimationFrame(() => scrollToCategory(c.slug));
                   }}
-                  className={cn('group flex flex-col items-start gap-3 rounded-2xl border bg-card p-4 text-left transition-[border-color,box-shadow] hover:shadow-md sm:p-5', tint.tile)}
+                  className={cn('group flex flex-col items-start gap-3 rounded-2xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] hover:shadow-md sm:p-5', tint.tile)}
                 >
                   <span className={cn('grid size-11 place-items-center rounded-xl shadow-xs', tint.icon)}>
                     <DynamicIcon name={c.icon} className="size-5.5" />
@@ -189,7 +189,7 @@ export default function ProductsPage() {
                 onClick={() => scrollToCategory(c.slug)}
                 aria-current={active === c.slug ? 'true' : undefined}
                 className={cn(
-                  'flex h-9 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors',
+                  'flex h-9 shrink-0 items-center gap-2 rounded-full bg-muted px-4 text-sm font-semibold transition-colors',
                   active === c.slug ? 'border-brand-navy bg-brand-navy text-white' : 'bg-card text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -205,7 +205,7 @@ export default function ProductsPage() {
         {needle && (
           <div className="-mb-6 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {t('products.resultsFor', { q: search.trim() })} · {t('products.count', { count: found })}
-            <button type="button" onClick={() => setQuery('')} className="flex items-center gap-1 rounded-full border px-3 py-1 font-medium hover:text-foreground">
+            <button type="button" onClick={() => setQuery('')} className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 font-medium hover:text-foreground">
               <IconX className="size-3.5" /> {t('products.clearFilters')}
             </button>
           </div>

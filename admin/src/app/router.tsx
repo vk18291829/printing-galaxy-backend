@@ -8,6 +8,7 @@ import LoginPage from '@/pages/login-page';
 
 const DashboardPage = lazy(() => import('@/pages/dashboard-page'));
 const OrdersPage = lazy(() => import('@/pages/orders/orders-page'));
+const MyWorkPage = lazy(() => import('@/pages/orders/my-work-page'));
 const OrderDetailPage = lazy(() => import('@/pages/orders/order-detail-page'));
 const WalkInPage = lazy(() => import('@/pages/orders/walk-in-page'));
 const ProductsPage = lazy(() => import('@/pages/catalog/products-page'));
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: page(<DashboardPage />) },
       { path: 'orders', element: page(<OrdersPage />) },
+      { path: 'my-work', element: page(<MyWorkPage />) },
       { path: 'orders/new', element: page(<WalkInPage />) },
       { path: 'orders/:id', element: page(<OrderDetailPage />) },
       { path: 'products', element: page(<ProductsPage />, true) },

@@ -131,7 +131,7 @@ function ChoiceCard({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        'flex w-full items-start gap-3 rounded-xl border bg-card p-4 text-left transition-[border-color,box-shadow] hover:border-primary/50',
+        'flex w-full items-start gap-3 rounded-xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] hover:border-primary/50',
         selected && 'border-primary ring-2 ring-primary/20',
       )}
     >
@@ -208,6 +208,11 @@ export default function NewOrderPage() {
     setCopies(1);
     setFiles([]);
     setInstructions('');
+    // Coming from the student list: the head-count and which class it is for.
+    const qty = Number(params.get('qty'));
+    if (qty > 0 && product.unit !== 'page') setQuantity(Math.max(qty, minQty));
+    const note = params.get('note');
+    if (note) setInstructions(note.slice(0, 1000));
     idempotencyKey.current = newIdempotencyKey();
   }, [product]);
 
@@ -505,7 +510,7 @@ export default function NewOrderPage() {
                               <Label htmlFor="h">{t('newOrder.height')}</Label>
                               <Input id="h" type="number" inputMode="decimal" min={0} value={custom.height} onChange={(e) => setCustom((c) => ({ ...c, height: e.target.value }))} />
                             </div>
-                            <div className="col-span-3 flex gap-1 rounded-xl border bg-background p-1 sm:col-span-1" role="radiogroup" aria-label={t('newOrder.unit')}>
+                            <div className="col-span-3 flex gap-1 rounded-xl shadow-card bg-background p-1 sm:col-span-1" role="radiogroup" aria-label={t('newOrder.unit')}>
                               {SIZE_UNITS.map((u) => (
                                 <button
                                   key={u}
@@ -712,7 +717,7 @@ function ProductPicker({ products, selected, onPick }: { products: Product[]; se
                   type="button"
                   onClick={() => onPick(p)}
                   className={cn(
-                    'group flex items-center gap-4 rounded-xl border bg-card p-4 text-left transition-[border-color,box-shadow] hover:border-primary/50 hover:shadow-md hover:shadow-brand-navy/5',
+                    'group flex items-center gap-4 rounded-xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] hover:border-primary/50 hover:shadow-md hover:shadow-brand-navy/5',
                     selected === p._id && 'border-primary ring-2 ring-primary/20',
                   )}
                 >
@@ -841,7 +846,7 @@ function QuantityStep({
                     type="button"
                     onClick={() => setQuantity(q)}
                     className={cn(
-                      'rounded-full border px-3 py-1 text-sm font-semibold tabular-nums transition-colors hover:border-primary/50',
+                      'rounded-full bg-muted px-3 py-1 text-sm font-semibold tabular-nums transition-colors hover:border-primary/50',
                       quantity === q ? 'border-primary bg-primary/8 text-primary' : 'text-brand-navy',
                     )}
                   >
@@ -854,7 +859,7 @@ function QuantityStep({
         )}
 
         {quote && !quote.requiresQuote && quote.valid && (
-          <div className="grid grid-cols-3 divide-x rounded-xl border bg-muted/40 text-center">
+          <div className="grid grid-cols-3 divide-x rounded-xl shadow-card bg-muted/40 text-center">
             <div className="p-3">
               <p className="text-xs text-muted-foreground">{t('newOrder.pricePerUnit', { unit: unit(1) })}</p>
               <p className="mt-0.5 text-lg font-bold text-brand-navy tabular-nums">{formatINR(quote.unitPrice)}</p>

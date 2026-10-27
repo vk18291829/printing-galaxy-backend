@@ -2,18 +2,16 @@ import {
   IconBell,
   IconLayoutDashboard,
   IconLogout,
-  IconMenu2,
   IconPackage,
   IconShoppingBag,
   IconUser,
   IconUsers,
   IconUserCircle,
 } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
-import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { Logo } from '@/components/common/logo';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,15 +22,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useLogout } from '@/features/auth/api';
 import { useAuthStore, useDisplayName } from '@/features/auth/auth-store';
 import { useUpdates } from '@/features/updates/api';
 import { useCartCount } from '@/features/cart/cart-store';
-import { useCategories } from '@/features/catalog/api';
-import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { categoryHome } from '@/features/catalog/sections';
 
 type NavItem = { to: string; key: string };
 
@@ -163,26 +157,38 @@ function AccountMenu() {
 
 export function SiteHeader() {
   const { t } = useTranslation();
-  const l = useLocalized();
-  const [open, setOpen] = useState(false);
   const principal = useAuthStore((s) => s.principal);
-  const { data: categories } = useCategories();
   const isActive = useIsNavActive();
+  // A hairline appears once the page scrolls under the header.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  const sections = [...NAV, { to: '/contact', key: 'nav.contact' }];
 
   return (
-    <header className="bg-background/95 supports-[backdrop-filter]:bg-background/85 sticky top-0 z-40 border-b backdrop-blur-xl">
-      <div className="container-page flex h-16 items-center gap-2 sm:gap-4 lg:h-[72px]">
+    <header
+      className={cn(
+        'sticky top-0 z-40 bg-background/85 backdrop-blur-xl transition-shadow duration-300 supports-[backdrop-filter]:bg-background/75',
+        scrolled && 'shadow-[0_1px_0_rgb(11_42_101/0.06),0_8px_24px_-16px_rgb(11_42_101/0.25)]',
+      )}
+    >
+      <div className="container-page flex h-16 items-center gap-3 lg:h-[72px]">
         <Logo />
 
-        <nav className="ml-4 hidden items-center gap-1 lg:flex xl:ml-8">
+        {/* Desktop: sections as pills. */}
+        <nav className="ml-6 hidden items-center gap-1 lg:flex xl:ml-10" aria-label={t('nav.menu')}>
           {NAV.map((item) => (
             <Link
               key={item.to}
               to={item.to}
               aria-current={isActive(item) ? 'page' : undefined}
               className={cn(
-                'text-brand-navy/75 hover:text-brand-navy relative px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors after:absolute after:inset-x-3 after:-bottom-[15px] after:h-0.5 after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity',
-                isActive(item) && 'text-brand-navy after:opacity-100',
+                'rounded-full px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-foreground/70 transition-colors hover:bg-secondary hover:text-primary',
+                isActive(item) && 'bg-secondary text-primary',
               )}
             >
               {t(item.key)}
@@ -190,131 +196,43 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+        <div className="ml-auto flex items-center gap-1">
           <UpdatesButton />
           {principal?.kind !== 'institution' && <CartButton />}
           {principal?.kind === 'institution' && (
-            <Button size="sm" className="mx-1 hidden h-9 px-4 md:inline-flex" asChild>
+            <Button size="sm" className="ml-1 hidden md:inline-flex" asChild>
               <Link to="/institution">
                 <IconLayoutDashboard /> {t('nav.dashboard')}
               </Link>
             </Button>
           )}
-          <div className="hidden sm:block">
+          <div className="ml-1 hidden sm:block">
             <AccountMenu />
           </div>
-          {principal?.kind !== 'institution' && (
-            <Button size="sm" className="ml-1 hidden h-9 px-4 md:inline-flex" asChild>
-              <Link to="/contact">{t('nav.quote')}</Link>
-            </Button>
-          )}
-
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9 lg:hidden"
-                aria-label={t('nav.menu')}
-              >
-                <IconMenu2 className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="gap-0 overflow-y-auto">
-              <SheetHeader className="border-b">
-                <SheetTitle className="text-left">{t('nav.menu')}</SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col p-3" onClick={() => setOpen(false)}>
-                <NavLink
-                  to="/"
-                  end
-                  className={({ isActive: home }) => cn('hover:bg-accent rounded-lg px-3 py-3 text-base font-medium', home && 'bg-primary/8 text-primary')}
-                >
-                  {t('nav.home')}
-                </NavLink>
-                {[...NAV, { to: '/contact', key: 'nav.contact' }].map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    aria-current={isActive(item) ? 'page' : undefined}
-                    className={cn('hover:bg-accent rounded-lg px-3 py-3 text-base font-medium', isActive(item) && 'bg-primary/8 text-primary')}
-                  >
-                    {t(item.key)}
-                  </Link>
-                ))}
-                <div className="bg-border my-3 h-px" />
-                {principal ? (
-                  <>
-                    {principal.kind === 'institution' && (
-                      <>
-                        <NavLink
-                          to="/institution"
-                          className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
-                        >
-                          {t('nav.dashboard')}
-                        </NavLink>
-                        <NavLink
-                          to="/institution/students"
-                          className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
-                        >
-                          {t('nav.students')}
-                        </NavLink>
-                      </>
-                    )}
-                    <NavLink
-                      to="/account/orders"
-                      className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
-                    >
-                      {t('nav.myOrders')}
-                    </NavLink>
-                    <NavLink
-                      to="/account/updates"
-                      className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
-                    >
-                      {t('nav.updates')}
-                    </NavLink>
-                    <NavLink
-                      to="/account/profile"
-                      className="hover:bg-accent rounded-lg px-3 py-3 font-medium"
-                    >
-                      {t('nav.profile')}
-                    </NavLink>
-                  </>
-                ) : (
-                  <div className="grid gap-2 px-1">
-                    <Button asChild>
-                      <Link to="/contact">{t('nav.quote')}</Link>
-                    </Button>
-                    <Button variant="navy" asChild>
-                      <Link to="/login">{t('common.signIn')}</Link>
-                    </Button>
-                    <Button variant="ghost" asChild>
-                      <Link to="/institutions/register">{t('nav.institutionRegister')}</Link>
-                    </Button>
-                  </div>
-                )}
-                {categories && categories.length > 0 && (
-                  <>
-                    <div className="bg-border my-3 h-px" />
-                    <p className="text-muted-foreground px-3 pb-1 text-xs font-medium">
-                      {t('nav.categories')}
-                    </p>
-                    {categories.map((c) => (
-                      <Link
-                        key={c._id}
-                        to={categoryHome(c.slug)}
-                        className="hover:bg-accent flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium"
-                      >
-                        <DynamicIcon name={c.icon} className="text-primary size-4" /> {l(c.name)}
-                      </Link>
-                    ))}
-                  </>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
+
+      {/* Phones and tablets: every section one swipe away, no hidden menu. */}
+      <nav className="lg:hidden" aria-label={t('nav.menu')}>
+        <div className="scrollbar-none container-page flex gap-2 overflow-x-auto pb-3 [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)]">
+          {sections.map((item) => {
+            const on = isActive(item);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={on ? 'page' : undefined}
+                className={cn(
+                  'shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold whitespace-nowrap transition-colors',
+                  on ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'bg-card text-foreground/75 shadow-card',
+                )}
+              >
+                {t(item.key)}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </header>
   );
 }

@@ -42,7 +42,7 @@ export function SocialLinks({
             rel="noreferrer noopener"
             aria-label={label}
             title={label}
-            className="bg-background text-muted-foreground hover:border-primary hover:text-primary grid size-9 place-items-center rounded-full border transition-colors"
+            className="bg-background text-muted-foreground hover:border-primary hover:text-primary grid size-9 place-items-center rounded-full transition-colors"
           >
             <Icon className="size-[18px]" />
           </a>

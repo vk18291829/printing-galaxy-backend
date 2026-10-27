@@ -47,7 +47,7 @@ function InvitationVisual() {
 
       {/* Invitation */}
       <div className="absolute top-[8%] right-[6%] w-[56%] rotate-[4deg] rounded-md bg-[#fffdf8] p-2 shadow-2xl shadow-[#7a5233]/25">
-        <div className="flex flex-col items-center rounded-sm border border-[#b8875b]/60 px-4 py-7 text-center outline outline-1 outline-offset-[-6px] outline-[#b8875b]/30">
+        <div className="flex flex-col items-center rounded-sm shadow-card border-[#b8875b]/60 px-4 py-7 text-center outline outline-1 outline-offset-[-6px] outline-[#b8875b]/30">
           <p className="text-[8px] font-semibold tracking-[0.25em] text-[#b8875b] uppercase">{t('wedding.mockTogether')}</p>
           <p className={`${SERIF} mt-3 text-2xl leading-tight text-brand-navy italic sm:text-[1.75rem]`}>
             Aarav
@@ -100,7 +100,7 @@ export default function WeddingCardsPage() {
               <IconSparkles className="size-4" /> {t('wedding.eyebrow')}
             </p>
             <h1 className={`${SERIF} text-[2.5rem] leading-[1.1] font-semibold text-brand-navy sm:text-5xl lg:text-[3.6rem]`}>
-              {t('wedding.titleLead')} <span className="text-primary italic">{t('wedding.titleHighlight')}</span>
+              {t('wedding.titleLead')} <span className="text-[#f91570] italic">{t('wedding.titleHighlight')}</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-brand-navy/70 sm:text-lg lg:mx-0">{t('wedding.subtitle')}</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
@@ -135,8 +135,8 @@ export default function WeddingCardsPage() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {details.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-xl border border-[#ecdfd0] bg-[#fbf7f2] p-6 text-center">
-                <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full border border-[#d9b48f] text-[#9a6b43]">
+              <div key={title} className="rounded-xl shadow-card border-[#ecdfd0] bg-[#fbf7f2] p-6 text-center">
+                <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-muted border-[#d9b48f] text-[#9a6b43]">
                   <Icon className="size-5" />
                 </span>
                 <h3 className="font-bold text-brand-navy">{title}</h3>

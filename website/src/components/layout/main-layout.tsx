@@ -17,6 +17,7 @@ function ScrollToTop() {
 
 export function MainLayout() {
   const tabs = useBottomTabsVisible();
+  const { pathname } = useLocation();
   return (
     // Room for the phone tab bar under the footer.
     <div className={cn('flex min-h-dvh flex-col', tabs && 'pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0')}>
@@ -24,7 +25,8 @@ export function MainLayout() {
       <OfflineBanner />
       <TopBar />
       <SiteHeader />
-      <main className="flex-1">
+      {/* Each screen fades up gently as it opens. */}
+      <main key={pathname} className="page-enter flex-1">
         <Outlet />
       </main>
       <SiteFooter />

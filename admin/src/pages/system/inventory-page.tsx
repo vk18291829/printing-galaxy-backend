@@ -180,7 +180,7 @@ function MovementDialog({ material, onClose }: { material: Material; onClose: ()
               type="button"
               onClick={() => setReason(r.value)}
               className={cn(
-                'rounded-xl border px-3 py-2 text-left text-sm transition-colors hover:border-primary/40',
+                'rounded-xl shadow-card px-3 py-2 text-left text-sm transition-colors hover:border-primary/40',
                 reason === r.value && 'border-primary bg-primary/5',
               )}
             >
@@ -300,7 +300,7 @@ export default function InventoryPage() {
       />
 
       {low.length > 0 && (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+        <div className="mb-4 flex items-start gap-3 rounded-xl shadow-card border-warning/40 bg-warning/10 px-4 py-3 text-sm">
           <IconAlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-warning" />
           <p>
             <span className="font-semibold">Running low:</span> {low.map((m) => `${m.name} (${formatNumber(m.quantity)} ${m.unit})`).join(', ')}

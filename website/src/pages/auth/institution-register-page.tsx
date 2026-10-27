@@ -191,7 +191,7 @@ export default function InstitutionRegisterPage() {
                         aria-checked={field.value === value}
                         onClick={() => field.onChange(value)}
                         className={cn(
-                          'flex flex-col items-center gap-2 rounded-xl border p-3 text-center text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                          'flex flex-col items-center gap-2 rounded-xl shadow-card p-3 text-center text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                           field.value === value ? 'border-primary bg-primary/8 text-primary' : 'hover:bg-accent',
                         )}
                       >
@@ -295,7 +295,7 @@ export default function InstitutionRegisterPage() {
                 />
               </Field>
             </div>
-            <div className="rounded-xl border bg-muted/40 p-4 text-sm sm:col-span-2">
+            <div className="rounded-xl shadow-card bg-muted/40 p-4 text-sm sm:col-span-2">
               <p className="mb-2 font-semibold">{t('auth.org.reviewTitle')}</p>
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-muted-foreground">
                 <dt>{t('auth.orgName')}</dt>

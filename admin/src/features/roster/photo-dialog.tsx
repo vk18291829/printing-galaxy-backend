@@ -136,7 +136,7 @@ export function PhotoDialog({ people, personId, onPersonChange, onClose, save }:
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-1 rounded-xl border bg-muted/40 p-1" role="tablist">
+        <div className="grid grid-cols-2 gap-1 rounded-xl shadow-card bg-muted/40 p-1" role="tablist">
           {(['camera', 'upload'] as const).map((m) => (
             <button
               key={m}

@@ -106,10 +106,10 @@ function StaffDialog({ member, onClose }: { member: StaffMember | 'new'; onClose
                       type="button"
                       aria-pressed={on}
                       onClick={() => toggleJob(r)}
-                      className={cn('rounded-lg border p-2.5 text-left transition-colors', on ? 'border-primary bg-primary/8' : 'hover:bg-accent')}
+                      className={cn('rounded-lg shadow-card p-2.5 text-left transition-colors', on ? 'border-primary bg-primary/8' : 'hover:bg-accent')}
                     >
                       <span className="flex items-center gap-2 text-sm font-semibold">
-                        <span className={cn('grid size-4 place-items-center rounded border', on ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40')}>
+                        <span className={cn('grid size-4 place-items-center rounded shadow-card', on ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40')}>
                           {on && <IconCheck className="size-3" stroke={3} />}
                         </span>
                         {STAFF_ROLE_INFO[r].label}

@@ -52,11 +52,13 @@ function useCamera(active: boolean, facing: Facing) {
  * Take or upload a person's photo. Opened from one person, it walks on to the next person still
  * missing a photo after each save, so a teacher can photograph a whole class in one go.
  */
-export function PhotoDialog({ people, personId, onPersonChange, onClose }: {
+export function PhotoDialog({ people, personId, onPersonChange, onClose, onSave }: {
   people: Person[];
   personId: string | null;
   onPersonChange: (id: string | null) => void;
   onClose: () => void;
+  /** Saves somewhere other than the signed-in school's list (a teacher's photo link). */
+  onSave?: (person: Person, blob: Blob) => Promise<unknown>;
 }) {
   const { t } = useTranslation();
   const person = people.find((p) => p._id === personId) ?? null;
@@ -64,7 +66,9 @@ export function PhotoDialog({ people, personId, onPersonChange, onClose }: {
   const [facing, setFacing] = useState<Facing>('environment');
   const [shot, setShot] = useState<{ blob: Blob; url: string; source: 'camera' | 'upload' } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const save = useSetPhoto();
+  const setPhoto = useSetPhoto();
+  const [saving, setSaving] = useState(false);
+  const save = { isPending: setPhoto.isPending || saving };
   const { videoRef, error, ready } = useCamera(Boolean(person) && mode === 'camera' && !shot, facing);
 
   const clearShot = useCallback(() => {
@@ -103,18 +107,17 @@ export function PhotoDialog({ people, personId, onPersonChange, onClose }: {
 
   const submit = (goNext: boolean) => {
     if (!shot) return;
-    save.mutate(
-      { person, blob: shot.blob, source: shot.source },
-      {
-        onSuccess: () => {
-          toast.success(t('roster.photoSaved', { name: person.name, code: person.code }));
-          clearShot();
-          if (goNext && next) onPersonChange(next._id);
-          else onClose();
-        },
-        onError: (e) => toast.error(getErrorMessage(e)),
-      },
-    );
+    setSaving(true);
+    const run = onSave ? onSave(person, shot.blob) : setPhoto.mutateAsync({ person, blob: shot.blob, source: shot.source });
+    run
+      .then(() => {
+        toast.success(t('roster.photoSaved', { name: person.name, code: person.code }));
+        clearShot();
+        if (goNext && next) onPersonChange(next._id);
+        else onClose();
+      })
+      .catch((e: unknown) => toast.error(getErrorMessage(e)))
+      .finally(() => setSaving(false));
   };
 
   const details = [person.class && `${t('roster.fields.class')} ${person.class}${person.section ? `-${person.section}` : ''}`, person.rollNo && `${t('roster.fields.rollNo')} ${person.rollNo}`, person.designation]
@@ -132,7 +135,7 @@ export function PhotoDialog({ people, personId, onPersonChange, onClose }: {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-1 rounded-xl border bg-muted/40 p-1" role="tablist">
+        <div className="grid grid-cols-2 gap-1 rounded-xl shadow-card bg-muted/40 p-1" role="tablist">
           {(['camera', 'upload'] as const).map((m) => (
             <button
               key={m}

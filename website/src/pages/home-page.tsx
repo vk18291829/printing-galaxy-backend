@@ -19,28 +19,26 @@ import { Rail, Section } from '@/components/common/section';
 import { StarRating } from '@/components/common/star-rating';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCategories, useProducts } from '@/features/catalog/api';
-import { ProductCard } from '@/features/catalog/components/product-card';
-import { ExploreEverything, Highlights, HOME_HIDDEN_CATEGORY } from '@/features/catalog/components/home-showcase';
+import { useProducts } from '@/features/catalog/api';
+import { Highlights, HOME_HIDDEN_CATEGORY } from '@/features/catalog/components/home-showcase';
 import { useBanners } from '@/features/marketing/api';
 import { HeroCarousel } from '@/features/marketing/hero-carousel';
 import { FeatureBanner, PromoTiles } from '@/features/marketing/promo-banners';
 import { useReviewHighlights } from '@/features/reviews/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useLocalized } from '@/lib/i18n';
-import type { Banner, Product } from '@/types/api';
-import { categoryHome } from '@/features/catalog/sections';
+import type { Banner } from '@/types/api';
 
 /** Print mockups: a bound document, a visiting card and a student ID, in brand colours. */
 function HeroVisual() {
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[500px] select-none" aria-hidden>
-      <div className="absolute inset-4 rounded-[2rem] border bg-muted" />
+      <div className="absolute inset-4 rounded-[2rem] shadow-card bg-muted" />
       <div className="absolute inset-4 rounded-[2rem] bg-grid opacity-70" />
       <div className="absolute top-[12%] right-[10%] size-40 rounded-full bg-primary/15 blur-3xl" />
 
       {/* Bound document */}
-      <div className="absolute top-[9%] left-[9%] w-[46%] rotate-[-6deg] rounded-xl border bg-card p-4 shadow-lg shadow-brand-navy/10">
+      <div className="absolute top-[9%] left-[9%] w-[46%] rotate-[-6deg] rounded-xl shadow-card bg-card p-4 shadow-lg shadow-brand-navy/10">
         <div className="mb-3 flex items-center gap-2">
           <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">PDF</span>
           <span className="h-2 w-20 rounded bg-brand-navy/15" />
@@ -71,7 +69,7 @@ function HeroVisual() {
       </div>
 
       {/* Student ID */}
-      <div className="absolute bottom-[8%] left-[12%] w-[38%] rotate-[-3deg] overflow-hidden rounded-xl border bg-card shadow-xl shadow-brand-navy/15">
+      <div className="absolute bottom-[8%] left-[12%] w-[38%] rotate-[-3deg] overflow-hidden rounded-xl shadow-card bg-card shadow-xl shadow-brand-navy/15">
         <div className="flex items-center justify-between bg-primary px-3 py-2 text-white">
           <span className="text-[9px] font-bold tracking-widest uppercase">Student ID</span>
           <span className="size-2 rounded-full bg-white/70" />
@@ -87,7 +85,7 @@ function HeroVisual() {
       </div>
 
       {/* Proof chip */}
-      <div className="absolute right-[12%] bottom-[14%] flex items-center gap-2 rounded-full border bg-card py-1.5 pr-3.5 pl-1.5 shadow-lg shadow-brand-navy/10">
+      <div className="absolute right-[12%] bottom-[14%] flex items-center gap-2 rounded-full bg-card py-1.5 pr-3.5 pl-1.5 shadow-lg shadow-brand-navy/10">
         <span className="grid size-6 place-items-center rounded-full bg-success text-white">
           <IconCheck className="size-3.5" stroke={3} />
         </span>
@@ -115,7 +113,7 @@ function Hero() {
         <div>
           <p className="eyebrow mb-5">{t('home.heroEyebrow')}</p>
           <h1 className="text-[2.25rem] leading-[1.08] font-extrabold text-brand-navy sm:text-5xl lg:text-[3.5rem]">
-            {t('home.heroTitleLead')} <span className="text-primary">{t('home.heroTitleHighlight')}</span>
+            {t('home.heroTitleLead')} <span className="text-logo-gradient">{t('home.heroTitleHighlight')}</span>
             <br />
             {t('home.heroTitleTail')}
           </h1>
@@ -180,7 +178,7 @@ function AudienceSplit() {
         <p className="mt-3 text-muted-foreground">{t('home.audienceSubtitle')}</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="relative flex flex-col overflow-hidden rounded-xl border bg-card p-7 sm:p-9">
+        <div className="relative flex flex-col overflow-hidden rounded-xl shadow-card bg-card p-7 sm:p-9">
           <div className="absolute -top-16 -right-16 size-48 rounded-full bg-brand-cyan/10 blur-2xl" />
           <span className="mb-5 grid size-12 place-items-center rounded-2xl bg-brand-cyan/12 text-brand-cyan">
             <IconUser className="size-6" />
@@ -229,17 +227,6 @@ function AudienceSplit() {
 
 const RAIL_ITEM = 'w-[72%] min-[480px]:w-[46%] md:w-[31%] lg:w-[calc(25%-9px)]';
 
-function ProductRail({ title, subtitle, viewAll, products }: { title: string; subtitle?: string; viewAll: string; products: Product[] }) {
-  return (
-    <Section title={title} subtitle={subtitle} viewAll={viewAll}>
-      <Rail label={title} itemClassName={RAIL_ITEM}>
-        {products.map((p) => (
-          <ProductCard key={p._id} product={p} />
-        ))}
-      </Rail>
-    </Section>
-  );
-}
 
 function RailSkeleton() {
   return (
@@ -255,31 +242,18 @@ function RailSkeleton() {
 }
 
 /** Bestseller grid, the new-feature banner, then one rail per category. */
+/**
+ * The home page shows a short, hand-picked selection; full ranges live on Products, School &
+ * College, Business Works and Wedding & Invitations, so they are not repeated here.
+ */
 function CatalogueRails({ feature }: { feature?: Banner }) {
-  const l = useLocalized();
-  const { data: categories } = useCategories();
   const { data: products, isLoading } = useProducts({ excludeCategory: HOME_HIDDEN_CATEGORY });
-
   if (isLoading) return <RailSkeleton />;
-  const all = products ?? [];
-  const highlights = all.filter((p) => p.isFeatured || p.tags?.includes('highlight'));
-  const byCategory = (categories ?? [])
-    .map((c) => ({ category: c, items: all.filter((p) => p.category?._id === c._id) }))
-    .filter((g) => g.items.length > 0);
-
+  const highlights = (products ?? []).filter((p) => p.isFeatured || p.tags?.includes('highlight'));
   return (
     <>
       <Highlights products={highlights} />
       {feature && <FeatureBanner banner={feature} />}
-      {byCategory.map(({ category, items }) => (
-        <ProductRail
-          key={category._id}
-          title={l(category.name)}
-          subtitle={l(category.description)}
-          viewAll={categoryHome(category.slug)}
-          products={items}
-        />
-      ))}
     </>
   );
 }
@@ -294,7 +268,7 @@ function Testimonials() {
     <Section title={t('home.reviewsTitle')} subtitle={t('home.reviewsSubtitle')}>
       <Rail label={t('home.reviewsTitle')} itemClassName="w-[85%] min-[480px]:w-[60%] md:w-[calc(50%-6px)] lg:w-[calc(33.333%-8px)]">
         {data.map((r) => (
-          <figure key={r._id} className="flex h-full flex-col gap-3 rounded-xl border bg-card p-5">
+          <figure key={r._id} className="flex h-full flex-col gap-3 rounded-xl shadow-card bg-card p-5">
             <div className="flex items-center justify-between gap-2">
               <StarRating value={r.rating} />
               {r.verifiedPurchase && (
@@ -342,7 +316,7 @@ function HowItWorks() {
         </div>
         <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map(({ icon: Icon, title, desc, color }, i) => (
-            <li key={title} className="relative rounded-xl border bg-card p-6">
+            <li key={title} className="relative rounded-xl shadow-card bg-card p-6">
               <span className="absolute top-5 right-5 text-4xl font-extrabold text-brand-navy/8">0{i + 1}</span>
               <span className={`mb-4 grid size-12 place-items-center rounded-xl ${color}`}>
                 <Icon className="size-6" />
@@ -402,7 +376,6 @@ export default function HomePage() {
       <HowItWorks />
       <Testimonials />
       <InstitutionCta />
-      <ExploreEverything />
     </>
   );
 }

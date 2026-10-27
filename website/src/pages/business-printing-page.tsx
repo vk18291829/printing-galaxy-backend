@@ -28,7 +28,7 @@ function BusinessVisual() {
   return (
     <div className="relative mx-auto aspect-[5/4] w-full max-w-[520px] select-none" aria-hidden>
       {/* Flyer */}
-      <div className="absolute top-[4%] left-[4%] w-[42%] rotate-[-5deg] overflow-hidden rounded-lg border bg-card shadow-xl shadow-brand-navy/10">
+      <div className="absolute top-[4%] left-[4%] w-[42%] rotate-[-5deg] overflow-hidden rounded-lg shadow-card bg-card shadow-xl shadow-brand-navy/10">
         <div className="bg-primary px-3 pt-4 pb-6 text-white">
           <span className="block h-2 w-3/4 rounded bg-white/90" />
           <span className="mt-1.5 block h-2 w-1/2 rounded bg-white/90" />
@@ -47,7 +47,7 @@ function BusinessVisual() {
       </div>
 
       {/* Card back */}
-      <div className="absolute top-[14%] right-[3%] flex aspect-[9/5.5] w-[54%] rotate-[6deg] flex-col justify-between rounded-lg border bg-card p-4 shadow-lg shadow-brand-navy/10">
+      <div className="absolute top-[14%] right-[3%] flex aspect-[9/5.5] w-[54%] rotate-[6deg] flex-col justify-between rounded-lg shadow-card bg-card p-4 shadow-lg shadow-brand-navy/10">
         <div className="space-y-1.5">
           <span className="block h-2.5 w-1/2 rounded bg-brand-navy/80" />
           <span className="block h-1.5 w-1/3 rounded bg-primary/70" />
@@ -109,7 +109,7 @@ export default function BusinessPrintingPage() {
               <IconBuildingStore className="size-4" /> {t('business.eyebrow')}
             </p>
             <h1 className="text-[2.25rem] leading-[1.08] font-extrabold text-brand-navy sm:text-5xl lg:text-[3.25rem]">
-              {t('business.titleLead')} <span className="text-primary">{t('business.titleHighlight')}</span> {t('business.titleTail')}
+              {t('business.titleLead')} <span className="text-logo-gradient">{t('business.titleHighlight')}</span> {t('business.titleTail')}
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">{t('business.subtitle')}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -124,7 +124,7 @@ export default function BusinessPrintingPage() {
             </div>
             <ul className="mt-8 flex flex-wrap gap-2" aria-label={t('business.audiencesLabel')}>
               {audiences.map((a) => (
-                <li key={a} className="rounded-full border bg-background px-3 py-1 text-xs font-semibold text-brand-navy">
+                <li key={a} className="rounded-full bg-background px-3 py-1 text-xs font-semibold text-brand-navy">
                   {a}
                 </li>
               ))}
@@ -146,7 +146,7 @@ export default function BusinessPrintingPage() {
               key={to}
               to={to}
               className={cn(
-                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl border p-6 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-brand-navy/8',
+                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl shadow-card p-6 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-brand-navy/8',
                 featured ? 'bg-brand-navy text-white sm:col-span-2 lg:row-span-2' : 'bg-card hover:border-brand-navy/20',
               )}
             >

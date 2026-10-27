@@ -20,6 +20,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   inventory: 'Materials & stock',
   'bulk-jobs': 'Bulk card lists',
   students: 'Students & staff',
+  'my-work': 'My work',
   deliveries: 'Deliveries',
 };
 

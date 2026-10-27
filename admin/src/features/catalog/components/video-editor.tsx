@@ -47,7 +47,7 @@ export function VideoEditor({ value, onChange }: { value: string; onChange: (url
       <input ref={input} type="file" accept="video/mp4,video/webm" hidden onChange={(e) => void upload(e.target.files?.[0])} />
       {value && !video && <p className="text-sm text-destructive">This doesn't look like a video link.</p>}
       {video && (
-        <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-lg border bg-black">
+        <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-lg shadow-card bg-black">
           {video.kind === 'file' ? (
             <video src={video.src} controls className="size-full object-contain" />
           ) : video.thumb ? (

@@ -47,7 +47,7 @@ function confirmSend(info: PromoOverview, preview: string, send: () => Promise<u
     title: `Send to ${formatNumber(info.audience)} customers?`,
     description: (
       <>
-        <span className="mb-2 block max-h-48 overflow-y-auto rounded-md border bg-muted/50 p-3 text-xs whitespace-pre-line">{preview}</span>
+        <span className="mb-2 block max-h-48 overflow-y-auto rounded-md shadow-card bg-muted/50 p-3 text-xs whitespace-pre-line">{preview}</span>
         This cannot be stopped once it starts. Customers who turned off offers are skipped.
       </>
     ),
@@ -283,7 +283,7 @@ function SmsComposer({ info, busy }: { info: PromoOverview; busy: boolean }) {
               {template && (
                 <div className="space-y-1.5">
                   <Label>Customers will read</Label>
-                  <p className="rounded-lg border bg-muted/50 p-3 font-mono text-sm wrap-break-word">{preview}</p>
+                  <p className="rounded-lg shadow-card bg-muted/50 p-3 font-mono text-sm wrap-break-word">{preview}</p>
                   <p className="text-xs text-muted-foreground">
                     {preview.length} characters · {smsParts(preview)} SMS per customer
                   </p>

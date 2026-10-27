@@ -1263,6 +1263,33 @@
       "employeeId": "Employee ID",
       "designation": "Designation",
       "department": "Department"
-    }
+    },
+    "orderCards_one": "Order ID cards ({{count}})",
+    "orderCards_other": "Order ID cards ({{count}})",
+    "scopeClass": "Class {{cls}}",
+    "scopeAll": "all students",
+    "scopeStaff": "all staff",
+    "cardsNote": "ID cards for {{scope}} ({{count}} people) from our Students & staff list. Please use the photos and details saved there."
+  },
+  "photoLink": {
+    "title": "Class photos",
+    "heading": "Photos for {{label}}",
+    "expires": "This link works until {{date}}",
+    "start": "Start taking photos",
+    "allDone": "Every photo is done. Thank you!",
+    "failed": "The photo could not be saved. Try again.",
+    "button": "Photo link for a teacher",
+    "shareTitle": "Let a teacher take the photos",
+    "shareDesc": "Create a link for {{scope}}. The teacher opens it on their phone and photographs each child; no account needed. It only shows names and roll numbers, works for 7 days, and you can switch it off any time.",
+    "create": "Create link for {{scope}}",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "onlyOnce": "Send it now: for safety the full link is shown only once. You can always make a new one.",
+    "shareMessage": "Please take the ID card photos for {{scope}} using this link: {{url}}",
+    "active": "Active links",
+    "linkInfo_one": "{{count}} photo · until {{date}}",
+    "linkInfo_other": "{{count}} photos · until {{date}}",
+    "revoke": "Switch off",
+    "revoked": "Link switched off"
   }
 }

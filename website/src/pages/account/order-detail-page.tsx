@@ -185,7 +185,7 @@ export default function OrderDetailPage() {
       )}
 
       {quoteSent && (
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-primary/40 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl shadow-card border-primary/40 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex gap-3">
             <IconFileInvoice className="mt-0.5 size-6 shrink-0 text-primary" />
             <div>
@@ -304,7 +304,7 @@ export default function OrderDetailPage() {
                           <button
                             key={file._id}
                             onClick={() => void openFile(file._id).catch((e) => toast.error(getErrorMessage(e)))}
-                            className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs hover:bg-accent"
+                            className="flex items-center gap-1.5 rounded-lg shadow-card px-2.5 py-1.5 text-xs hover:bg-accent"
                           >
                             <IconFileText className="size-3.5" />
                             <span className="max-w-40 truncate">{file.originalName}</span>
@@ -421,7 +421,7 @@ export default function OrderDetailPage() {
                 </div>
               )}
               {order.refunds && order.refunds.length > 0 && (
-                <div className="mt-2 space-y-1.5 rounded-lg border p-3">
+                <div className="mt-2 space-y-1.5 rounded-lg shadow-card p-3">
                   <p className="text-xs font-semibold">{t('orders.refunds')}</p>
                   {order.refunds.map((r) => (
                     <div key={r._id} className="flex justify-between text-xs">

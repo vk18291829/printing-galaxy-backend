@@ -29,7 +29,7 @@ export default function InstitutionsPage() {
     <div>
       <PageHeader title="Institutions" description="Schools, colleges and businesses. Approve accounts to unlock institution prices." />
       <div className="mb-4 flex flex-col gap-3 lg:flex-row">
-        <div className="flex gap-1 overflow-x-auto rounded-xl border bg-card p-1">
+        <div className="flex gap-1 overflow-x-auto rounded-xl shadow-card bg-card p-1">
           {TABS.map((t) => (
             <button
               key={t}

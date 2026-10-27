@@ -6,7 +6,11 @@ import sharp from 'sharp';
 import { ApiError } from '@/common/errors';
 import type { AuthContext } from '@/common/types';
 import { logger } from '@/config/logger';
-import { matchHeader } from '@/modules/bulk/card-kinds';
+import { InstitutionTemplateModel } from '@/modules/bulk/bulk.model';
+import { loadLogo, toCardTemplate } from '@/modules/bulk/bulk.service';
+import { KIND_SPECS, matchHeader, type CardKind, type FieldKey } from '@/modules/bulk/card-kinds';
+import { renderCardSheets, type CardTemplate } from '@/modules/bulk/card-renderer';
+import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { findPhoto, parseTable, readPhotosZip } from '@/modules/bulk/spreadsheet';
 import { FileModel } from '@/modules/uploads/file.model';
 import { presignDownload, putObject, readObject } from '@/modules/uploads/storage';
@@ -106,7 +110,7 @@ export async function findPerson(institution: string, id: string) {
 }
 
 /** The old photo file is no longer needed once replaced or removed. */
-async function releasePhoto(fileId?: Types.ObjectId | null) {
+export async function releasePhoto(fileId?: Types.ObjectId | null) {
   if (fileId) await FileModel.updateOne({ _id: fileId }, { $set: { deleteAfter: new Date() } });
 }
 
@@ -136,7 +140,7 @@ export async function setPhoto(person: PersonDoc, fileId: string, source: 'uploa
   return person;
 }
 
-async function storePhoto(bytes: Uint8Array, code: string, actor: AuthContext) {
+export async function storePhoto(bytes: Uint8Array, code: string, actor: AuthContext) {
   const jpeg = await sharp(bytes).rotate().resize(PHOTO.width, PHOTO.height, { fit: 'cover', position: 'attention' }).jpeg({ quality: 85 }).toBuffer();
   const now = new Date();
   const key = `roster/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${nanoid(21)}.jpg`;
@@ -297,4 +301,49 @@ export async function exportPhotosZip(people: PersonDoc[]) {
   }
   // JPEGs are already compressed; storing them keeps the ZIP fast to build.
   return Buffer.from(zipSync(entries, { level: 0 }));
+}
+
+export const MAX_CARDS = 1000;
+
+/**
+ * Print-ready ID card sheets for the given people: the institution's saved card design for that
+ * kind when it has one, otherwise a clean default in the shop's colours with the school's name.
+ */
+export async function renderRosterCards(institution: string, kind: PersonKind, people: PersonDoc[]) {
+  if (people.length === 0) throw ApiError.badRequest('No one to print');
+  if (people.length > MAX_CARDS) throw ApiError.badRequest(`Print at most ${MAX_CARDS} cards at a time; filter by class`);
+  const cardKind: CardKind = kind === 'staff' ? 'teacher_id' : 'student_id';
+  const saved = await InstitutionTemplateModel.findOne({ institution, kind: cardKind }).sort({ updatedAt: -1 }).lean();
+  let template: CardTemplate;
+  if (saved) {
+    template = await toCardTemplate(saved);
+  } else {
+    const inst = await InstitutionModel.findById(institution).select('name phone address').lean();
+    template = {
+      kind: cardKind,
+      orientation: 'portrait',
+      colors: { primary: '#142B4A', accent: '#F65B2A', text: '#142B4A' },
+      headerText: inst?.name ?? 'Institution',
+      subText: inst?.address ? [inst.address.line1, inst.address.city].filter(Boolean).join(', ') : '',
+      fields: KIND_SPECS[cardKind].defaultFields as FieldKey[],
+      institutionPhone: inst?.phone ? `+91 ${inst.phone}` : undefined,
+    };
+  }
+
+  const fileIds = people.map((p) => p.photo?.file).filter(Boolean);
+  const files = await FileModel.find({ _id: { $in: fileIds }, status: 'uploaded' }).select('key bucket').lean();
+  const byId = new Map(files.map((f) => [String(f._id), f]));
+  const records = [];
+  for (const p of sortPeople(people)) {
+    const f = p.photo?.file && byId.get(String(p.photo.file));
+    const photo = f ? await readObject(f.bucket as 'private', f.key) : null;
+    const data = Object.fromEntries(ROSTER_FIELDS.map((k) => [k, (p as unknown as Record<string, string | undefined>)[k] ?? '']));
+    records.push({ data, photo: photo ? new Uint8Array(photo) : undefined });
+  }
+  return renderCardSheets({
+    template,
+    records,
+    logo: saved ? await loadLogo(saved) : null,
+    title: `${template.headerText} - ${KIND_SPECS[cardKind].label}`,
+  });
 }

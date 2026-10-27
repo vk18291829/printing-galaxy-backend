@@ -31,7 +31,7 @@ const COLUMN_LABEL: Record<string, string> = {
 
 function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
   return (
-    <div className="rounded-xl border bg-card px-4 py-3">
+    <div className="rounded-xl shadow-card bg-card px-4 py-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-xl font-bold tabular-nums">{value}</p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
@@ -121,7 +121,7 @@ export default function BulkJobDetailPage() {
       </div>
 
       {job.status === 'failed' && job.error && (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
+        <div className="rounded-xl shadow-card border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
           <p className="font-semibold text-destructive">Processing failed (attempt {job.attempts})</p>
           <p className="mt-1">{job.error}</p>
         </div>

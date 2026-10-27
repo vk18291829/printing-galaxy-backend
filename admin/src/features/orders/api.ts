@@ -11,6 +11,9 @@ export interface OrderListParams {
   audience?: 'retail' | 'institution';
   segment?: OrderSegment;
   overdue?: boolean;
+  assignedTo?: string;
+  sort?: 'newest' | 'due';
+  limit?: number;
   paymentStatus?: string;
   active?: boolean;
 }

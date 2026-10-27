@@ -120,7 +120,7 @@ export default function InstitutionDashboardPage() {
             <p className="text-sm text-muted-foreground">{t('institutionDashboard.quotesDesc')}</p>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y rounded-xl border bg-background">
+            <ul className="divide-y rounded-xl shadow-card bg-background">
               {quotes.map((o) => (
                 <li key={o._id}>
                   <Link to={`/account/orders/${o._id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm hover:bg-accent/50">
@@ -178,7 +178,7 @@ export default function InstitutionDashboardPage() {
                 <Link
                   key={p._id}
                   to={`/institution/orders/new?product=${p.slug}`}
-                  className="group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:border-primary/50"
+                  className="group flex items-center gap-3 rounded-xl shadow-card px-3 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:border-primary/50"
                 >
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                     <DynamicIcon name={p.icon} className="size-4" />
@@ -190,7 +190,7 @@ export default function InstitutionDashboardPage() {
               {hidden > 0 && (
                 <Link
                   to="/institution/orders/new"
-                  className="group flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary transition-colors hover:border-primary"
+                  className="group flex items-center gap-3 rounded-xl shadow-card border-primary/40 bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary transition-colors hover:border-primary"
                 >
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white">
                     <IconPlus className="size-4" />

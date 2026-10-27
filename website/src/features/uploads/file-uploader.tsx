@@ -146,7 +146,7 @@ export function FileUploader({
       {(files.length > 0 || pending.length > 0) && (
         <ul className="space-y-2">
           {files.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5">
+            <li key={f.id} className="flex items-center gap-3 rounded-xl shadow-card bg-card px-3 py-2.5">
               <FileIcon name={f.name} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{f.name}</p>
@@ -171,7 +171,7 @@ export function FileUploader({
             </li>
           ))}
           {pending.map((u) => (
-            <li key={u.key} className="space-y-2 rounded-xl border bg-card px-3 py-2.5">
+            <li key={u.key} className="space-y-2 rounded-xl shadow-card bg-card px-3 py-2.5">
               <div className="flex items-center gap-3">
                 <IconLoader2 className="size-5 animate-spin text-primary" />
                 <p className="min-w-0 flex-1 truncate text-sm font-medium">{u.name}</p>

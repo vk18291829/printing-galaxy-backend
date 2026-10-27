@@ -22,6 +22,7 @@ const UpdatesPage = lazy(() => import('@/pages/account/updates-page'));
 const InstitutionDashboardPage = lazy(() => import('@/pages/institution/dashboard-page'));
 const NewOrderPage = lazy(() => import('@/pages/institution/new-order-page'));
 const StudentsPage = lazy(() => import('@/pages/institution/students-page'));
+const PhotoLinkPage = lazy(() => import('@/pages/photo-link-page'));
 const NotFoundPage = lazy(() => import('@/pages/not-found-page'));
 const TrackPage = lazy(() => import('@/pages/track-page'));
 const UnsubscribePage = lazy(() => import('@/pages/unsubscribe-page'));
@@ -65,6 +66,8 @@ export const router = createBrowserRouter([
       { path: 'institution', element: page(<RequireAuth kind="institution"><InstitutionDashboardPage /></RequireAuth>) },
       { path: 'institution/orders/new', element: page(<RequireAuth kind="institution"><NewOrderPage /></RequireAuth>) },
       { path: 'institution/students', element: page(<RequireAuth kind="institution"><StudentsPage /></RequireAuth>) },
+      // A class teacher's photo link: no sign-in.
+      { path: 'p/:token', element: page(<PhotoLinkPage />) },
 
       { path: '*', element: page(<NotFoundPage />) },
     ],
