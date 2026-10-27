@@ -3,7 +3,7 @@ import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { escapeRegex, objectId, paginate } from '@/common/validation';
-import { requireAdmin } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import { ProductModel } from '@/modules/catalog/product.model';
@@ -76,7 +76,7 @@ adminReviewsRouter.patch('/:id', validate({ params: z.object({ id: objectId }), 
   res.json(review);
 });
 
-adminReviewsRouter.delete('/:id', requireAdmin, validate({ params: z.object({ id: objectId }) }), async (req, res) => {
+adminReviewsRouter.delete('/:id', requirePermission('reviews'), validate({ params: z.object({ id: objectId }) }), async (req, res) => {
   const review = await ReviewModel.findByIdAndDelete(req.params.id);
   if (!review) throw ApiError.notFound('Review');
   await refreshProductRating(review.product);

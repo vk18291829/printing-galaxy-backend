@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { idempotencyHeader } from '@/common/idempotency';
 import { escapeRegex, objectId, paginate } from '@/common/validation';
-import { requireAdmin } from '@/middleware/auth';
+import { requireAdmin, requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import {
@@ -26,6 +26,7 @@ import {
   assignSchema,
   handoverSchema,
   quoteItemsSchema,
+  dueDateSchema,
   recordPaymentSchema,
   refundSchema,
   sendProofSchema,
@@ -63,6 +64,11 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
   // "Active" is the production queue: unpaid online orders and unpriced quotes are left out.
   else if (q.active) filter.status = { $nin: [...TERMINAL_STATUSES, ...PRE_PRODUCTION_STATUSES.filter((st) => st !== 'quote_pending')] };
   if (q.audience) filter.audience = q.audience;
+  if (q.segment) filter.segment = q.segment;
+  if (q.overdue) {
+    filter.dueDate = { $lt: new Date() };
+    if (!q.status) filter.status = { $nin: [...TERMINAL_STATUSES, ...PRE_PRODUCTION_STATUSES, 'ready', 'out_for_delivery'] };
+  }
   if (q.paymentStatus) filter['payment.status'] = q.paymentStatus;
   if (q.fulfilment) filter['fulfilment.method'] = q.fulfilment;
   if (q.assignedTo) filter.assignedTo = q.assignedTo;
@@ -72,7 +78,7 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
   }
 
   const { skip, limit } = paginate(q.page, q.limit);
-  const [items, total, statusCounts] = await Promise.all([
+  const [items, total, statusCounts, segmentCounts] = await Promise.all([
     OrderModel.find(filter)
       .select('-statusHistory -items.proofs')
       .sort({ createdAt: -1 })
@@ -84,6 +90,11 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
     OrderModel.aggregate<{ _id: string; count: number }>([
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
+    // Open orders per segment, for the tab badges.
+    OrderModel.aggregate<{ _id: string; count: number }>([
+      { $match: { status: { $nin: TERMINAL_STATUSES } } },
+      { $group: { _id: '$segment', count: { $sum: 1 } } },
+    ]),
   ]);
 
   res.json({
@@ -92,7 +103,25 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
     page: q.page,
     pages: Math.ceil(total / limit),
     statusCounts: Object.fromEntries(statusCounts.map((s) => [s._id, s.count])),
+    segmentCounts: Object.fromEntries(segmentCounts.map((s) => [s._id ?? 'individual', s.count])),
   });
+});
+
+/** Changes the promised date; the change and its reason go into the order history. */
+adminOrdersRouter.patch('/:id/due', validate({ params: idParams, body: dueDateSchema }), async (req, res) => {
+  const { dueDate, note } = req.body as z.infer<typeof dueDateSchema>;
+  const order = await loadOrder(req.params.id as string);
+  if (TERMINAL_STATUSES.includes(order.status as OrderStatus)) throw ApiError.conflict('Order is closed');
+  const before = order.dueDate;
+  order.dueDate = dueDate;
+  await order.save();
+  audit(req, {
+    action: 'order.due',
+    entity: 'Order',
+    entityId: order._id,
+    summary: `${order.orderNumber}: due ${before?.toISOString().slice(0, 10) ?? '—'} → ${dueDate.toISOString().slice(0, 10)}${note ? ` (${note})` : ''}`,
+  });
+  res.json(order.toJSON());
 });
 
 adminOrdersRouter.get('/:id', validate({ params: idParams }), async (req, res) => {
@@ -164,7 +193,7 @@ adminOrdersRouter.post(
 
 adminOrdersRouter.post(
   '/:id/refunds',
-  requireAdmin,
+  requirePermission('refunds'),
   validate({ params: idParams, body: refundSchema }),
   async (req, res) => {
     const body = req.body as z.infer<typeof refundSchema>;
@@ -267,6 +296,7 @@ adminOrdersRouter.patch(
 
 adminOrdersRouter.post(
   '/:id/items/:itemId/proofs',
+  requirePermission('proofs'),
   validate({ params: z.object({ id: objectId, itemId: objectId }), body: sendProofSchema }),
   async (req, res) => {
     const order = await loadOrder(req.params.id as string);
@@ -289,6 +319,7 @@ adminOrdersRouter.post(
 
 adminOrdersRouter.post(
   '/:id/payments',
+  requirePermission('payments'),
   validate({ params: idParams, body: recordPaymentSchema }),
   async (req, res) => {
     const { amount, provider, note } = req.body as z.infer<typeof recordPaymentSchema>;
@@ -300,7 +331,7 @@ adminOrdersRouter.post(
 );
 
 /** Counter (walk-in) order entered by staff, so all work lives in one system. */
-adminOrdersRouter.post('/walk-in', validate({ body: walkInOrderSchema }), async (req, res) => {
+adminOrdersRouter.post('/walk-in', requirePermission('walkin'), validate({ body: walkInOrderSchema }), async (req, res) => {
   const input = req.body as z.infer<typeof walkInOrderSchema>;
   if (input.fulfilment.method === 'delivery' && !input.fulfilment.address) {
     throw ApiError.badRequest('Delivery address is required');

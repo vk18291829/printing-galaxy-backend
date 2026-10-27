@@ -1,3 +1,4 @@
+import { permissionsFor } from '@/common/permissions';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
@@ -126,7 +127,7 @@ type Principal = NonNullable<Awaited<ReturnType<typeof loadPrincipal>>>;
 function serializePrincipal(p: Principal) {
   return p.kind === 'institution'
     ? { kind: p.kind, institution: p.institution.toJSON() }
-    : { kind: p.kind, user: p.user.toJSON() };
+    : { kind: p.kind, user: { ...p.user.toJSON(), permissions: permissionsFor(p.user.role, p.user.staffRoles) } };
 }
 
 export async function getMe(ctx: AuthContext) {

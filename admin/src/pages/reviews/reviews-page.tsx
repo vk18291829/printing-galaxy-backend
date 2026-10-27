@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { useIsAdmin } from '@/features/auth/auth-store';
+import { useCan } from '@/features/auth/auth-store';
 import { useAdminReviews, useDeleteReview, useUpdateReview, type AdminReview, type ReviewStatus } from '@/features/reviews/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { formatDate } from '@/lib/format';
@@ -67,7 +67,7 @@ function StatTile({ label, value, hint, active, onClick }: { label: string; valu
 }
 
 function ReviewCard({ review }: { review: AdminReview }) {
-  const isAdmin = useIsAdmin();
+  const isAdmin = useCan('reviews');
   const update = useUpdateReview();
   const remove = useDeleteReview();
   const [replying, setReplying] = useState(false);

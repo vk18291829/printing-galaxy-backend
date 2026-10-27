@@ -3,7 +3,7 @@ import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { escapeRegex, objectId } from '@/common/validation';
-import { requireAdmin } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import { OrderModel } from '@/modules/orders/order.model';
@@ -20,7 +20,7 @@ adminCatalogRouter.get('/categories', async (_req, res) => {
   res.json(await CategoryModel.find().sort({ sortOrder: 1 }).lean());
 });
 
-adminCatalogRouter.post('/categories', requireAdmin, validate({ body: categoryInputSchema }), async (req, res) => {
+adminCatalogRouter.post('/categories', requirePermission('catalog'), validate({ body: categoryInputSchema }), async (req, res) => {
   const category = await CategoryModel.create(req.body);
   audit(req, { action: 'category.create', entity: 'Category', entityId: category._id, summary: category.name.en });
   res.status(201).json(category);
@@ -28,7 +28,7 @@ adminCatalogRouter.post('/categories', requireAdmin, validate({ body: categoryIn
 
 adminCatalogRouter.put(
   '/categories/:id',
-  requireAdmin,
+  requirePermission('catalog'),
   validate({ params: idParams, body: categoryInputSchema }),
   async (req, res) => {
     const category = await CategoryModel.findByIdAndUpdate(req.params.id, req.body, {
@@ -41,7 +41,7 @@ adminCatalogRouter.put(
   },
 );
 
-adminCatalogRouter.delete('/categories/:id', requireAdmin, validate({ params: idParams }), async (req, res) => {
+adminCatalogRouter.delete('/categories/:id', requirePermission('catalog'), validate({ params: idParams }), async (req, res) => {
   const inUse = await ProductModel.exists({ category: req.params.id });
   if (inUse) throw ApiError.conflict('Move or delete the products in this category first');
   const category = await CategoryModel.findByIdAndDelete(req.params.id);
@@ -84,7 +84,7 @@ async function assertCategory(id: string) {
   if (!(await CategoryModel.exists({ _id: id }))) throw ApiError.badRequest('Category not found');
 }
 
-adminCatalogRouter.post('/products', requireAdmin, validate({ body: productInputSchema }), async (req, res) => {
+adminCatalogRouter.post('/products', requirePermission('catalog'), validate({ body: productInputSchema }), async (req, res) => {
   await assertCategory(req.body.category);
   const product = await ProductModel.create(req.body);
   audit(req, { action: 'product.create', entity: 'Product', entityId: product._id, summary: product.name.en });
@@ -93,7 +93,7 @@ adminCatalogRouter.post('/products', requireAdmin, validate({ body: productInput
 
 adminCatalogRouter.put(
   '/products/:id',
-  requireAdmin,
+  requirePermission('catalog'),
   validate({ params: idParams, body: productInputSchema }),
   async (req, res) => {
     await assertCategory(req.body.category);
@@ -117,7 +117,7 @@ adminCatalogRouter.put(
 
 adminCatalogRouter.patch(
   '/products/:id/active',
-  requireAdmin,
+  requirePermission('catalog'),
   validate({ params: idParams, body: z.object({ isActive: z.boolean() }) }),
   async (req, res) => {
     const product = await ProductModel.findByIdAndUpdate(
@@ -136,7 +136,7 @@ adminCatalogRouter.patch(
   },
 );
 
-adminCatalogRouter.delete('/products/:id', requireAdmin, validate({ params: idParams }), async (req, res) => {
+adminCatalogRouter.delete('/products/:id', requirePermission('catalog'), validate({ params: idParams }), async (req, res) => {
   const used = await OrderModel.exists({ 'items.product': req.params.id });
   if (used) throw ApiError.conflict('This product has orders. Disable it instead of deleting.');
   const product = await ProductModel.findByIdAndDelete(req.params.id);

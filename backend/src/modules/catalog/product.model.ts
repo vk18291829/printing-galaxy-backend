@@ -77,6 +77,10 @@ const productSchema = new Schema(
     shortDescription: { type: localizedSchema, default: () => ({ en: '' }) },
     description: { type: localizedSchema, default: () => ({ en: '' }) },
     images: { type: [String], default: [] },
+    /** Demo or preview video: a YouTube/Vimeo link or an uploaded MP4, shown first in the gallery. */
+    videoUrl: { type: String, trim: true },
+    /** Who to call about this product; the shop's number when empty. */
+    contactPhone: { type: String, trim: true },
     icon: { type: String, default: 'printer' },
     unit: { type: String, enum: PRODUCT_UNITS, default: 'piece' },
     workflow: { type: String, enum: PRODUCT_WORKFLOWS, default: 'standard' },

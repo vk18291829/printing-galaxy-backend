@@ -30,6 +30,9 @@ const ALLOWED_TYPES: Record<string, string> = {
   'application/vnd.ms-excel': 'xls',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
   'application/zip': 'zip',
+  // Product demo videos (catalogue uploads by staff).
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
 };
 
 const isStaff = (auth: AuthContext) =>
@@ -63,6 +66,9 @@ uploadsRouter.post('/presign', authenticate, validate({ body: presignSchema }), 
   const auth = req.auth!;
   const input = req.body as z.infer<typeof presignSchema>;
 
+  if (input.mimeType.startsWith('video/') && input.purpose !== 'catalog') {
+    throw ApiError.badRequest('Videos can only be added to products');
+  }
   if ((input.purpose === 'proof' || input.purpose === 'catalog') && !isStaff(auth)) {
     throw ApiError.forbidden();
   }

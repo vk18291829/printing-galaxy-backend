@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AUDIENCES } from '@/common/types';
-import { localized, localizedOptional, objectId } from '@/common/validation';
+import { indianPhone, localized, localizedOptional, objectId } from '@/common/validation';
 import { PRODUCT_UNITS, PRODUCT_WORKFLOWS } from './product.model';
 
 const slug = z
@@ -61,6 +61,8 @@ export const productInputSchema = z.object({
   shortDescription: localizedOptional.optional(),
   description: localizedOptional.optional(),
   images: z.array(z.string().url()).max(5, 'Up to 5 images per product').default([]),
+  videoUrl: z.union([z.string().trim().url('Enter a full video link (https://…)').max(500), z.literal('')]).optional(),
+  contactPhone: z.union([indianPhone, z.literal('')]).optional(),
   icon: z.string().trim().max(60).optional(),
   unit: z.enum(PRODUCT_UNITS),
   workflow: z.enum(PRODUCT_WORKFLOWS),

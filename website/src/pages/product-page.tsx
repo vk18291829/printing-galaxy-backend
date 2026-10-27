@@ -3,8 +3,10 @@ import {
   IconBuildingCommunity,
   IconClipboardList,
   IconClock,
+  IconBrandWhatsapp,
   IconLock,
   IconPalette,
+  IconPhone,
   IconShoppingBagPlus,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -33,6 +35,7 @@ import { CardCropUploader } from '@/features/crop/card-crop-uploader';
 import { ProductReviews, RatingSummaryLink } from '@/features/reviews/product-reviews';
 import { FileUploader } from '@/features/uploads/file-uploader';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
@@ -150,6 +153,36 @@ function PriceSummary({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Call or WhatsApp about this product: its own number, or the shop's. */
+function ProductContact({ product }: { product: Product }) {
+  const { t } = useTranslation();
+  const l = useLocalized();
+  const { data: settings } = usePublicSettings();
+  const phone = product.contactPhone || settings?.shop.phone;
+  const whatsapp = product.contactPhone || settings?.shop.whatsapp || settings?.shop.phone;
+  if (!phone && !whatsapp) return null;
+  const message = encodeURIComponent(t('product.whatsappMessage', { product: l(product.name) }));
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/50 px-3 py-2.5">
+      <span className="mr-auto text-sm font-medium text-brand-navy">{t('product.questions')}</span>
+      {phone && (
+        <Button variant="outline" size="sm" asChild>
+          <a href={`tel:+91${phone}`}>
+            <IconPhone /> {t('product.call')}
+          </a>
+        </Button>
+      )}
+      {whatsapp && (
+        <Button size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe5b]" asChild>
+          <a href={`https://wa.me/91${whatsapp}?text=${message}`} target="_blank" rel="noopener noreferrer">
+            <IconBrandWhatsapp /> WhatsApp
+          </a>
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -396,6 +429,7 @@ export default function ProductPage() {
                   <AlertDescription className="text-foreground">{t('product.sensitiveNote')}</AlertDescription>
                 </Alert>
               )}
+              <ProductContact product={product} />
             </div>
           </header>
 

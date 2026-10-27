@@ -1,5 +1,6 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 import { addressSchema, AUDIENCES, localizedSchema } from '@/common/types';
+import { ORDER_SEGMENTS } from '@/modules/catalog/segments';
 
 export const ORDER_STATUSES = [
   'quote_pending', // waiting for staff to price a custom job
@@ -200,6 +201,10 @@ const orderSchema = new Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
     audience: { type: String, enum: AUDIENCES, required: true, index: true },
+    /** Line of business (individual, institution, business, wedding), for separate admin queues. */
+    segment: { type: String, enum: ORDER_SEGMENTS, index: true },
+    /** When the shop promises the order will be ready; from the products' working days, editable by staff. */
+    dueDate: { type: Date, index: true },
     customer: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     institution: { type: Schema.Types.ObjectId, ref: 'Institution', index: true },
     contact: {

@@ -1,7 +1,8 @@
 import { razorpayEnabled } from '@/config/env';
 import { logEvent, logger } from '@/config/logger';
 import { OrderModel } from '@/modules/orders/order.model';
-import { changeStatus } from '@/modules/orders/order.service';
+import { changeStatus, planOrder } from '@/modules/orders/order.service';
+import { TERMINAL_STATUSES } from '@/modules/orders/order.model';
 import { PaymentModel } from '@/modules/payments/payment.model';
 import { AUTO_CANCEL_REASON, reconcileRazorpayOrder } from '@/modules/payments/payment.service';
 
@@ -71,7 +72,25 @@ export async function reconcilePayments(now = new Date()) {
   return found;
 }
 
+/** Fills in the segment (and, for open orders, a due date) on orders created before they existed. */
+export async function backfillOrderPlans() {
+  let updated = 0;
+  for (;;) {
+    const batch = await OrderModel.find({ segment: { $exists: false } }).select('audience items.product createdAt status dueDate').limit(200);
+    if (!batch.length) break;
+    for (const order of batch) {
+      const plan = await planOrder(order.audience, order.items.map((i) => i.product), order.createdAt ?? new Date());
+      const open = !TERMINAL_STATUSES.includes(order.status as never);
+      await OrderModel.updateOne({ _id: order._id }, { $set: { segment: plan.segment, ...(open && !order.dueDate ? { dueDate: plan.dueDate } : {}) } });
+      updated += 1;
+    }
+  }
+  if (updated) logEvent('job.orders_backfilled', { updated });
+  return updated;
+}
+
 export function scheduleOrderMaintenance() {
+  void backfillOrderPlans().catch((err) => logger.error({ err }, 'Order backfill failed'));
   let running = false;
   const tick = async () => {
     if (running) return;

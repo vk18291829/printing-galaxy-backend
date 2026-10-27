@@ -2,13 +2,15 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import axios from 'axios';
 import { api, idempotent } from '@/lib/api-client';
 import type { AdminOrder, AdminOrderList } from '@/types/admin';
-import type { Address, OrderStatus } from '@/types/api';
+import type { Address, OrderSegment, OrderStatus } from '@/types/api';
 
 export interface OrderListParams {
   page?: number;
   status?: OrderStatus;
   q?: string;
   audience?: 'retail' | 'institution';
+  segment?: OrderSegment;
+  overdue?: boolean;
   paymentStatus?: string;
   active?: boolean;
 }
@@ -70,6 +72,9 @@ export const useAssignOrder = (id: string) =>
 
 export const useSaveNote = (id: string) =>
   useOrderMutation((internalNote: string) => api.patch(`/admin/orders/${id}/note`, { internalNote }));
+
+export const useSetDueDate = (id: string) =>
+  useOrderMutation((input: { dueDate: string; note?: string }) => api.patch(`/admin/orders/${id}/due`, input));
 
 export const useQuoteOrder = (id: string) =>
   useOrderMutation((input: { items: { itemId: string; lineTotal: number }[]; note?: string }) =>

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { useIsAdmin } from '@/features/auth/auth-store';
+import { useCan } from '@/features/auth/auth-store';
 import {
   useArchiveMaterial,
   useMaterials,
@@ -272,7 +272,7 @@ function HistorySheet({ material, onClose }: { material: Material; onClose: () =
 }
 
 export default function InventoryPage() {
-  const isAdmin = useIsAdmin();
+  const isAdmin = useCan('inventory');
   const { data, isLoading, error, refetch } = useMaterials();
   const [editing, setEditing] = useState<Material | 'new' | null>(null);
   const [moving, setMoving] = useState<Material | null>(null);

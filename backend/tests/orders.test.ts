@@ -249,3 +249,37 @@ describe('status follows actions', () => {
     expect(printing.body.status).toBe('printing');
   });
 });
+
+describe('order segments and due dates', () => {
+  it('files orders by line of business and promises a ready-by date the shop can change', async () => {
+    const { CategoryModel } = await import('@/modules/catalog/category.model');
+    const { ProductModel } = await import('@/modules/catalog/product.model');
+    const cat = await CategoryModel.create({ name: { en: 'Business Works' }, slug: 'business-works', audiences: ['retail'] });
+    const card = await ProductModel.create({
+      name: { en: 'Visiting Card' }, slug: 'visiting-card-test', category: cat._id, unit: 'piece', leadTimeDays: 2,
+      pricing: { retail: { enabled: true, minQty: 1, tiers: [{ minQty: 1, unitPrice: 2 }] }, institution: { enabled: false } },
+    });
+    const business = await api().post('/api/v1/orders').set(bearer(customer))
+      .send({ items: [{ productId: card._id, quantity: 100, fileIds: [] }], fulfilment: { method: 'pickup' }, paymentMethod: 'counter' })
+      .expect(201);
+    expect(business.body.segment).toBe('business');
+    // Two working days later (Sundays skipped), never before today.
+    const due = new Date(business.body.dueDate);
+    expect(due.getTime()).toBeGreaterThan(Date.now() + 24 * 3600_000);
+
+    const school = await api().post('/api/v1/orders').set(bearer(await (await import('./helpers')).institutionToken('school@test.in')))
+      .send({ items: [{ productId: seed.products.medal._id, quantity: 20, fileIds: [] }], fulfilment: { method: 'pickup' }, paymentMethod: 'counter' })
+      .expect(201);
+    expect(school.body.segment).toBe('institution');
+
+    const list = await api().get('/api/v1/admin/orders?segment=business').set(bearer(admin)).expect(200);
+    expect(list.body.items.map((o: { _id: string }) => o._id)).toEqual([business.body._id]);
+    expect(list.body.segmentCounts.business).toBe(1);
+
+    const moved = await api().patch(`/api/v1/admin/orders/${business.body._id}/due`).set(bearer(admin))
+      .send({ dueDate: '2020-01-02', note: 'Paper delayed' }).expect(200);
+    expect(moved.body.dueDate.slice(0, 10)).toBe('2020-01-02');
+    const overdue = await api().get('/api/v1/admin/orders?overdue=true').set(bearer(admin)).expect(200);
+    expect(overdue.body.items.map((o: { _id: string }) => o._id)).toContain(business.body._id);
+  });
+});

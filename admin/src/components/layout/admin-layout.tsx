@@ -7,7 +7,6 @@ import {
   IconChevronsRight,
   IconDots,
   IconExternalLink,
-  IconFileSpreadsheet,
   IconActivityHeartbeat,
   IconHistory,
   IconLayoutDashboard,
@@ -15,6 +14,7 @@ import {
   IconMenu2,
   IconMessage2,
   IconPackage,
+  IconPlus,
   IconReceipt,
   IconReportAnalytics,
   IconSettings,
@@ -50,6 +50,8 @@ import {
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useStaffLogout } from '@/features/auth/api';
+import type { Permission } from '@/lib/permissions';
+import { InstallAppButton } from '@/lib/pwa';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useDashboard } from '@/features/management/api';
 import { cn } from '@/lib/utils';
@@ -59,7 +61,10 @@ interface NavItem {
   to: string;
   label: string;
   icon: Icon;
+  /** Owner only (settings, staff, audit…). */
   adminOnly?: boolean;
+  /** Shown when the person's roles grant this permission. */
+  perm?: Permission;
   badge?: 'orders' | 'institutions' | 'stock' | 'reviews';
   end?: boolean;
 }
@@ -69,40 +74,39 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: 'Operations',
     items: [
       { to: '/', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
-      { to: '/orders', label: 'Orders', icon: IconPackage, badge: 'orders', end: true },
-      { to: '/orders/new', label: 'Walk-in order', icon: IconReceipt },
-      { to: '/bulk-jobs', label: 'Bulk card lists', icon: IconFileSpreadsheet },
-      { to: '/deliveries', label: 'Deliveries', icon: IconTruckDelivery },
-      { to: '/inventory', label: 'Materials & stock', icon: IconBoxSeam, badge: 'stock' },
+      { to: '/orders', label: 'Orders', icon: IconPackage, badge: 'orders', end: true, perm: 'orders' },
+      { to: '/orders/new', label: 'Walk-in order', icon: IconReceipt, perm: 'walkin' },
+      { to: '/deliveries', label: 'Deliveries', icon: IconTruckDelivery, perm: 'orders' },
+      { to: '/inventory', label: 'Materials & stock', icon: IconBoxSeam, badge: 'stock', perm: 'inventory' },
     ],
   },
   {
     section: 'Catalogue',
     items: [
-      { to: '/products', label: 'Products & prices', icon: IconTags, adminOnly: true },
-      { to: '/categories', label: 'Categories', icon: IconCategory, adminOnly: true },
+      { to: '/products', label: 'Products & prices', icon: IconTags, perm: 'catalog' },
+      { to: '/categories', label: 'Categories', icon: IconCategory, perm: 'catalog' },
     ],
   },
   {
     section: 'Marketing',
     items: [
-      { to: '/banners', label: 'Banners & offers', icon: IconSpeakerphone, adminOnly: true },
-      { to: '/promotions', label: 'Promotions', icon: IconMessage2, adminOnly: true },
-      { to: '/reviews', label: 'Ratings & reviews', icon: IconStars, badge: 'reviews' },
+      { to: '/banners', label: 'Banners & offers', icon: IconSpeakerphone, perm: 'marketing' },
+      { to: '/promotions', label: 'Promotions', icon: IconMessage2, perm: 'marketing' },
+      { to: '/reviews', label: 'Ratings & reviews', icon: IconStars, badge: 'reviews', perm: 'reviews' },
     ],
   },
   {
     section: 'People',
     items: [
-      { to: '/institutions', label: 'Institutions', icon: IconBuildingCommunity, badge: 'institutions' },
-      { to: '/customers', label: 'Customers', icon: IconUsers },
+      { to: '/institutions', label: 'Institutions', icon: IconBuildingCommunity, badge: 'institutions', perm: 'institutions' },
+      { to: '/customers', label: 'Customers', icon: IconUsers, perm: 'customers' },
       { to: '/staff', label: 'Staff', icon: IconUserShield, adminOnly: true },
     ],
   },
   {
     section: 'System',
     items: [
-      { to: '/reports', label: 'Reports', icon: IconReportAnalytics, adminOnly: true },
+      { to: '/reports', label: 'Reports', icon: IconReportAnalytics, perm: 'reports' },
       { to: '/settings', label: 'Settings', icon: IconSettings, adminOnly: true },
       { to: '/audit', label: 'Audit log', icon: IconHistory, adminOnly: true },
       { to: '/system', label: 'System activity', icon: IconActivityHeartbeat, adminOnly: true },
@@ -144,7 +148,9 @@ function Brand({ collapsed }: { collapsed?: boolean }) {
 
 function SidebarNav({ collapsed, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
   const role = useAuthStore((s) => s.user?.role);
+  const permissions = useAuthStore((s) => s.user?.permissions);
   const isAdmin = role === 'admin';
+  const allowed = (i: NavItem) => (i.adminOnly ? isAdmin : !i.perm || isAdmin || Boolean(permissions?.includes(i.perm)));
   const isRider = role === 'delivery';
   const { data } = useDashboard(!isRider);
   const openOrders = Object.values(data?.openByStatus ?? {}).reduce((a, b) => a + (b ?? 0), 0);
@@ -158,7 +164,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed?: boolean; onNavigate
   return (
     <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
       {(isRider ? RIDER_NAV : NAV).map((group) => {
-        const items = group.items.filter((i) => !i.adminOnly || isAdmin);
+        const items = group.items.filter(allowed);
         if (items.length === 0) return null;
         return (
           <div key={group.section}>
@@ -297,9 +303,60 @@ function SidebarBody({ collapsed, onNavigate, onToggle }: { collapsed?: boolean;
             {!collapsed && 'Collapse'}
           </Button>
         )}
+        {!collapsed && <InstallAppButton className="w-full" />}
         <UserMenu collapsed={collapsed} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Phone / tablet tab bar, like an app: the screens used all day, a big "+" for a counter order,
+ * and More for the full menu. Tabs follow the person's permissions.
+ */
+function BottomTabs({ onMore }: { onMore: () => void }) {
+  const user = useAuthStore((s) => s.user);
+  const can = (p: Permission) => user?.role === 'admin' || Boolean(user?.permissions?.includes(p));
+  const rider = user?.role === 'delivery';
+  const tab = 'flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors';
+  const on = 'text-primary';
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_-12px_rgb(20_43_74/0.35)] backdrop-blur-xl lg:hidden"
+      aria-label="Main"
+    >
+      <div className="mx-auto flex h-16 max-w-lg items-stretch px-2">
+        {!rider && (
+          <NavLink to="/" end className={({ isActive }) => cn(tab, isActive && on)}>
+            <IconLayoutDashboard className="size-6" /> Home
+          </NavLink>
+        )}
+        {!rider && can('orders') && (
+          <NavLink to="/orders" end className={({ isActive }) => cn(tab, isActive && on)}>
+            <IconPackage className="size-6" /> Orders
+          </NavLink>
+        )}
+        {!rider && can('walkin') && (
+          <div className="flex flex-1 items-start justify-center">
+            <Link
+              to="/orders/new"
+              aria-label="New walk-in order"
+              className="-mt-5 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-background active:scale-95"
+            >
+              <IconPlus className="size-7" stroke={2.5} />
+            </Link>
+          </div>
+        )}
+        {(rider || can('orders')) && (
+          <NavLink to="/deliveries" className={({ isActive }) => cn(tab, isActive && on)}>
+            <IconTruckDelivery className="size-6" /> {rider ? 'My deliveries' : 'Deliveries'}
+          </NavLink>
+        )}
+        <button type="button" onClick={onMore} className={tab}>
+          <IconMenu2 className="size-6" /> More
+        </button>
+      </div>
+    </nav>
   );
 }
 
@@ -385,7 +442,7 @@ export function AdminLayout() {
           <header className="sticky top-0 z-30 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
             <div className="page-container flex h-14 items-center gap-2">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
+              <Button variant="ghost" size="icon-sm" className="hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
                 <IconMenu2 className="size-5" />
               </Button>
               <SheetContent side="left" className="w-72 gap-0 border-sidebar-border bg-sidebar p-0">
@@ -404,13 +461,14 @@ export function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:pb-6">
             <div className="page-container">
               <Outlet />
             </div>
           </main>
         </div>
       </div>
+      <BottomTabs onMore={() => setMobileOpen(true)} />
     </TooltipProvider>
   );
 }

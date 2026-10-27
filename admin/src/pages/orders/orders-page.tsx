@@ -1,4 +1,4 @@
-import { IconPackageOff, IconReceipt, IconSearch } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBriefcase, IconHeart, IconLayoutGrid, IconPackageOff, IconReceipt, IconSchool, IconSearch, IconUser } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Pagination } from '@/components/common/pagination';
@@ -15,7 +15,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { formatDate, formatINR } from '@/lib/format';
 import { en } from '@/lib/l10n';
 import { cn } from '@/lib/utils';
-import type { OrderStatus } from '@/types/api';
+import type { Order, OrderSegment, OrderStatus } from '@/types/api';
 
 const STATUS_TABS: (OrderStatus | 'active' | 'all')[] = [
   'active',
@@ -29,6 +29,30 @@ const STATUS_TABS: (OrderStatus | 'active' | 'all')[] = [
   'all',
 ];
 
+/** Each line of business is its own queue. */
+const SEGMENT_TABS: { key: OrderSegment | 'all'; label: string; icon: typeof IconUser }[] = [
+  { key: 'all', label: 'All', icon: IconLayoutGrid },
+  { key: 'individual', label: 'Individual', icon: IconUser },
+  { key: 'institution', label: 'School & College', icon: IconSchool },
+  { key: 'business', label: 'Business', icon: IconBriefcase },
+  { key: 'wedding', label: 'Wedding', icon: IconHeart },
+];
+
+const CLOSED: OrderStatus[] = ['delivered', 'picked_up', 'cancelled', 'ready', 'out_for_delivery'];
+
+/** "Due 29 Oct", red once the date has passed and the order isn't ready yet. */
+function DueLabel({ order }: { order: Pick<Order, 'dueDate' | 'status'> }) {
+  if (!order.dueDate || CLOSED.includes(order.status)) return null;
+  const late = new Date(order.dueDate) < new Date(new Date().toDateString());
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium', late ? 'text-destructive' : 'text-muted-foreground')}>
+      {late && <IconAlertTriangle className="size-3" />}
+      {late ? 'Overdue · ' : 'Due '}
+      {formatDate(order.dueDate, 'en')}
+    </span>
+  );
+}
+
 export default function OrdersPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -37,14 +61,16 @@ export default function OrdersPage() {
 
   const statusParam = params.get('status') as OrderStatus | null;
   const tab: OrderStatus | 'active' | 'all' = statusParam ?? (params.get('active') === 'false' ? 'all' : 'active');
-  const audience = (params.get('audience') as 'retail' | 'institution' | null) ?? undefined;
+  const segment = (params.get('segment') as OrderSegment | null) ?? undefined;
+  const overdue = params.get('overdue') === 'true';
   const paymentStatus = params.get('paymentStatus') ?? undefined;
   const page = Number(params.get('page') ?? 1);
 
   const { data, isLoading, error, refetch, isFetching } = useAdminOrders({
     page,
     q,
-    audience,
+    segment,
+    overdue: overdue || undefined,
     paymentStatus,
     status: statusParam ?? undefined,
     active: tab === 'active',
@@ -77,6 +103,29 @@ export default function OrdersPage() {
         }
       />
 
+      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+        {SEGMENT_TABS.map(({ key, label, icon: Icon }) => {
+          const on = (segment ?? 'all') === key;
+          const count = key === 'all' ? undefined : data?.segmentCounts?.[key];
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => update({ segment: key === 'all' ? undefined : key })}
+              aria-pressed={on}
+              className={cn(
+                'flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors',
+                on ? 'border-primary bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Icon className="size-4" />
+              {label}
+              {count ? <span className={cn('rounded-full px-1.5 text-[11px] tabular-nums', on ? 'bg-white/20' : 'bg-muted')}>{count}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1 [scrollbar-width:none]">
         {STATUS_TABS.map((t) => {
           const count = t !== 'active' && t !== 'all' ? data?.statusCounts[t] : undefined;
@@ -101,16 +150,14 @@ export default function OrdersPage() {
           <IconSearch className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Order number, phone or name" className="pl-9" />
         </div>
-        <Select value={audience ?? 'all'} onValueChange={(v) => update({ audience: v === 'all' ? undefined : v })}>
-          <SelectTrigger className="sm:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All customers</SelectItem>
-            <SelectItem value="retail">Individuals</SelectItem>
-            <SelectItem value="institution">Institutions</SelectItem>
-          </SelectContent>
-        </Select>
+        <Button
+          variant={overdue ? 'destructive' : 'outline'}
+          className="sm:w-auto"
+          onClick={() => update({ overdue: overdue ? undefined : 'true' })}
+          aria-pressed={overdue}
+        >
+          <IconAlertTriangle /> Overdue
+        </Button>
         <Select value={paymentStatus ?? 'all'} onValueChange={(v) => update({ paymentStatus: v === 'all' ? undefined : v })}>
           <SelectTrigger className="sm:w-44">
             <SelectValue />
@@ -150,6 +197,7 @@ export default function OrdersPage() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <OrderStatusBadge status={o.status} />
                         <PaymentStatusBadge status={o.payment.status} />
+                        <DueLabel order={o} />
                         <span className="ml-auto text-[11px] text-muted-foreground">
                           {formatDate(o.createdAt, 'en', true)} · {o.audience === 'institution' ? 'Institution' : o.source === 'walk_in' ? 'Walk-in' : 'Online'}
                         </span>
@@ -177,6 +225,7 @@ export default function OrdersPage() {
                       <TableCell className="pl-5">
                         <p className="font-mono font-semibold">{o.orderNumber}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(o.createdAt, 'en', true)}</p>
+                        <DueLabel order={o} />
                       </TableCell>
                       <TableCell>
                         <p className="max-w-52 truncate font-medium">{o.contact?.name || '—'}</p>

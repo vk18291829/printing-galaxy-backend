@@ -7,8 +7,11 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { ConfirmHost } from '@/components/common/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { refreshSession } from '@/lib/api-client';
+import { registerServiceWorker } from '@/lib/pwa';
 import { queryClient } from '@/lib/query-client';
 import '@/styles/globals.css';
+
+registerServiceWorker();
 
 function SessionBootstrap() {
   useEffect(() => {

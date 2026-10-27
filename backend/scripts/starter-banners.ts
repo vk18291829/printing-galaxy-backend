@@ -7,9 +7,9 @@ export const STARTER_BANNERS = [
   { kind: 'offer', title: L('Same-day printing for notes & PPTs', 'नोट्स और PPT की उसी दिन प्रिंटिंग'), link: '/products?category=student-printing', sortOrder: 3 },
   {
     kind: 'hero',
-    title: L('ID cards for the whole school, in one upload', 'पूरे स्कूल के ID कार्ड, एक ही अपलोड में'),
-    subtitle: L('Send a spreadsheet with photos — we print, laminate and deliver.', 'फ़ोटो के साथ स्प्रेडशीट भेजें — हम प्रिंट, लेमिनेट और डिलीवर करेंगे।'),
-    ctaLabel: L('Start bulk order', 'बल्क ऑर्डर शुरू करें'),
+    title: L('ID cards for the whole school, without the paperwork', 'पूरे स्कूल के ID कार्ड, बिना झंझट'),
+    subtitle: L('Keep your student list and photos online, see the price per card, and approve a proof before printing.', 'छात्रों की सूची और फ़ोटो ऑनलाइन रखें, प्रति कार्ड कीमत देखें, और प्रिंट से पहले प्रूफ़ मंज़ूर करें।'),
+    ctaLabel: L('For schools & colleges', 'स्कूल और कॉलेज के लिए'),
     link: '/institutions',
     theme: 'dark',
     badge: 'For schools',
@@ -36,7 +36,7 @@ export const STARTER_BANNERS = [
     sortOrder: 3,
   },
   { kind: 'promo', title: L('PVC cards', 'PVC कार्ड'), subtitle: L('Aadhaar, PAN & ID cards', 'आधार, पैन और ID कार्ड'), ctaLabel: L('Explore', 'देखें'), link: '/products?category=pvc-cards', theme: 'blue', badge: 'Popular', sortOrder: 1 },
-  { kind: 'promo', title: L('Business essentials', 'बिज़नेस ज़रूरतें'), subtitle: L('Visiting cards, stickers & hand bills', 'विज़िटिंग कार्ड, स्टिकर और हैंड बिल'), ctaLabel: L('Explore', 'देखें'), link: '/products?category=business-works', theme: 'sunset', sortOrder: 2 },
-  { kind: 'promo', title: L('School supplies', 'स्कूल सामग्री'), subtitle: L('Medals, ties, belts & shields', 'मेडल, टाई, बेल्ट और शील्ड'), ctaLabel: L('Explore', 'देखें'), link: '/products?category=school-works', theme: 'mint', sortOrder: 3 },
+  { kind: 'promo', title: L('Business essentials', 'बिज़नेस ज़रूरतें'), subtitle: L('Visiting cards, stickers & hand bills', 'विज़िटिंग कार्ड, स्टिकर और हैंड बिल'), ctaLabel: L('Explore', 'देखें'), link: '/business-printing', theme: 'sunset', sortOrder: 2 },
+  { kind: 'promo', title: L('School supplies', 'स्कूल सामग्री'), subtitle: L('Medals, ties, belts & shields', 'मेडल, टाई, बेल्ट और शील्ड'), ctaLabel: L('Explore', 'देखें'), link: '/institutions', theme: 'mint', sortOrder: 3 },
 ];
 

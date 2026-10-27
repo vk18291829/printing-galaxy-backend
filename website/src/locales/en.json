@@ -71,9 +71,11 @@
     "search": "Search products",
     "searchPlaceholder": "Search visiting cards, ID cards…",
     "schoolSolutions": "School & College Solutions",
-    "businessPrinting": "Business Printing",
-    "weddingCards": "Wedding Cards",
-    "students": "Students & staff"
+    "businessPrinting": "Business Works",
+    "weddingCards": "Wedding & Invitations",
+    "students": "Students & staff",
+    "studentsShort": "Students",
+    "myOrdersShort": "Orders"
   },
   "home": {
     "badge": "Now taking orders online",
@@ -225,7 +227,12 @@
     "lockedRetailTitle": "Only for individual customers",
     "lockedRetailDesc": "This product is not part of the institution catalogue. See the products made for schools and colleges.",
     "lockedSchoolProducts": "School products",
-    "orderThis": "Order this product"
+    "orderThis": "Order this product",
+    "playVideo": "Play demo video",
+    "demoVideo": "Demo video",
+    "questions": "Questions about this product?",
+    "call": "Call",
+    "whatsappMessage": "Hi, I have a question about {{product}}."
   },
   "upload": {
     "drop": "Tap to upload or drag files here",
@@ -615,7 +622,15 @@
     "declineQuoteTitle": "Decline this quote?",
     "declineQuoteDesc": "The quote is closed. You can always create a new order or ask for another quote.",
     "quoteDeclined": "Quote declined",
-    "quoteAcceptedNext": "Next, upload your data sheet on this page so we can prepare the proof."
+    "quoteAcceptedNext": "Next, upload your data sheet on this page so we can prepare the proof.",
+    "readyBy": "Expected ready by {{date}}",
+    "proofN": "Proof {{n}}",
+    "tapToOpenProof": "Tap to open the proof",
+    "openFullSize": "Open full size",
+    "earlierProofs": "Earlier proofs",
+    "orderAgain": "Order again",
+    "addedAgain_one": "{{count}} item added to your cart. Upload your files again if needed.",
+    "addedAgain_other": "{{count}} items added to your cart. Upload your files again if needed."
   },
   "account": {
     "profile": "Profile",
@@ -806,9 +821,7 @@
     }
   },
   "confirm": {
-    "done": "Done",
     "failed": "That didn't work",
-    "ok": "OK",
     "confirm": "Confirm",
     "saveChanges": "Save changes",
     "signOutTitle": "Sign out?",
@@ -903,8 +916,12 @@
           "Aadhaar, PAN and other ID documents are stored privately, visible only to shop staff through short-lived links, and deleted automatically after the retention period once the order is completed."
         ],
         [
+          "Student and staff data",
+          "Schools and colleges can keep a list of their students and staff with us (names, class, parents' names, date of birth, contact details and photos) for printing ID cards and similar items. The institution decides what goes on the list and can edit, download or delete it at any time. Only that institution and our shop staff can see it, photos are stored privately, and a person's photo is deleted when they are removed from the list. We never use this data for marketing or share it with anyone else."
+        ],
+        [
           "Service providers",
-          "We use Amazon Web Services (file storage), Razorpay (payments), Meta WhatsApp and MSG91 (messages). They process data only to provide these services."
+          "We use Amazon Web Services (file storage), Razorpay (payments), Google Gmail (order and sign-in emails) and MSG91 (text messages, when switched on). They process data only to provide these services."
         ],
         [
           "Your choices",

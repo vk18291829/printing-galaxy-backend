@@ -1,6 +1,7 @@
-import { IconAlertTriangle, IconCircleCheck, IconHelpCircle, IconX } from '@tabler/icons-react';
-import { useEffect, type ReactNode } from 'react';
+import { IconAlertTriangle, IconHelpCircle, IconX } from '@tabler/icons-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { create } from 'zustand';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ export interface ConfirmOptions {
   successDescription?: ReactNode;
 }
 
-type Phase = 'ask' | 'running' | 'done' | 'error';
+type Phase = 'ask' | 'running' | 'error';
 
 interface ConfirmState {
   options: ConfirmOptions | null;
@@ -57,18 +58,10 @@ export function confirmAction(options: ConfirmOptions) {
   return new Promise<boolean>((resolve) => useConfirmStore.getState().open(options, resolve));
 }
 
-const AUTO_CLOSE_MS = 1600;
-
 /** Mount once near the app root. */
 export function ConfirmHost() {
   const { t } = useTranslation();
   const { options, phase, error, set, close } = useConfirmStore();
-
-  useEffect(() => {
-    if (phase !== 'done') return;
-    const id = window.setTimeout(() => close(true), AUTO_CLOSE_MS);
-    return () => window.clearTimeout(id);
-  }, [phase, close]);
 
   if (!options) return null;
   const danger = options.tone === 'danger';
@@ -79,16 +72,17 @@ export function ConfirmHost() {
     set({ phase: 'running', error: '' });
     try {
       await options.action();
-      set({ phase: 'done' });
+      // Success is a toast at the bottom, not a second dialog. Callers that show their own
+      // message (and navigate away) leave successTitle out.
+      if (options.successTitle) toast.success(options.successTitle, { description: options.successDescription });
+      close(true);
     } catch (e) {
       set({ phase: 'error', error: getErrorMessage(e) });
     }
   };
 
   const icon =
-    phase === 'done' ? (
-      <IconCircleCheck className="size-6" />
-    ) : phase === 'error' ? (
+    phase === 'error' ? (
       <IconX className="size-6" />
     ) : danger ? (
       <IconAlertTriangle className="size-6" />
@@ -97,14 +91,13 @@ export function ConfirmHost() {
     );
 
   return (
-    <Dialog open onOpenChange={(o) => !o && !busy && close(phase === 'done')}>
+    <Dialog open onOpenChange={(o) => !o && !busy && close(false)}>
       <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-md" onEscapeKeyDown={(e) => busy && e.preventDefault()} onPointerDownOutside={(e) => busy && e.preventDefault()}>
         <div className="flex gap-4 p-6">
           <span
             className={cn(
               'grid size-11 shrink-0 place-items-center rounded-full',
-              phase === 'done' && 'bg-success/14 text-success',
-              (phase === 'error' || (danger && phase !== 'done')) && 'bg-destructive/12 text-destructive',
+              (phase === 'error' || danger) && 'bg-destructive/12 text-destructive',
               !danger && (phase === 'ask' || phase === 'running') && 'bg-primary/10 text-primary',
             )}
           >
@@ -112,31 +105,23 @@ export function ConfirmHost() {
           </span>
           <div className="min-w-0 space-y-1.5 pt-1">
             <DialogTitle className="text-base">
-              {phase === 'done' ? (options.successTitle ?? t('confirm.done')) : phase === 'error' ? t('confirm.failed') : options.title}
+              {phase === 'error' ? t('confirm.failed') : options.title}
             </DialogTitle>
             <DialogDescription asChild>
               <div className="text-sm text-muted-foreground">
-                {phase === 'done' ? options.successDescription : phase === 'error' ? error : options.description}
+                {phase === 'error' ? error : options.description}
               </div>
             </DialogDescription>
           </div>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
-          {phase === 'done' ? (
-            <Button onClick={() => close(true)} autoFocus>
-              {t('confirm.ok')}
-            </Button>
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => close(false)} disabled={busy}>
-                {phase === 'error' ? t('common.close') : (options.cancelLabel ?? t('common.cancel'))}
-              </Button>
-              <Button variant={danger ? 'destructive' : 'default'} onClick={() => void run()} disabled={busy} autoFocus>
-                {busy && <Spinner className="size-4 text-current" />}
-                {phase === 'error' ? t('common.retry') : (options.confirmLabel ?? t('confirm.confirm'))}
-              </Button>
-            </>
-          )}
+          <Button variant="outline" onClick={() => close(false)} disabled={busy}>
+            {phase === 'error' ? t('common.close') : (options.cancelLabel ?? t('common.cancel'))}
+          </Button>
+          <Button variant={danger ? 'destructive' : 'default'} onClick={() => void run()} disabled={busy} autoFocus>
+            {busy && <Spinner className="size-4 text-current" />}
+            {phase === 'error' ? t('common.retry') : (options.confirmLabel ?? t('confirm.confirm'))}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

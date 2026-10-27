@@ -22,6 +22,7 @@ import {
   type ProductInput,
 } from '@/features/catalog/api';
 import { ImageListEditor } from '@/features/catalog/components/image-list-editor';
+import { VideoEditor } from '@/features/catalog/components/video-editor';
 import { OptionsEditor } from '@/features/catalog/components/options-editor';
 import { PriceBookEditor } from '@/features/catalog/components/price-book-editor';
 import { FILE_TYPES, type ProductFormValues } from '@/features/catalog/components/product-form-types';
@@ -39,6 +40,8 @@ function toForm(p?: AdminProduct & { category: string | { _id: string } }): Prod
     description: loc(p?.description),
     icon: p?.icon ?? 'printer',
     images: p?.images ?? [],
+    videoUrl: p?.videoUrl ?? '',
+    contactPhone: p?.contactPhone ?? '',
     unit: p?.unit ?? 'piece',
     workflow: p?.workflow ?? 'standard',
     specsText: p?.specs.join(', ') ?? '',
@@ -240,6 +243,16 @@ export default function ProductFormPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Demo video</CardTitle>
+              <CardDescription>Optional. Shown first on the product page with a play button: a YouTube link or an uploaded MP4 (up to 100 MB).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Controller control={control} name="videoUrl" render={({ field }) => <VideoEditor value={field.value} onChange={field.onChange} />} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Pricing</CardTitle>
               <CardDescription>
                 Price per unit drops as quantity crosses each tier. Institution prices apply only to approved institution accounts.
@@ -316,7 +329,10 @@ export default function ProductFormPage() {
                   )}
                 />
               </Field>
-              <Field label="Ready in (days)" hint="0 = same day">
+              <Field label="Contact number" hint="Call / WhatsApp for this product. Empty = shop number">
+                <Input type="tel" inputMode="numeric" maxLength={10} placeholder="98765 43210" {...register('contactPhone')} />
+              </Field>
+              <Field label="Ready in (working days)" hint="0 = same day. Sets each order's ready-by date">
                 <Input type="number" min={0} {...register('leadTimeDays', { valueAsNumber: true })} />
               </Field>
               <Field label="Specs" hint="Comma separated, e.g. 8.6 × 5.4 cm, 300 GSM">

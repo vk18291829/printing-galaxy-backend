@@ -1,4 +1,4 @@
-import { IconPencil, IconUserPlus } from '@tabler/icons-react';
+import { IconCheck, IconPencil, IconUserPlus } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useSaveStaff, useStaff } from '@/features/management/api';
 import { formatDate } from '@/lib/format';
+import { STAFF_ROLE_INFO, STAFF_ROLES, type StaffRole } from '@/lib/permissions';
+import { cn } from '@/lib/utils';
 import type { StaffMember } from '@/types/admin';
 
 type Role = 'staff' | 'admin' | 'delivery';
@@ -27,12 +29,14 @@ function StaffDialog({ member, onClose }: { member: StaffMember | 'new'; onClose
   const [phone, setPhone] = useState(isNew ? '' : (member.phone ?? ''));
   const [role, setRole] = useState<Role>(isNew ? 'staff' : (member.role as Role));
   const [password, setPassword] = useState('');
+  const [jobs, setJobs] = useState<StaffRole[]>(isNew ? ['counter'] : ((member.staffRoles as StaffRole[] | undefined) ?? []));
+  const toggleJob = (r: StaffRole) => setJobs((j) => (j.includes(r) ? j.filter((x) => x !== r) : [...j, r]));
   const [isActive, setActive] = useState(isNew ? true : member.isActive);
 
   const submit = async () => {
     const data: Record<string, unknown> = isNew
-      ? { name, email, role, password, ...(phone ? { phone } : {}) }
-      : { name, role, isActive, ...(password ? { password } : {}) };
+      ? { name, email, role, password, ...(phone ? { phone } : {}), ...(role === 'staff' ? { staffRoles: jobs } : {}) }
+      : { name, role, isActive, ...(password ? { password } : {}), ...(role === 'staff' ? { staffRoles: jobs } : {}) };
     const disabling = !isNew && member.isActive && !isActive;
     const ok = await confirmAction({
       tone: disabling ? 'danger' : 'default',
@@ -90,6 +94,34 @@ function StaffDialog({ member, onClose }: { member: StaffMember | 'new'; onClose
               </SelectContent>
             </Select>
           </div>
+          {role === 'staff' && (
+            <fieldset className="space-y-2">
+              <legend className="mb-1.5 text-sm font-medium">Job roles (pick one or more)</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {STAFF_ROLES.map((r) => {
+                  const on = jobs.includes(r);
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleJob(r)}
+                      className={cn('rounded-lg border p-2.5 text-left transition-colors', on ? 'border-primary bg-primary/8' : 'hover:bg-accent')}
+                    >
+                      <span className="flex items-center gap-2 text-sm font-semibold">
+                        <span className={cn('grid size-4 place-items-center rounded border', on ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40')}>
+                          {on && <IconCheck className="size-3" stroke={3} />}
+                        </span>
+                        {STAFF_ROLE_INFO[r].label}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">{STAFF_ROLE_INFO[r].does}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {jobs.length === 0 && <p className="text-xs text-muted-foreground">No roles picked: they get counter and designer access.</p>}
+            </fieldset>
+          )}
           <div className="space-y-1.5">
             <Label>{isNew ? 'Password' : 'New password (leave empty to keep)'}</Label>
             <Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -155,7 +187,13 @@ export default function StaffPage() {
                   <p className="text-xs text-muted-foreground">{s.email}</p>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={s.role === 'admin' ? 'soft' : 'outline'}>{ROLE_LABEL[s.role as Role]}</Badge>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant={s.role === 'admin' ? 'soft' : 'outline'}>{ROLE_LABEL[s.role as Role]}</Badge>
+                    {s.role === 'staff' &&
+                      (s.staffRoles as StaffRole[] | undefined)?.map((r) => (
+                        <Badge key={r} variant="secondary">{STAFF_ROLE_INFO[r]?.label ?? r}</Badge>
+                      ))}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{s.lastLoginAt ? formatDate(s.lastLoginAt, 'en', true) : 'Never'}</TableCell>
                 <TableCell>{s.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}</TableCell>

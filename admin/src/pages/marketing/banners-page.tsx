@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useIsAdmin } from '@/features/auth/auth-store';
+import { useCan } from '@/features/auth/auth-store';
 import { ImageListEditor } from '@/features/catalog/components/image-list-editor';
 import {
   BANNER_THEMES,
@@ -281,7 +281,7 @@ function BannerDialog({ banner, kind, onClose }: { banner: AdminBanner | null; k
 }
 
 export default function BannersPage() {
-  const isAdmin = useIsAdmin();
+  const isAdmin = useCan('marketing');
   const { data, isLoading, error, refetch } = useAdminBanners();
   const toggle = useToggleBanner();
   const remove = useDeleteBanner();

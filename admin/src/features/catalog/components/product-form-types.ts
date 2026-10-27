@@ -13,6 +13,8 @@ export interface ProductFormValues {
   description: Localized;
   icon: string;
   images: string[];
+  videoUrl: string;
+  contactPhone: string;
   unit: ProductUnit;
   workflow: ProductWorkflow;
   specsText: string;

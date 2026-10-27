@@ -30,6 +30,7 @@ import {
   notifyStatus,
   ORDER_POPULATE,
   persistOrder,
+  planOrder,
   resolveContact,
 } from './order.service';
 
@@ -186,6 +187,7 @@ ordersRouter.post('/:id/accept-quote', validate({ params: z.object({ id: objectI
     throw ApiError.conflict('This quote has expired. Please ask the shop for a new one.');
   }
   order.set('quote.acceptedAt', new Date());
+  order.dueDate = (await planOrder(order.audience, order.items.map((i) => i.product))).dueDate;
   const settings = await getSettings();
   const payFirst = order.payment.method === 'online' && order.audience === 'retail' && order.totals.total > netPaid(order);
   if (payFirst) order.payment.dueBy = new Date(Date.now() + settings.payments.quotePaymentDays * 86_400_000);

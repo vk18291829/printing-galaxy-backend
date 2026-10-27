@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { useIsAdmin } from '@/features/auth/auth-store';
+import { useCan, useIsAdmin } from '@/features/auth/auth-store';
 import { useStaff } from '@/features/management/api';
 import {
   openFile,
@@ -43,8 +43,10 @@ import {
   useRefund,
   useSaveNote,
   useSendProof,
+  useSetDueDate,
 } from '@/features/orders/api';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
+import { ProofViewer } from '@/features/orders/proof-viewer';
 import { getErrorMessage, newIdempotencyKey } from '@/lib/api-client';
 import { fetchFile } from '@/lib/download';
 import { cn } from '@/lib/utils';
@@ -166,25 +168,36 @@ function ItemCard({ order, item }: { order: AdminOrder; item: OrderItem }) {
       )}
       {showProofs && (
         <div className="space-y-2">
-          {item.proofs.map((p, i) => {
-            const fileId = typeof p.file === 'string' ? p.file : p.file._id;
-            return (
-              <div key={p._id} className="flex flex-wrap items-center gap-2 text-sm">
-                <button className="font-medium text-primary hover:underline" onClick={() => void openFile(fileId)}>
-                  Proof {i + 1}
-                </button>
-                <Badge variant={p.status === 'approved' ? 'success' : p.status === 'pending' ? 'warning' : 'destructive'}>
-                  {p.status.replace('_', ' ')}
-                </Badge>
-                <span className="text-xs text-muted-foreground">{formatDate(p.createdAt, 'en', true)}</span>
-                {p.customerComment && <span className="w-full text-xs text-muted-foreground">Customer: “{p.customerComment}”</span>}
-              </div>
-            );
-          })}
+          <ProofList proofs={item.proofs} />
           {!['cancelled', 'delivered', 'picked_up'].includes(order.status) && <ProofUpload order={order} item={item} />}
         </div>
       )}
     </div>
+  );
+}
+
+/** Proof versions; the latest opens inline so staff see exactly what the customer is reviewing. */
+function ProofList({ proofs }: { proofs: OrderItem['proofs'] }) {
+  const [open, setOpen] = useState<string | null>(proofs.at(-1)?._id ?? null);
+  return (
+    <ul className="divide-y rounded-lg border">
+      {proofs.map((p, i) => {
+        const file = typeof p.file === 'string' ? null : (p.file as UploadedFile);
+        const expanded = open === p._id;
+        return (
+          <li key={p._id} className="space-y-1 p-2.5 text-sm">
+            <button type="button" className="flex w-full flex-wrap items-center gap-2 text-left" onClick={() => setOpen(expanded ? null : p._id)} aria-expanded={expanded}>
+              <span className="font-medium">Proof {i + 1}</span>
+              <Badge variant={p.status === 'approved' ? 'success' : p.status === 'pending' ? 'warning' : 'destructive'}>{p.status.replace('_', ' ')}</Badge>
+              <span className="text-xs text-muted-foreground">{formatDate(p.createdAt, 'en', true)}</span>
+              <span className="ml-auto text-xs text-primary">{expanded ? 'Hide' : 'Preview'}</span>
+            </button>
+            {p.customerComment && <p className="text-xs text-muted-foreground">Customer: “{p.customerComment}”</p>}
+            {expanded && file && <ProofViewer file={file} className="pt-1" />}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -240,6 +253,48 @@ function QuoteCard({ order }: { order: AdminOrder }) {
         >
           {quote.isPending && <Spinner className="size-4 text-current" />} {requested ? (resend ? 'Send revised quote' : 'Send quote') : 'Confirm price'}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** The promised ready-by date; changing it needs a reason, kept in the audit log. */
+function DueCard({ order }: { order: AdminOrder }) {
+  const setDue = useSetDueDate(order._id);
+  const current = order.dueDate ? order.dueDate.slice(0, 10) : '';
+  const [date, setDate] = useState(current);
+  const [note, setNote] = useState('');
+  if (isClosed(order.status)) return null;
+  const late = order.dueDate && new Date(order.dueDate) < new Date(new Date().toDateString()) && !['ready', 'out_for_delivery'].includes(order.status);
+  const changed = date && date !== current;
+  return (
+    <Card className={cn(late && 'border-destructive/50')}>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between gap-2">
+          Ready by
+          {late && <Badge variant="destructive">Overdue</Badge>}
+        </CardTitle>
+        <CardDescription>{order.dueDate ? `Promised for ${formatDate(order.dueDate, 'en')}. The customer sees this date.` : 'No date set yet.'}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Ready by date" />
+        {changed && (
+          <>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason (e.g. paper delayed)" maxLength={300} />
+            <Button
+              className="w-full"
+              disabled={setDue.isPending}
+              onClick={() =>
+                setDue.mutate(
+                  { dueDate: date, note: note.trim() || undefined },
+                  { onSuccess: () => { setNote(''); toast.success('Ready-by date updated'); }, onError: (e) => toast.error(getErrorMessage(e)) },
+                )
+              }
+            >
+              {setDue.isPending && <Spinner className="size-4 text-current" />} Save date
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );
@@ -631,7 +686,7 @@ function RefundDialog({ order, max, onClose }: { order: AdminOrder; max: number;
 
 function PaymentCard({ order }: { order: AdminOrder }) {
   const record = useRecordPayment(order._id);
-  const isAdmin = useIsAdmin();
+  const isAdmin = useCan('refunds');
   const paid = netPaid(order.payment);
   const refunded = order.payment.amountRefunded ?? 0;
   const due = Math.max(0, Math.round((order.totals.total - paid) * 100) / 100);
@@ -890,6 +945,7 @@ function OrderDetail({ order }: { order: AdminOrder }) {
         <div className="space-y-6">
           {order.status === 'ready' && order.fulfilment.method === 'pickup' && <HandoverCard order={order} />}
           <StatusCard order={order} />
+          <DueCard key={order.dueDate ?? 'none'} order={order} />
           <PaymentCard order={order} />
           <AssignCard order={order} />
         </div>

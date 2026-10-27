@@ -19,7 +19,7 @@ import { RevenueChart } from '@/features/dashboard/revenue-chart';
 import { useDashboard } from '@/features/management/api';
 import { formatDate, formatINR } from '@/lib/format';
 import { en } from '@/lib/l10n';
-import type { OrderStatus } from '@/types/api';
+import type { OrderSegment, OrderStatus } from '@/types/api';
 
 function StatTile({ icon, label, value, sub, to }: { icon: ReactNode; label: string; value: string; sub?: string; to?: string }) {
   const body = (
@@ -37,16 +37,22 @@ function StatTile({ icon, label, value, sub, to }: { icon: ReactNode; label: str
   return to ? <Link to={to}>{body}</Link> : body;
 }
 
-const PIPELINE: OrderStatus[] = ['quote_pending', 'received', 'proof_sent', 'approved', 'printing', 'ready', 'out_for_delivery'];
+const SEGMENTS: { key: OrderSegment; label: string }[] = [
+  { key: 'individual', label: 'Individual' },
+  { key: 'institution', label: 'School & College' },
+  { key: 'business', label: 'Business' },
+  { key: 'wedding', label: 'Wedding' },
+];
+
+const PIPELINE: OrderStatus[] = ['quote_pending', 'quote_sent', 'received', 'proof_sent', 'approved', 'printing', 'ready', 'out_for_delivery'];
 
 export default function DashboardPage() {
   const { data, isLoading, error, refetch } = useDashboard();
   if (isLoading) return <PageLoader />;
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
-  const retail = data.byAudience.retail ?? { revenue: 0, orders: 0 };
-  const institution = data.byAudience.institution ?? { revenue: 0, orders: 0 };
-  const monthTotal = retail.revenue + institution.revenue || 1;
+  const segments = SEGMENTS.map((s) => ({ ...s, ...(data.bySegment?.[s.key] ?? { revenue: 0, orders: 0 }), open: data.openBySegment?.[s.key] ?? 0 }));
+  const monthTotal = segments.reduce((sum, s) => sum + s.revenue, 0) || 1;
 
   return (
     <div className="space-y-6">
@@ -185,16 +191,16 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>This month by customer type</CardTitle>
+              <CardTitle>This month by line of business</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                { label: 'Individuals', ...retail },
-                { label: 'Institutions', ...institution },
-              ].map((row) => (
-                <div key={row.label} className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span>{row.label}</span>
+              {segments.map((row) => (
+                <Link key={row.key} to={`/orders?segment=${row.key}`} className="block space-y-1.5 rounded-lg hover:bg-accent/40">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-2 font-medium">
+                      {row.label}
+                      {row.open > 0 && <span className="rounded-full bg-primary/10 px-2 text-xs font-semibold text-primary">{row.open} open</span>}
+                    </span>
                     <span className="font-semibold tabular-nums">
                       {formatINR(row.revenue)} <span className="font-normal text-muted-foreground">· {row.orders} orders</span>
                     </span>
@@ -202,7 +208,7 @@ export default function DashboardPage() {
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full rounded-full bg-primary" style={{ width: `${(row.revenue / monthTotal) * 100}%` }} />
                   </div>
-                </div>
+                </Link>
               ))}
             </CardContent>
           </Card>

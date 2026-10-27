@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { cn } from '@/lib/utils';
 import { TopBar } from '@/features/marketing/offer-strip';
 import { OfflineBanner } from '@/features/pwa/pwa';
+import { BottomTabs, useBottomTabsVisible } from './bottom-tabs';
 import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
 
@@ -14,8 +16,10 @@ function ScrollToTop() {
 }
 
 export function MainLayout() {
+  const tabs = useBottomTabsVisible();
   return (
-    <div className="flex min-h-dvh flex-col">
+    // Room for the phone tab bar under the footer.
+    <div className={cn('flex min-h-dvh flex-col', tabs && 'pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0')}>
       <ScrollToTop />
       <OfflineBanner />
       <TopBar />
@@ -24,6 +28,7 @@ export function MainLayout() {
         <Outlet />
       </main>
       <SiteFooter />
+      <BottomTabs />
     </div>
   );
 }

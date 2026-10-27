@@ -8,7 +8,9 @@ import { emailChannel } from '@/config/env';
 import { logEvent, logger } from '@/config/logger';
 import { audit } from '@/modules/audit/audit.model';
 import { restrictToCategoryAudience } from '@/modules/catalog/audience';
+import { CategoryModel } from '@/modules/catalog/category.model';
 import { ProductModel } from '@/modules/catalog/product.model';
+import { segmentOf } from '@/modules/catalog/segments';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { ensureInvoiceNumber, invoiceFileName, renderInvoicePdf } from '@/modules/invoices/invoice.service';
 import type { PricingContext } from '@/modules/institutions/institution.service';
@@ -191,12 +193,39 @@ export async function findByIdempotencyKey(key?: string) {
   return key ? OrderModel.findOne({ idempotencyKey: key }) : null;
 }
 
+/** Adds working days to a date; Sundays are skipped (the shop is closed). */
+export function addWorkingDays(from: Date, days: number) {
+  const d = new Date(from);
+  let left = Math.max(0, Math.ceil(days));
+  while (left > 0) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0) left -= 1;
+  }
+  return d;
+}
+
+/**
+ * The order's segment and due date from its products: the slowest item sets the date
+ * (same-day items are due today).
+ */
+export async function planOrder(audience: Order['audience'], productIds: unknown[], from = new Date()) {
+  const products = await ProductModel.find({ _id: { $in: productIds } }).select('category leadTimeDays').lean();
+  const categories = await CategoryModel.find({ _id: { $in: products.map((p) => p.category) } }).select('slug').lean();
+  const lead = Math.max(0, ...products.map((p) => p.leadTimeDays ?? 1));
+  return { segment: segmentOf(audience as never, categories.map((c) => c.slug)), dueDate: addWorkingDays(from, lead) };
+}
+
 /**
  * Saves a new order exactly once: a repeated idempotency key returns the first order
  * (`replayed: true`), a clashing order number is regenerated, and files are claimed atomically.
  */
 export async function persistOrder(data: Record<string, unknown>, key?: string) {
   let order: OrderDoc | undefined;
+  if (!data.segment || !data.dueDate) {
+    const items = (data.items ?? []) as { product: unknown }[];
+    const plan = await planOrder(data.audience as Order['audience'], items.map((i) => i.product));
+    data = { segment: plan.segment, dueDate: plan.dueDate, ...data };
+  }
   for (let attempt = 0; attempt < 5 && !order; attempt += 1) {
     try {
       order = await OrderModel.create({ ...data, orderNumber: generateOrderNumber(), idempotencyKey: key });

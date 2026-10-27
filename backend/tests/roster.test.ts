@@ -54,7 +54,8 @@ describe('student list', () => {
     expect(kabir.dob).toBe('20-01-2015');
     expect(asha.code).toMatch(/^PG\d{6}$/);
     expect(kabir.code).not.toBe(asha.code);
-    expect(asha.photoUrl).toBeTruthy();
+    // A real signed link, not a serialised promise.
+    expect(typeof asha.photoUrl).toBe('string');
 
     // The same class again: matched by class + section + roll no., so nothing is duplicated.
     const again = await upload(school, { name: 'fix.csv', mimeType: 'text/csv', purpose: 'roster', bytes: csv([['Name', 'Class', 'Section', 'Roll No', 'Phone'], ['Asha Verma', '5', 'A', '1', '9876543210']]) });

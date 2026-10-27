@@ -64,6 +64,10 @@ export interface Product {
   shortDescription: LocalizedString;
   description: LocalizedString;
   images: string[];
+  /** Demo video: YouTube/Vimeo link or an uploaded MP4. */
+  videoUrl?: string;
+  /** Number to call about this product; the shop's when empty. */
+  contactPhone?: string;
   icon: string;
   unit: ProductUnit;
   workflow: ProductWorkflow;
@@ -125,6 +129,10 @@ export interface User {
   phone?: string;
   email?: string;
   role: 'customer' | 'staff' | 'admin' | 'delivery';
+  /** Job roles for staff; several allowed. */
+  staffRoles?: string[];
+  /** What this person may do in the admin panel (from their roles). */
+  permissions?: string[];
   language: 'en' | 'hi';
   addresses: Address[];
 }
@@ -220,10 +228,15 @@ export interface CustomSize {
   unit: SizeUnit;
 }
 
+export type OrderSegment = 'individual' | 'institution' | 'business' | 'wedding';
+
 export interface Order {
   _id: string;
   orderNumber: string;
   audience: Audience;
+  segment?: OrderSegment;
+  /** When the shop promises it ready. */
+  dueDate?: string;
   source: 'online' | 'walk_in';
   items: OrderItem[];
   status: OrderStatus;

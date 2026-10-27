@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { objectId } from '@/common/validation';
-import { requireAdmin } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import { notifications } from '@/modules/notifications/notification.service';
@@ -94,7 +94,7 @@ adminInventoryRouter.get('/', async (_req, res) => {
   );
 });
 
-adminInventoryRouter.post('/', requireAdmin, validate({ body: materialInput.extend({ quantity: z.coerce.number().min(0).default(0) }) }), async (req, res) => {
+adminInventoryRouter.post('/', requirePermission('inventory'), validate({ body: materialInput.extend({ quantity: z.coerce.number().min(0).default(0) }) }), async (req, res) => {
   const material = await MaterialModel.create(req.body);
   audit(req, { action: 'inventory.create', entity: 'Material', entityId: material._id, summary: material.name });
   if (material.quantity > 0) {
@@ -111,7 +111,7 @@ adminInventoryRouter.post('/', requireAdmin, validate({ body: materialInput.exte
   res.status(201).json(await MaterialModel.findById(material._id));
 });
 
-adminInventoryRouter.patch('/:id', requireAdmin, validate({ params: idParams, body: materialInput.partial() }), async (req, res) => {
+adminInventoryRouter.patch('/:id', requirePermission('inventory'), validate({ params: idParams, body: materialInput.partial() }), async (req, res) => {
   const material = await MaterialModel.findById(req.params.id);
   if (!material) throw ApiError.notFound('Material');
   material.set(req.body);
@@ -121,7 +121,7 @@ adminInventoryRouter.patch('/:id', requireAdmin, validate({ params: idParams, bo
   res.json(await MaterialModel.findById(material._id));
 });
 
-adminInventoryRouter.delete('/:id', requireAdmin, validate({ params: idParams }), async (req, res) => {
+adminInventoryRouter.delete('/:id', requirePermission('inventory'), validate({ params: idParams }), async (req, res) => {
   const material = await MaterialModel.findById(req.params.id);
   if (!material) throw ApiError.notFound('Material');
   // History stays; the material just stops showing as active.

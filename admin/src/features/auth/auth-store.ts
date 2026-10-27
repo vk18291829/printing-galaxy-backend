@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Permission } from '@/lib/permissions';
 import type { User } from '@/types/api';
 
 export interface StaffSession {
@@ -24,3 +25,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 }));
 
 export const useIsAdmin = () => useAuthStore((s) => s.user?.role === 'admin');
+
+/** Whether the signed-in person's roles allow `permission` (the owner can do everything). */
+export const useCan = (permission: Permission) =>
+  useAuthStore((s) => s.user?.role === 'admin' || Boolean(s.user?.permissions?.includes(permission)));

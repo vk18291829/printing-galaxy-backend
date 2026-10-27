@@ -7,7 +7,7 @@ import { LEGAL_PAGES, type LegalKind } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 
 /** Last time the policy text changed. */
-const UPDATED = '2026-10-17';
+const UPDATED = '2026-10-27';
 
 /** Terms, privacy, refund and shipping policies (required for Razorpay live payments). */
 export default function LegalPage({ kind }: { kind: LegalKind }) {

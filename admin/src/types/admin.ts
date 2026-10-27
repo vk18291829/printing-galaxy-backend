@@ -1,4 +1,4 @@
-import type { Institution, LocalizedString, Order, OrderStatus, Paginated, PublicSettings, User } from './api';
+import type { Institution, LocalizedString, Order, OrderSegment, OrderStatus, Paginated, PublicSettings, User } from './api';
 
 export interface AdminOrderListItem extends Omit<Order, 'statusHistory'> {
   assignedTo?: { _id: string; name: string };
@@ -7,6 +7,8 @@ export interface AdminOrderListItem extends Omit<Order, 'statusHistory'> {
 
 export interface AdminOrderList extends Paginated<AdminOrderListItem> {
   statusCounts: Partial<Record<OrderStatus, number>>;
+  /** Open orders per segment. */
+  segmentCounts: Partial<Record<OrderSegment, number>>;
 }
 
 export interface PaymentRecord {
@@ -42,6 +44,8 @@ export interface DashboardData {
   daily: { date: string; revenue: number; orders: number }[];
   topProducts: { _id: string; name: LocalizedString; revenue: number; orders: number }[];
   byAudience: Partial<Record<'retail' | 'institution', { revenue: number; orders: number }>>;
+  bySegment: Partial<Record<OrderSegment, { revenue: number; orders: number }>>;
+  openBySegment: Partial<Record<OrderSegment, number>>;
   recentOrders: AdminOrderListItem[];
   lowStock: Pick<Material, '_id' | 'name' | 'unit' | 'quantity' | 'lowStockThreshold' | 'reorderQuantity'>[];
 }

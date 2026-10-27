@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { addressInput, indianPhone, objectId } from '@/common/validation';
+import { ORDER_SEGMENTS } from '@/modules/catalog/segments';
 import { ORDER_STATUSES, PAYMENT_METHODS, SIZE_UNITS } from './order.model';
 
 export const orderItemInput = z.object({
@@ -104,6 +105,11 @@ export const quoteItemsSchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 
+export const dueDateSchema = z.object({
+  dueDate: z.coerce.date(),
+  note: z.string().trim().max(300).optional(),
+});
+
 export const sendProofSchema = z.object({
   fileId: objectId,
   message: z.string().trim().max(500).optional(),
@@ -120,6 +126,11 @@ export const adminOrderListQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.enum(ORDER_STATUSES).optional(),
   audience: z.enum(['retail', 'institution']).optional(),
+  segment: z.enum(ORDER_SEGMENTS).optional(),
+  overdue: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
   paymentStatus: z.enum(['pending', 'partial', 'paid', 'refunded', 'failed']).optional(),
   fulfilment: z.enum(['pickup', 'delivery']).optional(),
   assignedTo: objectId.optional(),

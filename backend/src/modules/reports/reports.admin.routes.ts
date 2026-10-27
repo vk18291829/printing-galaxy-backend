@@ -53,7 +53,8 @@ adminReportsRouter.get('/sales', async (req, res) => {
   const range = resolveRange(q);
   const format = q.groupBy === 'month' ? '%Y-%m' : '%Y-%m-%d';
   const rows = await OrderModel.aggregate<{
-    _id: string; orders: number; revenue: number; collected: number; tax: number; retail: number; institution: number; walkIn: number;
+    _id: string; orders: number; revenue: number; collected: number; tax: number; walkIn: number;
+    individual: number; institution: number; business: number; wedding: number;
   }>([
     { $match: { status: { $nin: ['cancelled', 'awaiting_payment', 'quote_pending', 'quote_sent'] }, createdAt: { $gte: range.start, $lt: range.end } } },
     {
@@ -63,8 +64,11 @@ adminReportsRouter.get('/sales', async (req, res) => {
         revenue: { $sum: '$totals.total' },
         collected: { $sum: { $subtract: ['$payment.amountPaid', { $ifNull: ['$payment.amountRefunded', 0] }] } },
         tax: { $sum: '$totals.tax' },
-        retail: { $sum: { $cond: [{ $eq: ['$audience', 'retail'] }, '$totals.total', 0] } },
-        institution: { $sum: { $cond: [{ $eq: ['$audience', 'institution'] }, '$totals.total', 0] } },
+        // Sales per line of business (orders without a segment count as individual).
+        individual: { $sum: { $cond: [{ $in: [{ $ifNull: ['$segment', 'individual'] }, ['individual']] }, '$totals.total', 0] } },
+        institution: { $sum: { $cond: [{ $eq: ['$segment', 'institution'] }, '$totals.total', 0] } },
+        business: { $sum: { $cond: [{ $eq: ['$segment', 'business'] }, '$totals.total', 0] } },
+        wedding: { $sum: { $cond: [{ $eq: ['$segment', 'wedding'] }, '$totals.total', 0] } },
         walkIn: { $sum: { $cond: [{ $eq: ['$source', 'walk_in'] }, 1, 0] } },
       },
     },
@@ -75,8 +79,10 @@ adminReportsRouter.get('/sales', async (req, res) => {
     { key: 'period', label: q.groupBy === 'month' ? 'Month' : 'Date', value: (r) => r._id },
     { key: 'orders', label: 'Orders', value: (r) => r.orders },
     { key: 'walkIn', label: 'Walk-in orders', value: (r) => r.walkIn },
-    { key: 'retail', label: 'Individuals (Rs)', value: (r) => round2(r.retail) },
-    { key: 'institution', label: 'Institutions (Rs)', value: (r) => round2(r.institution) },
+    { key: 'individual', label: 'Individual (Rs)', value: (r) => round2(r.individual) },
+    { key: 'institution', label: 'School & College (Rs)', value: (r) => round2(r.institution) },
+    { key: 'business', label: 'Business (Rs)', value: (r) => round2(r.business) },
+    { key: 'wedding', label: 'Wedding (Rs)', value: (r) => round2(r.wedding) },
     { key: 'revenue', label: 'Total sales (Rs)', value: (r) => round2(r.revenue) },
     { key: 'tax', label: 'GST included (Rs)', value: (r) => round2(r.tax) },
     { key: 'collected', label: 'Collected (Rs)', value: (r) => round2(r.collected) },

@@ -81,7 +81,7 @@ export async function listPeople(institution: string, kind: PersonKind) {
   const ids = people.map((p) => p.photo?.file).filter(Boolean);
   const files = await FileModel.find({ _id: { $in: ids }, status: { $ne: 'deleted' } }).select('key bucket').lean();
   const byId = new Map(files.map((f) => [String(f._id), f]));
-  return sortPeople(people).map(({ photo, ...p }) => {
+  return Promise.all(sortPeople(people).map(async ({ photo, ...p }) => {
     const file = photo?.file ? byId.get(String(photo.file)) : undefined;
     const live = Boolean(file);
     return {
@@ -89,9 +89,9 @@ export async function listPeople(institution: string, kind: PersonKind) {
       hasPhoto: live,
       photoSource: live ? photo?.source : undefined,
       // Signed for an hour: enough for a session of checking and capturing photos.
-      photoUrl: file ? presignDownload(file.bucket as 'private', file.key, `${p.code}.jpg`, 3600) : undefined,
+      photoUrl: file ? await presignDownload(file.bucket as 'private', file.key, `${p.code}.jpg`, 3600) : undefined,
     };
-  });
+  }));
 }
 
 export async function createPerson(institution: string, kind: PersonKind, fields: Partial<Record<RosterField, string>>, actor: AuthContext) {

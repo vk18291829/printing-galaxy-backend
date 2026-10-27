@@ -8,12 +8,13 @@ import {
   IconFileText,
   IconKey,
   IconMapPin,
+  IconRepeat,
   IconX,
 } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageNav } from '@/components/common/page-nav';
@@ -24,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useCartStore } from '@/features/cart/cart-store';
 import { orderKeys, useAcceptQuote, useCancelOrder, useOrder } from '@/features/orders/api';
 import { OrderProgress } from '@/features/orders/components/order-progress';
 import { DataSheetCard } from '@/features/orders/components/data-sheet-card';
@@ -46,6 +48,8 @@ export default function OrderDetailPage() {
   const { data: order, isLoading, error, refetch } = useOrder(id);
   const { data: settings } = usePublicSettings();
   const cancel = useCancelOrder(id);
+  const navigate = useNavigate();
+  const addToCart = useCartStore((s) => s.add);
   const acceptQuote = useAcceptQuote(id);
   const [paying, setPaying] = useState(false);
   useDocumentTitle(order ? `${t('orders.order')} ${order.orderNumber}` : t('orders.title'));
@@ -69,6 +73,32 @@ export default function OrderDetailPage() {
   const canCancel = ['quote_pending', 'awaiting_payment', 'received'].includes(order.status);
   const awaitingPayment = order.status === 'awaiting_payment';
   const isDelivery = order.fulfilment.method === 'delivery';
+
+  // Same items, options and quantities. Files are not copied: the customer chooses them again.
+  const orderAgain = () => {
+    if (order.audience === 'institution') {
+      navigate(`/institution/orders/new?product=${order.items[0]?.productSlug ?? ''}`);
+      return;
+    }
+    for (const item of order.items) {
+      addToCart({
+        productId: item.product,
+        slug: item.productSlug,
+        name: item.productName,
+        icon: 'printer',
+        unit: item.unit,
+        workflow: item.workflow,
+        options: Object.fromEntries(item.options.map((o) => [o.key, o.value])),
+        optionLabels: item.options.map((o) => ({ label: o.label, value: o.valueLabel })),
+        ...(item.unit === 'page' ? { pageCount: item.pageCount, copies: item.copies } : { quantity: item.quantity }),
+        notes: item.notes,
+        files: [],
+        estimate: item.lineTotal,
+      });
+    }
+    toast.success(t('orders.addedAgain', { count: order.items.length }));
+    navigate('/cart');
+  };
 
   const pay = async () => {
     setPaying(true);
@@ -104,6 +134,9 @@ export default function OrderDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={orderAgain}>
+            <IconRepeat /> {t('orders.orderAgain')}
+          </Button>
           {!['quote_pending', 'quote_sent', 'cancelled'].includes(order.status) && (
             <Button
               variant="outline"
@@ -342,6 +375,12 @@ export default function OrderDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>{t('orders.timeline')}</CardTitle>
+                {order.dueDate && !['quote_pending', 'quote_sent', 'awaiting_payment', 'delivered', 'picked_up'].includes(order.status) && (
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <IconClockHour4 className="size-4 text-primary" />
+                    {t('orders.readyBy', { date: formatDate(order.dueDate, i18n.language) })}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <OrderProgress order={order} />

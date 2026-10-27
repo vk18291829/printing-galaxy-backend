@@ -1,7 +1,7 @@
 import { IconArrowRight, IconBolt, IconMoodEmpty, IconReceipt2, IconSearch, IconTruckDelivery, IconX } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
+import { Navigate, useSearchParams } from 'react-router';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { PageNav } from '@/components/common/page-nav';
 import { EmptyState, ErrorState } from '@/components/common/states';
@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCategories, useProducts } from '@/features/catalog/api';
 import { PRODUCT_GRID } from '@/features/catalog/components/infinite-product-grid';
 import { ProductCard } from '@/features/catalog/components/product-card';
-import { NOT_INDIVIDUAL } from '@/features/catalog/sections';
+import { categoryHome, NOT_INDIVIDUAL, SCHOOL_CATEGORIES } from '@/features/catalog/sections';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -92,6 +92,9 @@ export default function ProductsPage() {
     next.delete('category');
     setParams(next, { replace: true });
   };
+
+  // Old links (banners, bookmarks) to business, wedding or school ranges go to their own page.
+  if (linked && [...NOT_INDIVIDUAL, ...SCHOOL_CATEGORIES].includes(linked)) return <Navigate to={categoryHome(linked)} replace />;
 
   const trust = [
     { icon: IconBolt, label: t('products.trust1') },

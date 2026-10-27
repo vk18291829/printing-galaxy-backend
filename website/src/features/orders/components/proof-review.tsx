@@ -1,15 +1,50 @@
-import { IconCheck, IconEye, IconPencil } from '@tabler/icons-react';
+import { IconCheck, IconChevronDown, IconPencil } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { Spinner } from '@/components/common/states';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { openFile } from '@/features/uploads/upload-file';
-import { getErrorMessage } from '@/lib/api-client';
-import type { OrderItem } from '@/types/api';
+import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import type { OrderItem, Proof, UploadedFile } from '@/types/api';
 import { useProofResponse } from '../api';
+import { ProofViewer } from './proof-viewer';
+
+const STATUS_VARIANT = { pending: 'warning', approved: 'success', changes_requested: 'secondary' } as const;
+
+/** Earlier proofs (and the latest once answered), each openable, with the customer's reply. */
+function ProofHistory({ proofs, open: initiallyOpen }: { proofs: Proof[]; open?: boolean }) {
+  const { t, i18n } = useTranslation();
+  const [open, setOpen] = useState<string | null>(initiallyOpen ? (proofs.at(-1)?._id ?? null) : null);
+  return (
+    <ul className="divide-y rounded-xl border">
+      {proofs.map((p, i) => {
+        const file = typeof p.file === 'string' ? null : (p.file as UploadedFile);
+        const expanded = open === p._id;
+        return (
+          <li key={p._id} className="p-3">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 text-left text-sm"
+              onClick={() => setOpen(expanded ? null : p._id)}
+              aria-expanded={expanded}
+              disabled={!file}
+            >
+              <span className="font-semibold">{t('orders.proofN', { n: i + 1 })}</span>
+              <Badge variant={STATUS_VARIANT[p.status]}>{t(`orders.proofStatus.${p.status}`)}</Badge>
+              <span className="ml-auto text-xs text-muted-foreground">{formatDate(p.createdAt, i18n.language)}</span>
+              {file && <IconChevronDown className={cn('size-4 text-muted-foreground transition-transform', expanded && 'rotate-180')} />}
+            </button>
+            {p.customerComment && <p className="mt-1 text-xs text-muted-foreground italic">“{p.customerComment}”</p>}
+            {expanded && file && <ProofViewer file={file} className="mt-3" />}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 export function ProofReview({ orderId, item }: { orderId: string; item: OrderItem }) {
   const { t } = useTranslation();
@@ -17,8 +52,11 @@ export function ProofReview({ orderId, item }: { orderId: string; item: OrderIte
   const [changes, setChanges] = useState(false);
   const [comment, setComment] = useState('');
   const proof = item.proofs.at(-1);
-  if (!proof || proof.status !== 'pending') return null;
-  const fileId = typeof proof.file === 'string' ? proof.file : proof.file._id;
+  if (!proof) return null;
+  const file = typeof proof.file === 'string' ? null : (proof.file as UploadedFile);
+
+  // Answered: just the history, so the customer can look back at what was approved.
+  if (proof.status !== 'pending') return <ProofHistory proofs={item.proofs} />;
 
   const submit = (decision: 'approved' | 'changes_requested') =>
     void confirmAction({
@@ -32,12 +70,13 @@ export function ProofReview({ orderId, item }: { orderId: string; item: OrderIte
   return (
     <div className="space-y-3 rounded-xl border border-warning/50 bg-warning/8 p-4">
       <div>
-        <p className="font-semibold">{t('orders.proofTitle')}</p>
+        <p className="font-semibold">
+          {t('orders.proofTitle')}
+          {item.proofs.length > 1 && <span className="ml-2 text-sm font-normal text-muted-foreground">{t('orders.proofN', { n: item.proofs.length })}</span>}
+        </p>
         <p className="text-sm text-muted-foreground">{proof.message || t('orders.proofMessage')}</p>
       </div>
-      <Button variant="outline" size="sm" onClick={() => void openFile(fileId).catch((e) => toast.error(getErrorMessage(e)))}>
-        <IconEye /> {t('orders.viewProof')}
-      </Button>
+      {file && <ProofViewer file={file} />}
       {changes && (
         <Textarea
           autoFocus
@@ -50,24 +89,32 @@ export function ProofReview({ orderId, item }: { orderId: string; item: OrderIte
       <div className="flex flex-wrap gap-2">
         {!changes ? (
           <>
-            <Button size="sm" onClick={() => submit('approved')} disabled={respond.isPending}>
+            <Button onClick={() => submit('approved')} disabled={respond.isPending}>
               {respond.isPending ? <Spinner className="size-4 text-current" /> : <IconCheck />} {t('orders.approve')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setChanges(true)}>
+            <Button variant="outline" onClick={() => setChanges(true)}>
               <IconPencil /> {t('orders.requestChanges')}
             </Button>
           </>
         ) : (
           <>
-            <Button size="sm" onClick={() => submit('changes_requested')} disabled={!comment.trim() || respond.isPending}>
+            <Button onClick={() => submit('changes_requested')} disabled={!comment.trim() || respond.isPending}>
               {respond.isPending && <Spinner className="size-4 text-current" />} {t('orders.requestChanges')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setChanges(false)}>
+            <Button variant="ghost" onClick={() => setChanges(false)}>
               {t('common.cancel')}
             </Button>
           </>
         )}
       </div>
+      {item.proofs.length > 1 && (
+        <details className="text-sm">
+          <summary className="cursor-pointer font-medium text-muted-foreground">{t('orders.earlierProofs')}</summary>
+          <div className="mt-2">
+            <ProofHistory proofs={item.proofs.slice(0, -1)} />
+          </div>
+        </details>
+      )}
     </div>
   );
 }

@@ -116,3 +116,29 @@ describe('catalogue browse', () => {
     expect(hidden.body.total).toBe(0);
   });
 });
+
+describe('product demo video and contact number', () => {
+  it('saves a video link and contact number, and keeps videos out of customer uploads', async () => {
+    const owner = await staffToken('owner@test.in');
+    const list = await api().get('/api/v1/products').expect(200);
+    const product = list.body[0];
+    const full = await api().get(`/api/v1/admin/catalog/products/${product._id}`).set(bearer(owner)).expect(200);
+    const { _id, createdAt, updatedAt, rating, ...rest } = full.body;
+    void _id; void createdAt; void updatedAt; void rating;
+    const saved = await api()
+      .put(`/api/v1/admin/catalog/products/${product._id}`)
+      .set(bearer(owner))
+      .send({ ...rest, category: rest.category._id ?? rest.category, videoUrl: 'https://youtu.be/dQw4w9WgXcQ', contactPhone: '9876501234' })
+      .expect(200);
+    expect(saved.body).toMatchObject({ videoUrl: 'https://youtu.be/dQw4w9WgXcQ', contactPhone: '9876501234' });
+    await api()
+      .put(`/api/v1/admin/catalog/products/${product._id}`)
+      .set(bearer(owner))
+      .send({ ...rest, category: rest.category._id ?? rest.category, contactPhone: '12345' })
+      .expect(422);
+
+    const customer = await customerToken('9333333344');
+    await api().post('/api/v1/uploads/presign').set(bearer(customer)).send({ fileName: 'a.mp4', mimeType: 'video/mp4', size: 1000, purpose: 'order' }).expect(400);
+    await api().post('/api/v1/uploads/presign').set(bearer(owner)).send({ fileName: 'a.mp4', mimeType: 'video/mp4', size: 1000, purpose: 'catalog' }).expect(201);
+  });
+});

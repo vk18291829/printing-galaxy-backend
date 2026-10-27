@@ -30,7 +30,7 @@ dashboardRouter.get('/', async (_req, res) => {
       },
     ]);
 
-  const [todayAgg, monthAgg, byStatus, pendingPayments, pendingInstitutions, daily, topProducts, recent, byAudience, lowStock, pendingReviews] =
+  const [todayAgg, monthAgg, byStatus, pendingPayments, pendingInstitutions, daily, topProducts, recent, byAudience, lowStock, pendingReviews, bySegment, openBySegment] =
     await Promise.all([
       sumRange(today),
       sumRange(monthStart),
@@ -89,6 +89,15 @@ dashboardRouter.get('/', async (_req, res) => {
         .limit(10)
         .lean(),
       ReviewModel.countDocuments({ status: 'pending' }),
+      // This month per line of business, and what is still open in each.
+      OrderModel.aggregate<{ _id: string | null; revenue: number; orders: number }>([
+        { $match: { ...notCancelled, createdAt: { $gte: monthStart } } },
+        { $group: { _id: '$segment', revenue: { $sum: '$totals.total' }, orders: { $sum: 1 } } },
+      ]),
+      OrderModel.aggregate<{ _id: string | null; count: number }>([
+        { $match: { status: { $nin: ['delivered', 'picked_up', 'cancelled'] } } },
+        { $group: { _id: '$segment', count: { $sum: 1 } } },
+      ]),
     ]);
 
   // Fill missing days so the chart has a continuous x-axis.
@@ -110,6 +119,8 @@ dashboardRouter.get('/', async (_req, res) => {
     daily: series,
     topProducts,
     byAudience: Object.fromEntries(byAudience.map((a) => [a._id, { revenue: a.revenue, orders: a.orders }])),
+    bySegment: Object.fromEntries(bySegment.map((a) => [a._id ?? 'individual', { revenue: a.revenue, orders: a.orders }])),
+    openBySegment: Object.fromEntries(openBySegment.map((a) => [a._id ?? 'individual', a.count])),
     recentOrders: recent,
     lowStock,
   });

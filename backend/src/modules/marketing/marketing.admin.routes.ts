@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { localized, localizedOptional, objectId } from '@/common/validation';
-import { requireAdmin } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import { BANNER_KINDS, BANNER_THEMES, BannerModel } from './banner.model';
@@ -43,13 +43,13 @@ adminMarketingRouter.get('/banners', async (_req, res) => {
   res.json(await BannerModel.find().sort({ kind: 1, sortOrder: 1, createdAt: -1 }).lean());
 });
 
-adminMarketingRouter.post('/banners', requireAdmin, validate({ body: bannerInput }), async (req, res) => {
+adminMarketingRouter.post('/banners', requirePermission('marketing'), validate({ body: bannerInput }), async (req, res) => {
   const banner = await BannerModel.create(req.body);
   audit(req, { action: 'banner.create', entity: 'Banner', entityId: banner._id, summary: banner.title.en });
   res.status(201).json(banner);
 });
 
-adminMarketingRouter.put('/banners/:id', requireAdmin, validate({ params: idParams, body: bannerInput }), async (req, res) => {
+adminMarketingRouter.put('/banners/:id', requirePermission('marketing'), validate({ params: idParams, body: bannerInput }), async (req, res) => {
   const banner = await BannerModel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
   if (!banner) throw ApiError.notFound('Banner');
   audit(req, { action: 'banner.update', entity: 'Banner', entityId: banner._id, summary: banner.title.en });
@@ -58,7 +58,7 @@ adminMarketingRouter.put('/banners/:id', requireAdmin, validate({ params: idPara
 
 adminMarketingRouter.patch(
   '/banners/:id/active',
-  requireAdmin,
+  requirePermission('marketing'),
   validate({ params: idParams, body: z.object({ isActive: z.boolean() }) }),
   async (req, res) => {
     const banner = await BannerModel.findByIdAndUpdate(req.params.id, { isActive: req.body.isActive }, { new: true });
@@ -67,7 +67,7 @@ adminMarketingRouter.patch(
   },
 );
 
-adminMarketingRouter.delete('/banners/:id', requireAdmin, validate({ params: idParams }), async (req, res) => {
+adminMarketingRouter.delete('/banners/:id', requirePermission('marketing'), validate({ params: idParams }), async (req, res) => {
   const banner = await BannerModel.findByIdAndDelete(req.params.id);
   if (!banner) throw ApiError.notFound('Banner');
   audit(req, { action: 'banner.delete', entity: 'Banner', entityId: banner._id, summary: banner.title.en });

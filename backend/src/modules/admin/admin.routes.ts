@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireAdmin, requireStaff } from '@/middleware/auth';
+import { authenticate, requireAdmin, requirePermission, requireStaff } from '@/middleware/auth';
 import { adminAuditRouter } from '@/modules/audit/audit.admin.routes';
 import { adminBulkRouter } from '@/modules/bulk/bulk.admin.routes';
 import { adminCatalogRouter } from '@/modules/catalog/catalog.admin.routes';
@@ -23,17 +23,17 @@ export const adminRouter = Router();
 adminRouter.use(authenticate, requireStaff);
 
 adminRouter.use('/dashboard', dashboardRouter);
-adminRouter.use('/orders', adminOrdersRouter);
+adminRouter.use('/orders', requirePermission('orders'), adminOrdersRouter);
 adminRouter.use('/catalog', adminCatalogRouter);
-adminRouter.use('/institutions/:institutionId/roster', adminRosterRouter);
+adminRouter.use('/institutions/:institutionId/roster', requirePermission('institutions'), adminRosterRouter);
 adminRouter.use('/institutions', adminInstitutionsRouter);
 adminRouter.use('/users', adminUsersRouter);
 adminRouter.use('/settings', adminSettingsRouter);
 adminRouter.use('/inventory', adminInventoryRouter);
 adminRouter.use('/bulk-jobs', adminBulkRouter);
 adminRouter.use('/reviews', adminReviewsRouter);
-adminRouter.use('/marketing/promotions', requireAdmin, adminPromoRouter);
+adminRouter.use('/marketing/promotions', requirePermission('marketing'), adminPromoRouter);
 adminRouter.use('/marketing', adminMarketingRouter);
-adminRouter.use('/reports', requireAdmin, adminReportsRouter);
+adminRouter.use('/reports', requirePermission('reports'), adminReportsRouter);
 adminRouter.use('/audit', requireAdmin, adminAuditRouter);
 adminRouter.use('/system', requireAdmin, adminSystemRouter);

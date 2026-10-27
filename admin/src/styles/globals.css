@@ -1,53 +1,54 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@fontsource-variable/geist';
+@import '@fontsource-variable/inter';
 @import '@fontsource-variable/geist-mono';
 @import '@fontsource-variable/noto-sans-devanagari';
 
 @custom-variant dark (&:is(.dark *));
 
-/* Neutral zinc surfaces with the logo's blue as the only accent.
-   Brand palette: navy #131A2B, blue #1D6CF0 → #33A8F5, CMYK accents cyan #12B5EA, magenta #D9138A, yellow #FFC20E. */
+/* Same palette as the website and the logo: navy #142B4A for text and headers, orange #F65B2A for
+   actions, a light grey canvas, slate secondary text. */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.546 0.215 262.9);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.5 0.016 285.938);
-  --accent: oklch(0.955 0.003 286.35);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.546 0.215 262.9);
+  --background: #f4f6f8;
+  --foreground: #142b4a;
+  --card: #ffffff;
+  --card-foreground: #142b4a;
+  --popover: #ffffff;
+  --popover-foreground: #142b4a;
+  --primary: #f65b2a;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f6;
+  --secondary-foreground: #142b4a;
+  --muted: #eef2f6;
+  --muted-foreground: #64748b;
+  --accent: #eef2f6;
+  --accent-foreground: #142b4a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #f65b2a;
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.37 0.013 285.805);
-  --sidebar-accent: oklch(0.94 0.004 286.32);
-  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #334155;
+  --sidebar-accent: #fff1ec;
+  --sidebar-border: #e2e8f0;
 
-  --success: oklch(0.6 0.15 155);
-  --warning: oklch(0.76 0.16 75);
-  --info: oklch(0.62 0.14 235);
+  --success: #15803d;
+  --warning: #f59e0b;
+  --info: #1f3d66;
 
-  --scrollbar: oklch(0.552 0.016 285.938 / 35%);
-  --scrollbar-hover: oklch(0.552 0.016 285.938 / 60%);
+  --scrollbar: rgb(20 43 74 / 22%);
+  --scrollbar-hover: rgb(20 43 74 / 40%);
 
-  --brand-navy: #131a2b;
-  --brand-blue: #1d6cf0;
+  --brand-navy: #142b4a;
+  --brand-orange: #f65b2a;
+  --brand-blue: #1f3d66;
   --brand-sky: #33a8f5;
-  --brand-cyan: #12b5ea;
-  --brand-magenta: #d9138a;
-  --brand-yellow: #ffc20e;
+  --brand-cyan: #00aeef;
+  --brand-magenta: #f0197d;
+  --brand-yellow: #ff9f0a;
 }
 
 .dark {
@@ -84,8 +85,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Geist Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
+  --font-sans: 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 
   --radius-xs: 3px;
@@ -123,6 +124,7 @@
   --color-sidebar-border: var(--sidebar-border);
 
   --color-brand-navy: var(--brand-navy);
+  --color-brand-orange: var(--brand-orange);
   --color-brand-blue: var(--brand-blue);
   --color-brand-sky: var(--brand-sky);
   --color-brand-cyan: var(--brand-cyan);

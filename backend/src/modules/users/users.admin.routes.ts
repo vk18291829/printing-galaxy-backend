@@ -1,3 +1,4 @@
+import { STAFF_ROLE_KEYS } from '@/common/permissions';
 import { Router } from 'express';
 import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
@@ -80,6 +81,7 @@ const staffCreateSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   phone: indianPhone.optional(),
   role: z.enum(['staff', 'admin', 'delivery']),
+  staffRoles: z.array(z.enum(STAFF_ROLE_KEYS)).max(STAFF_ROLE_KEYS.length).optional(),
   password: passwordSchema,
 });
 
@@ -94,6 +96,7 @@ adminUsersRouter.post('/staff', requireAdmin, validate({ body: staffCreateSchema
 const staffUpdateSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
   role: z.enum(['staff', 'admin', 'delivery']).optional(),
+  staffRoles: z.array(z.enum(STAFF_ROLE_KEYS)).max(STAFF_ROLE_KEYS.length).optional(),
   isActive: z.boolean().optional(),
   password: passwordSchema.optional(),
 });
