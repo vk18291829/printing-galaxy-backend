@@ -43,6 +43,7 @@ paymentsRouter.post(
     if (order.status === 'quote_pending') {
       throw ApiError.conflict('We are still preparing the price for this order');
     }
+    if (order.status === 'quote_sent') throw ApiError.conflict('Accept the quote before paying');
     razorpay();
     const { razorpayOrderId, amountPaise } = await razorpayOrderFor(order);
 

@@ -1,4 +1,4 @@
-import { IconBan, IconCheck, IconX } from '@tabler/icons-react';
+import { IconBan, IconCheck, IconUsers, IconX } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsAdmin } from '@/features/auth/auth-store';
 import { useInstitution, useReviewInstitution } from '@/features/management/api';
+import { useRoster } from '@/features/roster/api';
 import { formatDate, formatINR } from '@/lib/format';
 import type { InstitutionStatus } from '@/types/api';
 
@@ -22,6 +23,34 @@ function Info({ label, children }: { label: string; children: ReactNode }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-sm font-medium wrap-break-word">{children || '—'}</p>
     </div>
+  );
+}
+
+/** The institution's student/staff list, kept for ID card printing. */
+function RosterCard({ institutionId }: { institutionId: string }) {
+  const { data: students } = useRoster(institutionId, 'student');
+  const { data: staff } = useRoster(institutionId, 'staff');
+  const total = (students?.total ?? 0) + (staff?.total ?? 0);
+  const photos = (students?.withPhoto ?? 0) + (staff?.withPhoto ?? 0);
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-4">
+        <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
+          <IconUsers className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Students & staff</p>
+          <p className="text-sm text-muted-foreground">
+            {total === 0
+              ? 'No list yet. Import their Excel/CSV or add people.'
+              : `${students?.total ?? 0} students · ${staff?.total ?? 0} staff · ${photos} of ${total} photos`}
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link to={`/institutions/${institutionId}/students`}>Open list</Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -97,6 +126,8 @@ export default function InstitutionDetailPage() {
               {data.statusReason && <Info label="Reason">{data.statusReason}</Info>}
             </CardContent>
           </Card>
+
+          <RosterCard institutionId={id} />
 
           <Card className="gap-0 pb-0">
             <CardHeader className="pb-4">

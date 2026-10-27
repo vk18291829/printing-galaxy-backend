@@ -37,6 +37,37 @@ describe('auth', () => {
     await api().post('/api/v1/auth/refresh').set('Cookie', rotated).expect(401);
   });
 
+  it('lets one phone number or email belong to one account only', async () => {
+    // An institution's number can't be used to sign up as a customer.
+    await api().post('/api/v1/auth/otp/request').send({ phone: '9811111111' }).expect(409);
+
+    // A customer's number signs back into the same account, never a second one.
+    await customerToken('9134567890');
+    const again = await api().post('/api/v1/auth/otp/request').send({ phone: '9134567890' }).expect(200);
+    const login = await api().post('/api/v1/auth/otp/verify').send({ phone: '9134567890', code: again.body.devCode }).expect(200);
+    expect(login.body.isNew).toBe(false);
+
+    // ...and can't be used to register an institution, nor can an existing institution email.
+    const register = {
+      name: 'Another School',
+      type: 'school',
+      contactName: 'Clerk',
+      email: 'another@test.in',
+      phone: '9134567890',
+      password: PASSWORD,
+      address: { line1: '2 School Road', city: 'Jhansi', state: 'Uttar Pradesh', pincode: '284001' },
+    };
+    await api().post('/api/v1/auth/institution/register').send(register).expect(409);
+    await api().post('/api/v1/auth/institution/register').send({ ...register, phone: '9144444444', email: 'school@test.in' }).expect(409);
+
+    // Profile edits can't take another account's email or number either.
+    const customer = await customerToken('9145678901');
+    await api().patch('/api/v1/account').set(bearer(customer)).send({ email: 'school@test.in' }).expect(409);
+    const school = await institutionToken('school@test.in');
+    await api().patch('/api/v1/account').set(bearer(school)).send({ phone: '9134567890' }).expect(409);
+    await api().patch('/api/v1/account').set(bearer(school)).send({ phone: '9811111111' }).expect(200);
+  });
+
   it('keeps riders and customers out of the admin API', async () => {
     const rider = await staffToken('rider@test.in');
     await api().get('/api/v1/admin/dashboard').set(bearer(rider)).expect(403);

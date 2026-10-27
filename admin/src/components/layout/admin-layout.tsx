@@ -14,14 +14,12 @@ import {
   IconLogout,
   IconMenu2,
   IconMessage2,
-  IconMoon,
   IconPackage,
   IconReceipt,
   IconReportAnalytics,
   IconSettings,
   IconSpeakerphone,
   IconStars,
-  IconSun,
   IconTags,
   IconTruckDelivery,
   IconUserShield,
@@ -31,8 +29,6 @@ import {
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
-import { ThemeToggle } from '@/components/common/theme-toggle';
-import { useTheme } from '@/components/theme-provider';
 import { Badge } from '@/components/ui/badge';
 import {
   Breadcrumb,
@@ -232,7 +228,6 @@ function UserMenu({ collapsed }: { collapsed?: boolean }) {
   const user = useAuthStore((s) => s.user);
   const logout = useStaffLogout();
   const navigate = useNavigate();
-  const { resolvedTheme, setTheme } = useTheme();
   const initial = (user?.name || user?.email || '?').slice(0, 1).toUpperCase();
 
   return (
@@ -262,9 +257,6 @@ function UserMenu({ collapsed }: { collapsed?: boolean }) {
           <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
-          {resolvedTheme === 'dark' ? <IconSun /> : <IconMoon />} {resolvedTheme === 'dark' ? 'Light theme' : 'Dark theme'}
-        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <a href={WEBSITE_URL} target="_blank" rel="noreferrer">
             <IconExternalLink /> Open website
@@ -408,7 +400,6 @@ export function AdminLayout() {
                   <IconExternalLink /> Website
                 </a>
               </Button>
-              <ThemeToggle />
             </div>
             </div>
           </header>

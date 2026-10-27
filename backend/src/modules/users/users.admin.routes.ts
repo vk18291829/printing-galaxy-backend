@@ -9,6 +9,7 @@ import { audit } from '@/modules/audit/audit.model';
 import { passwordSchema } from '@/modules/auth/auth.schema';
 import { hashPassword } from '@/modules/auth/auth.service';
 import { SessionModel } from '@/modules/auth/session.model';
+import { assertContactAvailable } from '@/modules/auth/unique-contact';
 import { OrderModel } from '@/modules/orders/order.model';
 import { UserModel, type User } from './user.model';
 
@@ -84,6 +85,7 @@ const staffCreateSchema = z.object({
 
 adminUsersRouter.post('/staff', requireAdmin, validate({ body: staffCreateSchema }), async (req, res) => {
   const { password, ...rest } = req.body as z.infer<typeof staffCreateSchema>;
+  await assertContactAvailable({ email: rest.email, phone: rest.phone });
   const user = await UserModel.create({ ...rest, passwordHash: await hashPassword(password) });
   audit(req, { action: 'staff.create', entity: 'User', entityId: user._id, summary: `${user.name} (${user.role})` });
   res.status(201).json(user);

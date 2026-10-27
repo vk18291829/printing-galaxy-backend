@@ -1,48 +1,52 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@fontsource-variable/geist';
+@import '@fontsource-variable/inter';
 @import '@fontsource-variable/geist-mono';
 @import '@fontsource-variable/noto-sans-devanagari';
 
 @custom-variant dark (&:is(.dark *));
 
-/* Neutral zinc surfaces with the logo's blue as the only accent (same tokens as the admin panel).
-   Brand palette: navy #131A2B, blue #1D6CF0 → #33A8F5, CMYK accents cyan #12B5EA, magenta #D9138A, yellow #FFC20E. */
+/* Premium print palette: navy for type and structure, orange for actions, light-gray canvas.
+   Cyan, magenta and amber come from the logo and are kept for small decorative details only. */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.546 0.215 262.9);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.5 0.016 285.938);
-  --accent: oklch(0.955 0.003 286.35);
-  --accent-foreground: oklch(0.21 0.006 285.885);
+  --background: #ffffff;
+  --foreground: #142b4a;
+  --card: #ffffff;
+  --card-foreground: #142b4a;
+  --popover: #ffffff;
+  --popover-foreground: #142b4a;
+  --primary: #f65b2a;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f6f8;
+  --secondary-foreground: #142b4a;
+  --muted: #f4f6f8;
+  --muted-foreground: #64748b;
+  --accent: #eef2f6;
+  --accent-foreground: #142b4a;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.546 0.215 262.9);
+  --border: #e2e8f0;
+  --input: #d5dde7;
+  --ring: #f65b2a;
 
-  --success: oklch(0.6 0.15 155);
+  --success: #15803d;
   --warning: oklch(0.76 0.16 75);
   --info: oklch(0.62 0.14 235);
 
-  --scrollbar: oklch(0.552 0.016 285.938 / 35%);
-  --scrollbar-hover: oklch(0.552 0.016 285.938 / 60%);
+  --scrollbar: oklch(0.552 0.016 255 / 35%);
+  --scrollbar-hover: oklch(0.552 0.016 255 / 60%);
 
-  --brand-navy: #131a2b;
-  --brand-blue: #1d6cf0;
-  --brand-sky: #33a8f5;
-  --brand-cyan: #12b5ea;
-  --brand-magenta: #d9138a;
-  --brand-yellow: #ffc20e;
+  --brand-navy: #142b4a;
+  --brand-navy-deep: #0d1d33;
+  --brand-orange: #f65b2a;
+  --brand-orange-hover: #e04a1c;
+  /* Older components reference blue/sky; they now resolve to the navy family. */
+  --brand-blue: #1f3d66;
+  --brand-sky: #00aeef;
+  --brand-cyan: #00aeef;
+  --brand-magenta: #f0197d;
+  --brand-yellow: #ff9f0a;
 }
 
 .dark {
@@ -74,18 +78,18 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Geist Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
+  --font-sans: 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter Variable', 'Noto Sans Devanagari Variable', ui-sans-serif, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 
-  /* Same corner scale as the admin panel: controls 8px, cards 10–12px. */
-  --radius-xs: 3px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-2xl: 12px;
-  --radius-3xl: 14px;
+  /* Controls 8–10px, cards 12px, feature panels 16–20px. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -110,6 +114,9 @@
   --color-info: var(--info);
 
   --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-deep: var(--brand-navy-deep);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-hover: var(--brand-orange-hover);
   --color-brand-blue: var(--brand-blue);
   --color-brand-sky: var(--brand-sky);
   --color-brand-cyan: var(--brand-cyan);
@@ -167,7 +174,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    font-feature-settings: 'cv11';
   }
   /* Devanagari needs a little more line height to keep matras from clipping. */
   html[lang='hi'] body {
@@ -181,7 +188,7 @@
   }
   h1,
   h2 {
-    letter-spacing: -0.03em;
+    letter-spacing: -0.025em;
   }
   html[lang='hi'] :is(h1, h2, h3, h4) {
     letter-spacing: 0;
@@ -204,11 +211,9 @@
   );
 }
 
+/* Highlighted words in headings ("Ideas to <Prints.>"). Kept under the old name; it is now solid orange. */
 @utility text-brand-gradient {
-  background: linear-gradient(100deg, var(--brand-blue), var(--brand-sky) 55%, var(--brand-cyan));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--brand-orange);
 }
 
 /* Fine engineering-paper grid that fades out toward the edges. */
@@ -222,7 +227,12 @@
 
 /* Small uppercase label above section headings. */
 @utility eyebrow {
-  @apply text-xs font-semibold tracking-[0.14em] text-primary uppercase;
+  @apply text-xs font-bold tracking-[0.16em] text-primary uppercase;
+}
+
+/* Section rhythm: 40–56px on phones, 72–96px on desktop. */
+@utility section-y {
+  @apply py-12 lg:py-20;
 }
 
 /* Horizontal rails (category icons, product rows) scroll without a visible bar. */
@@ -235,19 +245,19 @@
 
 /* Banner colour presets, chosen per banner in the admin panel. */
 @utility banner-blue {
-  background: radial-gradient(120% 140% at 100% 0%, #33a8f5 0%, transparent 55%), linear-gradient(135deg, #0b3fa8, #1d6cf0);
+  background: radial-gradient(120% 140% at 100% 0%, #2c5a94 0%, transparent 55%), linear-gradient(135deg, #0d1d33, #142b4a);
 }
 @utility banner-magenta {
   background: radial-gradient(120% 140% at 100% 0%, #ff6ab8 0%, transparent 55%), linear-gradient(135deg, #8a0b57, #d9138a);
 }
 @utility banner-sunset {
-  background: radial-gradient(120% 140% at 100% 0%, #ffc20e 0%, transparent 55%), linear-gradient(135deg, #c2410c, #f97316);
+  background: radial-gradient(120% 140% at 100% 0%, #ff9f0a 0%, transparent 55%), linear-gradient(135deg, #c2410c, #f65b2a);
 }
 @utility banner-mint {
   background: radial-gradient(120% 140% at 100% 0%, #5eead4 0%, transparent 55%), linear-gradient(135deg, #065f46, #0f9f77);
 }
 @utility banner-dark {
-  background: radial-gradient(120% 140% at 100% 0%, #1d6cf0 0%, transparent 55%), linear-gradient(135deg, #09090b, #18181b);
+  background: radial-gradient(120% 140% at 100% 0%, rgb(246 91 42 / 0.35) 0%, transparent 55%), linear-gradient(135deg, #0a1628, #142b4a);
 }
 
 

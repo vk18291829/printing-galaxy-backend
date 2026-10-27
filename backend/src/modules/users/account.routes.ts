@@ -4,6 +4,7 @@ import { ApiError } from '@/common/errors';
 import { addressInput, indianPhone } from '@/common/validation';
 import { emailChannel } from '@/config/env';
 import { authenticate } from '@/middleware/auth';
+import { assertContactAvailable } from '@/modules/auth/unique-contact';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { UserModel } from './user.model';
 
@@ -35,6 +36,7 @@ accountRouter.patch('/', async (req, res) => {
   const auth = req.auth!;
   if (auth.kind === 'institution') {
     const input = institutionUpdateSchema.parse(req.body);
+    await assertContactAvailable({ phone: input.phone }, { kind: 'institution', id: auth.id });
     const institution = await InstitutionModel.findByIdAndUpdate(auth.id, { $set: input }, { new: true });
     if (!institution) throw ApiError.notFound('Institution');
     res.json({ kind: 'institution', institution: institution.toJSON() });
@@ -50,10 +52,9 @@ accountRouter.patch('/', async (req, res) => {
     if (input[key] === '') {
       delete update[key];
       unset[key] = 1;
-    } else if (input[key] && (await UserModel.exists({ [key]: input[key], _id: { $ne: auth.id } }))) {
-      throw ApiError.conflict(key === 'email' ? 'This email is already used by another account' : 'This mobile number is already used by another account');
     }
   }
+  await assertContactAvailable({ email: update.email as string | undefined, phone: update.phone as string | undefined }, { kind: 'user', id: auth.id });
   const user = await UserModel.findByIdAndUpdate(
     auth.id,
     { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },

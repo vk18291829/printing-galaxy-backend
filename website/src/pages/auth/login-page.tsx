@@ -1,8 +1,8 @@
-import { IconArrowLeft, IconArrowRight, IconBuildingCommunity, IconInfoCircle, IconShieldCheck } from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconBuildingCommunity, IconInfoCircle, IconShieldCheck, IconUser } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { PrefixedInput } from '@/components/common/prefixed-input';
 import { PageLoader, Spinner } from '@/components/common/states';
@@ -10,19 +10,51 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { authApi, useVerifyOtp, type OtpRequestResponse } from '@/features/auth/api';
-import { AuthStepper, OrgAuthLayout, OrgBenefitsInline } from '@/features/auth/components/org-auth-layout';
+import { OrgAuthLayout } from '@/features/auth/components/org-auth-layout';
 import { OtpInput } from '@/features/auth/components/otp-input';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { InstitutionLogin } from '@/pages/auth/institution-login-page';
 import { getErrorMessage } from '@/lib/api-client';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+type LoginTab = 'individual' | 'institution';
+
+/** One sign-in page with a tab per account type; `?tab=institution` opens the schools tab. */
 export default function LoginPage() {
   const { t } = useTranslation();
   useDocumentTitle(t('common.signIn'));
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
+  const tab: LoginTab = params.get('tab') === 'institution' ? 'institution' : 'individual';
+
+  const tabs = (
+    <Tabs
+      value={tab}
+      // Keep the return path (router state) when switching tabs.
+      onValueChange={(v) => setParams(v === 'institution' ? { tab: v } : {}, { replace: true, state: location.state })}
+      className="mb-8"
+    >
+      <TabsList className="w-full">
+        <TabsTrigger value="individual">
+          <IconUser /> {t('auth.tabs.individual')}
+        </TabsTrigger>
+        <TabsTrigger value="institution">
+          <IconBuildingCommunity /> {t('auth.tabs.institution')}
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+
+  return tab === 'institution' ? <InstitutionLogin tabs={tabs} /> : <IndividualLogin tabs={tabs} />;
+}
+
+function IndividualLogin({ tabs }: { tabs: ReactNode }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -93,6 +125,7 @@ export default function LoginPage() {
   return (
     <OrgAuthLayout
       audience="individual"
+      brief
       title={sent ? t('auth.otpTitle') : byEmail ? t('auth.byEmail.loginTitle') : t('auth.loginTitle')}
       subtitle={
         sent
@@ -103,30 +136,8 @@ export default function LoginPage() {
             ? t('auth.byEmail.loginSubtitle')
             : t('auth.loginSubtitle')
       }
-      footer={
-        <div className="flex items-center gap-4 rounded-xl border border-dashed p-4">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-            <IconBuildingCommunity className="size-5" />
-          </span>
-          <p className="min-w-0 flex-1 text-sm">{t('auth.institutionPrompt')}</p>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/institutions/login">
-              {t('nav.institutionLogin')} <IconArrowRight />
-            </Link>
-          </Button>
-        </div>
-      }
+      header={tabs}
     >
-      <AuthStepper
-        step={sent ? 1 : 0}
-        labels={[byEmail ? t('auth.byEmail.step') : t('auth.person.stepPhone'), t('auth.person.stepCode')]}
-        onJump={() => {
-          setSent(null);
-          verify.reset();
-        }}
-      />
-      {!sent && <OrgBenefitsInline audience="individual" />}
-
       {!sent ? (
         <form onSubmit={submitTarget} className="space-y-5">
           {byEmail ? (

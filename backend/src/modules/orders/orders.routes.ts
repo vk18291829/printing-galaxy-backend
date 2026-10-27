@@ -18,8 +18,9 @@ import {
 import { PaymentModel } from '@/modules/payments/payment.model';
 import { refundOrder } from '@/modules/payments/payment.service';
 import { getSettings } from '@/modules/settings/settings.model';
-import { OrderModel, type Order } from './order.model';
-import { createOrderSchema, proofResponseSchema } from './order.schema';
+import { FileModel } from '@/modules/uploads/file.model';
+import { FILE_OPEN_STATUSES, OrderModel, type Order, type OrderStatus } from './order.model';
+import { addItemFilesSchema, createOrderSchema, proofResponseSchema } from './order.schema';
 import {
   buildItems,
   changeStatus,
@@ -54,19 +55,22 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
   }
 
   const settings = await getSettings();
+  const ctx = await resolvePricingContext(auth);
   if (input.fulfilment.method === 'delivery' && !settings.delivery.enabled) {
     throw ApiError.badRequest('Home delivery is not available right now');
   }
   if (input.paymentMethod === 'online' && (!settings.payments.onlineEnabled || !razorpayEnabled())) {
     throw ApiError.badRequest('Online payment is not available right now');
   }
-  if (input.paymentMethod === 'counter' && !settings.payments.counterEnabled) {
+  // Approved institutions are invoiced on account, so the counter switch does not apply to them.
+  if (input.paymentMethod === 'counter' && !settings.payments.counterEnabled && ctx.audience !== 'institution') {
     throw ApiError.badRequest('Pay at counter is not available right now');
   }
 
-  const ctx = await resolvePricingContext(auth);
   const items = await buildItems(input.items, ctx, auth);
-  const needsQuote = items.some((i) => i.workflow === 'quote');
+  // Custom sizes have no list price, so they always go through a quote the customer accepts.
+  const quoteRequested = input.requestQuote || items.some((i) => i.customSize);
+  const needsQuote = quoteRequested || items.some((i) => i.workflow === 'quote');
   const subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
   const totals = await computeTotals(subtotal, input.fulfilment.method);
   const who = await resolveContact(auth, input.contactName, input.contactPhone);
@@ -91,6 +95,8 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
       ...(status === 'awaiting_payment' ? { dueBy: new Date(Date.now() + settings.payments.onlineTimeoutMinutes * 60_000) } : {}),
     },
     customerNote: input.customerNote,
+    reference: input.reference,
+    quote: { requested: quoteRequested },
   }, key);
   if (!replayed) await notifyStatus(order);
 
@@ -151,7 +157,7 @@ ordersRouter.post(
       res.json(order.toJSON());
       return;
     }
-    if (!['quote_pending', 'awaiting_payment', 'received'].includes(order.status)) {
+    if (!['quote_pending', 'quote_sent', 'awaiting_payment', 'received'].includes(order.status)) {
       throw ApiError.conflict('Work on this order has started, so it can no longer be cancelled online. Please call the shop.');
     }
     // Paid online: the money goes back automatically. Paid at the counter: the shop refunds in person.
@@ -168,6 +174,53 @@ ordersRouter.post(
       ? await refundOrder(req, order, { reason: 'Order cancelled by customer', idempotencyKey: `cancel:${order.id}` })
       : order;
     res.json(result?.toJSON());
+  },
+);
+
+/** The customer accepts the price the shop sent; the order then joins the production queue. */
+ordersRouter.post('/:id/accept-quote', validate({ params: z.object({ id: objectId }) }), async (req, res) => {
+  const order = await OrderModel.findOne({ _id: req.params.id, ...ownerFilter(req.auth!) });
+  if (!order) throw ApiError.notFound('Order');
+  if (order.status !== 'quote_sent') throw ApiError.conflict('There is no quote waiting for your approval');
+  if (order.quote?.validUntil && order.quote.validUntil < new Date()) {
+    throw ApiError.conflict('This quote has expired. Please ask the shop for a new one.');
+  }
+  order.set('quote.acceptedAt', new Date());
+  const settings = await getSettings();
+  const payFirst = order.payment.method === 'online' && order.audience === 'retail' && order.totals.total > netPaid(order);
+  if (payFirst) order.payment.dueBy = new Date(Date.now() + settings.payments.quotePaymentDays * 86_400_000);
+  await changeStatus(req, order, payFirst ? 'awaiting_payment' : 'received', { note: 'Quote accepted' });
+  res.json(order.toJSON());
+});
+
+/** Files sent after the order is confirmed, e.g. an institution's student data sheet. */
+ordersRouter.post(
+  '/:id/items/:itemId/files',
+  validate({ params: z.object({ id: objectId, itemId: objectId }), body: addItemFilesSchema }),
+  async (req, res) => {
+    const auth = req.auth!;
+    const { fileIds } = req.body as z.infer<typeof addItemFilesSchema>;
+    const order = await OrderModel.findOne({ _id: req.params.id, ...ownerFilter(auth) });
+    if (!order) throw ApiError.notFound('Order');
+    if (!FILE_OPEN_STATUSES.includes(order.status as OrderStatus)) {
+      throw ApiError.conflict('Files can be added once the order is confirmed and until printing starts');
+    }
+    const item = order.items.id(req.params.itemId as string);
+    if (!item) throw ApiError.notFound('Item');
+    if (item.files.length + fileIds.length > 30) throw ApiError.badRequest('An item can have at most 30 files');
+
+    const ids = [...new Set(fileIds)];
+    const files = await FileModel.find({ _id: { $in: ids } });
+    const mine = files.filter((f) => f.status === 'uploaded' && !f.order && String(f.owner.id) === auth.id && f.owner.kind === auth.kind);
+    if (mine.length !== ids.length) throw ApiError.unprocessable('An uploaded file is missing, please upload it again');
+    const claimed = await FileModel.updateMany({ _id: { $in: ids }, order: null }, { $set: { order: order._id } });
+    if (claimed.modifiedCount !== ids.length) {
+      await FileModel.updateMany({ _id: { $in: ids }, order: order._id }, { $unset: { order: 1 } });
+      throw ApiError.conflict('One of your files is already used in another order. Please upload it again.');
+    }
+    item.files.push(...mine.map((f) => f._id));
+    await order.save();
+    res.json(order.toJSON());
   },
 );
 

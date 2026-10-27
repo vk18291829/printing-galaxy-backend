@@ -14,6 +14,7 @@ import { NotificationClaimModel, NotificationLogModel } from './notification.mod
  */
 const STATUS_TEXT: Record<string, string> = {
   quote_pending: 'is received, price coming soon',
+  quote_sent: 'quote is ready to accept',
   awaiting_payment: 'is waiting for payment',
   delivery_failed: 'could not be delivered today',
   refunded: 'refund has been started',

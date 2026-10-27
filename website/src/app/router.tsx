@@ -1,17 +1,17 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageLoader } from '@/components/common/states';
-import { GuestOnly, RequireAuth } from '@/features/auth/guards';
+import { GuestOnly, InstitutionLoginRedirect, RequireAuth } from '@/features/auth/guards';
 import HomePage from '@/pages/home-page';
 
 const ProductsPage = lazy(() => import('@/pages/products-page'));
 const ProductPage = lazy(() => import('@/pages/product-page'));
-const PricingPage = lazy(() => import('@/pages/pricing-page'));
 const InstitutionsPage = lazy(() => import('@/pages/institutions-page'));
+const BusinessPrintingPage = lazy(() => import('@/pages/business-printing-page'));
+const WeddingCardsPage = lazy(() => import('@/pages/wedding-cards-page'));
 const ContactPage = lazy(() => import('@/pages/contact-page'));
 const LoginPage = lazy(() => import('@/pages/auth/login-page'));
-const InstitutionLoginPage = lazy(() => import('@/pages/auth/institution-login-page'));
 const InstitutionRegisterPage = lazy(() => import('@/pages/auth/institution-register-page'));
 const CartPage = lazy(() => import('@/pages/cart-page'));
 const CheckoutPage = lazy(() => import('@/pages/checkout-page'));
@@ -20,10 +20,8 @@ const OrderDetailPage = lazy(() => import('@/pages/account/order-detail-page'));
 const ProfilePage = lazy(() => import('@/pages/account/profile-page'));
 const UpdatesPage = lazy(() => import('@/pages/account/updates-page'));
 const InstitutionDashboardPage = lazy(() => import('@/pages/institution/dashboard-page'));
-const TemplatesPage = lazy(() => import('@/pages/institution/templates-page'));
-const TemplateEditorPage = lazy(() => import('@/pages/institution/template-editor-page'));
-const BulkUploadPage = lazy(() => import('@/pages/institution/bulk-upload-page'));
-const BulkJobPage = lazy(() => import('@/pages/institution/bulk-job-page'));
+const NewOrderPage = lazy(() => import('@/pages/institution/new-order-page'));
+const StudentsPage = lazy(() => import('@/pages/institution/students-page'));
 const NotFoundPage = lazy(() => import('@/pages/not-found-page'));
 const TrackPage = lazy(() => import('@/pages/track-page'));
 const UnsubscribePage = lazy(() => import('@/pages/unsubscribe-page'));
@@ -39,8 +37,11 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'products', element: page(<ProductsPage />) },
       { path: 'products/:slug', element: page(<ProductPage />) },
-      { path: 'pricing', element: page(<PricingPage />) },
+      // Prices now live on each product as quantity offers; keep old links working.
+      { path: 'pricing', element: <Navigate to="/products" replace /> },
       { path: 'institutions', element: page(<InstitutionsPage />) },
+      { path: 'business-printing', element: page(<BusinessPrintingPage />) },
+      { path: 'wedding-cards', element: page(<WeddingCardsPage />) },
       { path: 'contact', element: page(<ContactPage />) },
       { path: 'track', element: page(<TrackPage />) },
       { path: 'unsubscribe', element: page(<UnsubscribePage />) },
@@ -51,7 +52,8 @@ export const router = createBrowserRouter([
       { path: 'cart', element: page(<CartPage />) },
 
       { path: 'login', element: page(<GuestOnly><LoginPage /></GuestOnly>) },
-      { path: 'institutions/login', element: page(<GuestOnly><InstitutionLoginPage /></GuestOnly>) },
+      // Old institution sign-in URL; it is now a tab of /login.
+      { path: 'institutions/login', element: <InstitutionLoginRedirect /> },
       { path: 'institutions/register', element: page(<GuestOnly><InstitutionRegisterPage /></GuestOnly>) },
       { path: 'institutions/forgot-password', element: page(<GuestOnly><InstitutionPasswordPage /></GuestOnly>) },
 
@@ -61,10 +63,8 @@ export const router = createBrowserRouter([
       { path: 'account/profile', element: page(<RequireAuth><ProfilePage /></RequireAuth>) },
       { path: 'account/updates', element: page(<RequireAuth><UpdatesPage /></RequireAuth>) },
       { path: 'institution', element: page(<RequireAuth kind="institution"><InstitutionDashboardPage /></RequireAuth>) },
-      { path: 'institution/templates', element: page(<RequireAuth kind="institution"><TemplatesPage /></RequireAuth>) },
-      { path: 'institution/templates/:id', element: page(<RequireAuth kind="institution"><TemplateEditorPage /></RequireAuth>) },
-      { path: 'institution/bulk/new', element: page(<RequireAuth kind="institution"><BulkUploadPage /></RequireAuth>) },
-      { path: 'institution/bulk/:id', element: page(<RequireAuth kind="institution"><BulkJobPage /></RequireAuth>) },
+      { path: 'institution/orders/new', element: page(<RequireAuth kind="institution"><NewOrderPage /></RequireAuth>) },
+      { path: 'institution/students', element: page(<RequireAuth kind="institution"><StudentsPage /></RequireAuth>) },
 
       { path: '*', element: page(<NotFoundPage />) },
     ],

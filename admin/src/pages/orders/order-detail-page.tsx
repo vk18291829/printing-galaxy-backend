@@ -50,7 +50,7 @@ import { fetchFile } from '@/lib/download';
 import { cn } from '@/lib/utils';
 import { formatDate, formatFileSize, formatINR, formatNumber } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
-import { ALL_STATUSES, ALLOWED_TRANSITIONS, isClosed, netPaid } from '@/lib/order-flow';
+import { ALLOWED_TRANSITIONS, awaitingProofApproval, isClosed, netPaid, OVERRIDE_STATUSES } from '@/lib/order-flow';
 import type { AdminOrder } from '@/types/admin';
 import type { OrderItem, OrderStatus, UploadedFile } from '@/types/api';
 
@@ -127,6 +127,11 @@ function ItemCard({ order, item }: { order: AdminOrder; item: OrderItem }) {
         <div>
           <p className="font-semibold">{en(item.productName)}</p>
           <p className="text-sm text-muted-foreground">{qty}</p>
+          {item.customSize && (
+            <p className="text-xs font-medium text-warning">
+              Custom size: {item.customSize.width} × {item.customSize.height} {item.customSize.unit}
+            </p>
+          )}
           {item.options.length > 0 && (
             <p className="text-xs text-muted-foreground">{item.options.map((o) => `${en(o.label)}: ${en(o.valueLabel)}`).join(' · ')}</p>
           )}
@@ -189,11 +194,20 @@ function QuoteCard({ order }: { order: AdminOrder }) {
     Object.fromEntries(order.items.map((i) => [i._id, i.lineTotal ? String(i.lineTotal) : ''])),
   );
   const valid = order.items.every((i) => Number(prices[i._id]) > 0);
+  // A requested quote goes back to the customer to accept; other quote items move straight on.
+  const requested = Boolean(order.quote?.requested);
+  const resend = order.status === 'quote_sent';
   return (
     <Card className="border-warning/50 bg-warning/5">
       <CardHeader>
-        <CardTitle>Set the price</CardTitle>
-        <p className="text-sm text-muted-foreground">The customer pays after you confirm. They'll be notified.</p>
+        <CardTitle>{requested ? (resend ? 'Quote sent' : 'Send a quote') : 'Set the price'}</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {resend
+            ? `Waiting for the customer to accept${order.quote?.validUntil ? ` (valid until ${formatDate(order.quote.validUntil, 'en')})` : ''}. You can revise the price and send it again.`
+            : requested
+              ? 'The customer asked for a quote. They accept it before work starts. List prices are filled in as a starting point.'
+              : "The customer pays after you confirm. They'll be notified."}
+        </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {order.items.map((i) => (
@@ -216,15 +230,15 @@ function QuoteCard({ order }: { order: AdminOrder }) {
           disabled={!valid || quote.isPending}
           onClick={() =>
             void ask(
-              'Confirm this price?',
-              `The order total becomes ${formatINR(order.items.reduce((s, i) => s + (Number(prices[i._id]) || 0), 0))} before delivery and tax, and the customer is asked to pay.`,
-              'Confirm price',
+              requested ? 'Send this quote?' : 'Confirm this price?',
+              `The order total becomes ${formatINR(order.items.reduce((s, i) => s + (Number(prices[i._id]) || 0), 0))} before delivery and tax, and the customer is ${requested ? 'asked to accept it' : 'asked to pay'}.`,
+              requested ? 'Send quote' : 'Confirm price',
               () => quote.mutateAsync({ items: order.items.map((i) => ({ itemId: i._id, lineTotal: Number(prices[i._id]) })) }),
-              'Price confirmed and customer notified',
+              requested ? 'Quote sent to the customer' : 'Price confirmed and customer notified',
             )
           }
         >
-          {quote.isPending && <Spinner className="size-4 text-current" />} Confirm price
+          {quote.isPending && <Spinner className="size-4 text-current" />} {requested ? (resend ? 'Send revised quote' : 'Send quote') : 'Confirm price'}
         </Button>
       </CardContent>
     </Card>
@@ -243,9 +257,11 @@ function StatusCard({ order }: { order: AdminOrder }) {
   const method = order.fulfilment.method;
   const paid = netPaid(order.payment);
 
-  // Normal moves follow the shop's flow; the owner can unlock any other step with a reason.
-  const allowed = ALLOWED_TRANSITIONS[order.status];
-  const options = (override ? ALL_STATUSES : allowed).filter(
+  // Normal moves follow the shop's flow; the owner can unlock the others with a reason.
+  // Personalised items wait for the customer's proof approval before printing.
+  const proofPending = order.status === 'received' && awaitingProofApproval(order);
+  const allowed = ALLOWED_TRANSITIONS[order.status].filter((s) => !(proofPending && s === 'printing'));
+  const options = (override ? OVERRIDE_STATUSES : allowed).filter(
     (s) =>
       s !== order.status &&
       !(method === 'delivery' && s === 'picked_up') &&
@@ -264,10 +280,18 @@ function StatusCard({ order }: { order: AdminOrder }) {
             ? 'This order is closed.'
             : order.status === 'quote_pending'
               ? 'Set the price first. You can still cancel it here.'
+              : order.status === 'quote_sent'
+                ? 'Waiting for the customer to accept the quote. You can still cancel it here.'
               : order.status === 'awaiting_payment'
                 ? 'Waiting for online payment. It moves to Received automatically once paid, or record a counter payment below.'
                 : order.status === 'ready' && method === 'pickup'
                   ? 'Use Hand over when the customer collects it.'
+                  : order.status === 'ready'
+                    ? 'The rider starts the delivery; it moves to Out for delivery by itself.'
+                    : order.status === 'proof_sent'
+                      ? 'Waiting for the customer to approve the proof. It moves to Approved by itself.'
+                      : proofPending
+                        ? 'Send a proof from the item below. Printing unlocks once the customer approves it.'
                   : order.status === 'out_for_delivery'
                     ? 'The rider completes delivery with the customer’s code.'
                     : 'Move the order to its next step.'}
@@ -757,7 +781,7 @@ function OrderDetail({ order }: { order: AdminOrder }) {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Placed {formatDate(order.createdAt, 'en', true)}</p>
         </div>
-        {!['cancelled', 'quote_pending'].includes(order.status) && (
+        {!['cancelled', 'quote_pending', 'quote_sent'].includes(order.status) && (
           <Button
             variant="outline"
             onClick={() =>
@@ -773,7 +797,7 @@ function OrderDetail({ order }: { order: AdminOrder }) {
 
       <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
-          {order.status === 'quote_pending' && <QuoteCard order={order} />}
+          {(order.status === 'quote_pending' || order.status === 'quote_sent') && <QuoteCard order={order} />}
           <Card>
             <CardHeader>
               <CardTitle>Items ({order.items.length})</CardTitle>
@@ -827,6 +851,12 @@ function OrderDetail({ order }: { order: AdminOrder }) {
                 )}
               </div>
             </div>
+            {order.reference && (
+              <div className="border-t p-4 text-sm sm:p-5">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Customer reference / PO</p>
+                <p className="font-mono">{order.reference}</p>
+              </div>
+            )}
             {order.customerNote && (
               <div className="border-t p-4 text-sm sm:p-5">
                 <p className="mb-1 text-xs font-medium text-muted-foreground">Customer note</p>

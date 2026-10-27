@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IconArrowRight, IconBuildingCommunity, IconDeviceMobile, IconLogin2 } from '@tabler/icons-react';
+import { IconArrowRight, IconBuildingCommunity, IconLogin2 } from '@tabler/icons-react';
+import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -10,9 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useInstitutionLogin } from '@/features/auth/api';
-import { OrgAuthLayout, OrgBenefitsInline } from '@/features/auth/components/org-auth-layout';
+import { OrgAuthLayout } from '@/features/auth/components/org-auth-layout';
 import { PasswordInput } from '@/features/auth/components/password-input';
-import { useDocumentTitle } from '@/hooks/use-document-title';
 import { getErrorMessage } from '@/lib/api-client';
 
 const schema = z.object({
@@ -20,9 +20,9 @@ const schema = z.object({
   password: z.string().min(1),
 });
 
-export default function InstitutionLoginPage() {
+/** Schools & colleges tab of the sign-in page (email + password). */
+export function InstitutionLogin({ tabs }: { tabs: ReactNode }) {
   const { t } = useTranslation();
-  useDocumentTitle(t('auth.institutionLoginTitle'));
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/institution';
@@ -35,16 +35,12 @@ export default function InstitutionLoginPage() {
 
   return (
     <OrgAuthLayout
+      brief
       title={t('auth.org.loginTitle')}
       subtitle={t('auth.org.loginSubtitle')}
+      header={tabs}
       footer={
         <>
-          <p>
-            {t('auth.individualPrompt')}{' '}
-            <Link to="/login" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
-              <IconDeviceMobile className="size-4" /> {t('auth.individualLink')}
-            </Link>
-          </p>
           <p>
             {t('auth.org.needHelp')}{' '}
             <Link to="/contact" className="font-semibold text-primary hover:underline">
@@ -54,7 +50,6 @@ export default function InstitutionLoginPage() {
         </>
       }
     >
-      <OrgBenefitsInline />
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="space-y-2">
           <Label htmlFor="email">{t('auth.org.workEmail')}</Label>

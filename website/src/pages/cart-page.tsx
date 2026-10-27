@@ -32,6 +32,7 @@ import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Quote } from '@/types/api';
+import { categoryHome } from '@/features/catalog/sections';
 
 const RAIL_ITEM = 'w-[72%] min-[480px]:w-[46%] md:w-[31%] lg:w-[calc(25%-9px)]';
 
@@ -204,7 +205,7 @@ function EmptyCart() {
               {categories.map((c) => (
                 <Link
                   key={c._id}
-                  to={`/products?category=${c.slug}`}
+                  to={categoryHome(c.slug)}
                   className="flex h-9 items-center gap-2 rounded-full border bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
                 >
                   <DynamicIcon name={c.icon} className="size-4" /> {l(c.name)}

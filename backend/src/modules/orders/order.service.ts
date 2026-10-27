@@ -7,6 +7,7 @@ import type { AuthContext } from '@/common/types';
 import { emailChannel } from '@/config/env';
 import { logEvent, logger } from '@/config/logger';
 import { audit } from '@/modules/audit/audit.model';
+import { restrictToCategoryAudience } from '@/modules/catalog/audience';
 import { ProductModel } from '@/modules/catalog/product.model';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { ensureInvoiceNumber, invoiceFileName, renderInvoicePdf } from '@/modules/invoices/invoice.service';
@@ -18,6 +19,7 @@ import { FileModel } from '@/modules/uploads/file.model';
 import { UserModel } from '@/modules/users/user.model';
 import {
   ALLOWED_TRANSITIONS,
+  AUTOMATIC_STATUSES,
   OrderModel,
   TERMINAL_STATUSES,
   type Order,
@@ -49,7 +51,7 @@ export async function buildItems(
   { requireUploads = true }: { requireUploads?: boolean } = {},
 ) {
   const productIds = [...new Set(items.map((i) => i.productId))];
-  const products = await ProductModel.find({ _id: { $in: productIds }, isActive: true }).lean();
+  const products = await restrictToCategoryAudience(await ProductModel.find({ _id: { $in: productIds }, isActive: true }).lean(), ctx.audience);
   const productMap = new Map(products.map((p) => [String(p._id), p]));
 
   const allFileIds = items.flatMap((i) => i.fileIds);
@@ -96,13 +98,16 @@ export async function buildItems(
       });
     }
 
+    // A typed-in size replaces the listed size choice; staff price it.
+    const options = item.customSize ? quote.selectedOptions.filter((o) => o.key !== 'size') : quote.selectedOptions;
+
     built.push({
       product: product._id,
       productName: product.name,
       productSlug: product.slug,
       workflow: product.workflow,
       unit: product.unit,
-      options: quote.selectedOptions,
+      options,
       quantity: quote.quantity,
       copies: quote.copies,
       pageCount: quote.pageCount ?? undefined,
@@ -112,6 +117,7 @@ export async function buildItems(
       discount: quote.discount,
       lineTotal: quote.subtotal,
       notes: item.notes,
+      customSize: item.customSize,
       files: itemFiles.map((f) => f._id),
     });
   }
@@ -268,6 +274,11 @@ export async function notifyStatus(order: OrderDoc, note?: string) {
   });
 }
 
+/** A design item whose latest proof is not approved yet (or that has no proof at all). */
+export function awaitingProofApproval(order: Pick<OrderDoc, 'items'>) {
+  return order.items.some((i) => i.workflow === 'design' && i.proofs.at(-1)?.status !== 'approved');
+}
+
 /**
  * Checks a move made with the admin status control. Moves outside ALLOWED_TRANSITIONS need an
  * admin override with a reason; handovers need the customer's code (or an override).
@@ -280,11 +291,14 @@ export function assertTransition(
   const from = order.status as OrderStatus;
   if (from === to) return;
   if (TERMINAL_STATUSES.includes(from)) throw ApiError.conflict(`Order is already ${from.replace('_', ' ')}`);
+  const automatic = AUTOMATIC_STATUSES[to];
+  if (automatic) throw ApiError.conflict(automatic);
+  // Personalised items are printed only after the customer approves the proof.
+  if (to === 'printing' && from === 'received' && !override && awaitingProofApproval(order)) {
+    throw ApiError.conflict('Send a proof and wait for the customer to approve it before printing');
+  }
   if (ALLOWED_TRANSITIONS[from]?.includes(to)) return;
   if (!override) {
-    if (to === 'picked_up' || to === 'delivered') {
-      throw ApiError.conflict("Hand the order over with the customer's code (Hand over button)");
-    }
     if (from === 'awaiting_payment') {
       throw ApiError.conflict('This order is waiting for online payment. Record a payment to move it forward.');
     }
@@ -361,11 +375,14 @@ export async function resolveContact(auth: AuthContext, contactName?: string, co
   }
   const user = await UserModel.findById(auth.id);
   if (!user) throw ApiError.unauthorized();
-  // Optional: customers who sign in by email are reached by email; a number only helps the rider.
+  // Every order needs a mobile number so the shop and rider can call; email sign-ins give it at checkout.
   const phone = user.phone || contactPhone || undefined;
+  if (!phone) throw ApiError.badRequest('Enter your mobile number to place the order');
   if (contactName && !user.name) user.name = contactName;
   // Keep the number on the account, unless another account already uses it.
-  if (!user.phone && contactPhone && !(await UserModel.exists({ phone: contactPhone }))) user.phone = contactPhone;
+  if (!user.phone && contactPhone && !(await UserModel.exists({ phone: contactPhone })) && !(await InstitutionModel.exists({ phone: contactPhone }))) {
+    user.phone = contactPhone;
+  }
   if (user.isModified()) await user.save();
   return {
     customer: user._id,

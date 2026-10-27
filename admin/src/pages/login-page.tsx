@@ -2,7 +2,6 @@ import { IconLock } from '@tabler/icons-react';
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { Spinner } from '@/components/common/states';
-import { ThemeToggle } from '@/components/common/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,9 +29,6 @@ export default function LoginPage() {
   return (
     <div className="relative grid min-h-dvh place-items-center bg-gradient-to-br from-brand-navy via-[#16213a] to-[#1b2f5e] p-4">
       <div className="absolute inset-0 bg-grid opacity-10" />
-      <div className="absolute top-4 right-4 text-white">
-        <ThemeToggle />
-      </div>
       <div className="relative w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center text-white">
           {/* Light-ink mark: the background here is always navy. */}

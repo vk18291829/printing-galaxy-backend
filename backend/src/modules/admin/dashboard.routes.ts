@@ -15,7 +15,7 @@ dashboardRouter.get('/', async (_req, res) => {
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const last14 = new Date(today.getTime() - 13 * 86_400_000);
   // Unpaid online orders (they may still be cancelled) and unpriced quotes are not sales yet.
-  const notCancelled = { status: { $nin: ['cancelled', 'awaiting_payment', 'quote_pending'] } };
+  const notCancelled = { status: { $nin: ['cancelled', 'awaiting_payment', 'quote_pending', 'quote_sent'] } };
 
   const sumRange = (from: Date) =>
     OrderModel.aggregate<{ revenue: number; collected: number; orders: number }>([

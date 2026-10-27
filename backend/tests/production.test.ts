@@ -220,7 +220,8 @@ describe('order flow rules', () => {
 
   it('messages the customer once per change, with the pickup code', async () => {
     const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('counter')).expect(201);
-    for (const status of ['printing', 'ready', 'ready']) {
+    await api().patch(`/api/v1/admin/orders/${res.body._id}/status`).set(bearer(admin)).send({ status: 'printing', override: true, note: 'Proof approved at the counter' }).expect(200);
+    for (const status of ['ready', 'ready']) {
       await api().patch(`/api/v1/admin/orders/${res.body._id}/status`).set(bearer(staff)).send({ status }).expect(200);
     }
     await new Promise((r) => setTimeout(r, 50));
@@ -236,17 +237,16 @@ describe('order flow rules', () => {
 });
 
 describe('tracking and accounts', () => {
-  it('lets email-only customers order without a phone, keeps one if given, and tracks by email', async () => {
+  it('asks email-only customers for a mobile number, keeps it on the account, and tracks by email', async () => {
     const restore = withEnv({ MESSAGING_CHANNEL: 'email' });
     try {
       const otp = await api().post('/api/v1/auth/otp/request').send({ email: 'meera@example.com' }).expect(200);
       const login = await api().post('/api/v1/auth/otp/verify').send({ email: 'meera@example.com', code: otp.body.devCode, name: 'Meera' }).expect(200);
       const token = login.body.accessToken as string;
 
-      // The number is optional: updates go by email.
-      const noPhone = await api().post('/api/v1/orders').set(bearer(token)).send(pickupOrder('counter')).expect(201);
-      expect(noPhone.body.contact).toMatchObject({ email: 'meera@example.com' });
-      expect(noPhone.body.contact.phone).toBeUndefined();
+      // Updates go by email, but every order needs a number the shop can call.
+      const noPhone = await api().post('/api/v1/orders').set(bearer(token)).send(pickupOrder('counter')).expect(400);
+      expect(noPhone.body.error.message).toMatch(/mobile number/);
       const order = await api().post('/api/v1/orders').set(bearer(token)).send({ ...pickupOrder('counter'), contactPhone: '9988776655' }).expect(201);
       expect(order.body.contact).toMatchObject({ phone: '9988776655', email: 'meera@example.com' });
       const me = await api().get('/api/v1/auth/me').set(bearer(token)).expect(200);
@@ -275,9 +275,8 @@ describe('tracking and accounts', () => {
       const token = login.body.accessToken as string;
 
       const order = await api().post('/api/v1/orders').set(bearer(token)).send({ ...pickupOrder('counter'), contactPhone: '9988776600' }).expect(201);
-      for (const status of ['printing', 'ready']) {
-        await api().patch(`/api/v1/admin/orders/${order.body._id}/status`).set(bearer(staff)).send({ status }).expect(200);
-      }
+      await api().patch(`/api/v1/admin/orders/${order.body._id}/status`).set(bearer(admin)).send({ status: 'printing', override: true, note: 'Proof approved at the counter' }).expect(200);
+      await api().patch(`/api/v1/admin/orders/${order.body._id}/status`).set(bearer(staff)).send({ status: 'ready' }).expect(200);
       const mine = await api().get(`/api/v1/orders/${order.body._id}`).set(bearer(token)).expect(200);
       await vi.waitFor(() => expect(sent.find((m) => m.subject === `ऑर्डर ${order.body.orderNumber}: पिकअप के लिए तैयार`)?.text).toContain(`काउंटर पर यह कोड दिखाएँ: ${mine.body.handoverCode}`));
 

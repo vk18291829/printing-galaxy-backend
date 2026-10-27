@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { Address, Order, Paginated } from '@/types/api';
+import type { Address, CustomSize, Order, Paginated } from '@/types/api';
 
 export interface CreateOrderInput {
   items: {
@@ -11,12 +11,16 @@ export interface CreateOrderInput {
     copies?: number;
     notes?: string;
     fileIds: string[];
+    customSize?: CustomSize;
   }[];
   fulfilment: { method: 'pickup' | 'delivery'; address?: Address };
   paymentMethod: 'online' | 'counter';
   customerNote?: string;
   contactName?: string;
   contactPhone?: string;
+  /** Ask the shop for a price first; nothing starts until the customer accepts it. */
+  requestQuote?: boolean;
+  reference?: string;
 }
 
 export interface RazorpayOrderResponse {
@@ -67,6 +71,23 @@ export function useCancelOrder(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (reason?: string) => (await api.post<Order>(`/orders/${id}/cancel`, { reason })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderKeys.all }),
+  });
+}
+
+export function useAddItemFiles(orderId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ itemId, fileIds }: { itemId: string; fileIds: string[] }) =>
+      (await api.post<Order>(`/orders/${orderId}/items/${itemId}/files`, { fileIds })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderKeys.all }),
+  });
+}
+
+export function useAcceptQuote(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.post<Order>(`/orders/${id}/accept-quote`)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }

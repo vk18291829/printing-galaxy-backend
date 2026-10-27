@@ -3,7 +3,7 @@ const L = (en: string, hi: string) => ({ en, hi });
 
 export const STARTER_BANNERS = [
   { kind: 'offer', title: L('Schools & businesses: bulk prices from 50+ units — register free', 'स्कूल और बिज़नेस: 50+ यूनिट पर बल्क कीमतें — मुफ़्त रजिस्टर करें'), link: '/institutions/register', sortOrder: 1 },
-  { kind: 'offer', title: L('Free delivery on orders above ₹999', '₹999 से ऊपर के ऑर्डर पर मुफ़्त डिलीवरी'), link: '/pricing', sortOrder: 2 },
+  { kind: 'offer', title: L('Free delivery on orders above ₹999', '₹999 से ऊपर के ऑर्डर पर मुफ़्त डिलीवरी'), link: '/products', sortOrder: 2 },
   { kind: 'offer', title: L('Same-day printing for notes & PPTs', 'नोट्स और PPT की उसी दिन प्रिंटिंग'), link: '/products?category=student-printing', sortOrder: 3 },
   {
     kind: 'hero',
@@ -38,15 +38,5 @@ export const STARTER_BANNERS = [
   { kind: 'promo', title: L('PVC cards', 'PVC कार्ड'), subtitle: L('Aadhaar, PAN & ID cards', 'आधार, पैन और ID कार्ड'), ctaLabel: L('Explore', 'देखें'), link: '/products?category=pvc-cards', theme: 'blue', badge: 'Popular', sortOrder: 1 },
   { kind: 'promo', title: L('Business essentials', 'बिज़नेस ज़रूरतें'), subtitle: L('Visiting cards, stickers & hand bills', 'विज़िटिंग कार्ड, स्टिकर और हैंड बिल'), ctaLabel: L('Explore', 'देखें'), link: '/products?category=business-works', theme: 'sunset', sortOrder: 2 },
   { kind: 'promo', title: L('School supplies', 'स्कूल सामग्री'), subtitle: L('Medals, ties, belts & shields', 'मेडल, टाई, बेल्ट और शील्ड'), ctaLabel: L('Explore', 'देखें'), link: '/products?category=school-works', theme: 'mint', sortOrder: 3 },
-  {
-    kind: 'feature',
-    title: L('New: design studio with live preview', 'नया: लाइव प्रीव्यू के साथ डिज़ाइन स्टूडियो'),
-    subtitle: L('Crop photos, pick a layout and see exactly what we will print.', 'फ़ोटो क्रॉप करें, लेआउट चुनें और देखें कि हम क्या प्रिंट करेंगे।'),
-    ctaLabel: L('Try it', 'आज़माएँ'),
-    link: '/products?category=gifts',
-    theme: 'magenta',
-    badge: 'NEW',
-    sortOrder: 1,
-  },
 ];
 

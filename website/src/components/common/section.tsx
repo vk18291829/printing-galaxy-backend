@@ -24,7 +24,7 @@ export function Section({
     <section className={cn('container-page py-8 sm:py-10', className)}>
       <div className="mb-5 flex items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>
+          <h2 className="text-xl font-bold tracking-tight text-brand-navy sm:text-[1.75rem]">{title}</h2>
           {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         {viewAll && (

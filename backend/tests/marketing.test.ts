@@ -107,5 +107,12 @@ describe('catalogue browse', () => {
 
     const none = await api().get('/api/v1/products/browse?category=nope').expect(200);
     expect(none.body).toMatchObject({ items: [], total: 0 });
+
+    // Several categories at once, and several excluded (the Products page hides business ranges).
+    const one = await api().get('/api/v1/products/browse?category=printing&limit=48').expect(200);
+    const many = await api().get('/api/v1/products/browse?category=printing,nope&limit=48').expect(200);
+    expect(many.body.total).toBe(one.body.total);
+    const hidden = await api().get('/api/v1/products/browse?excludeCategory=nope,printing').expect(200);
+    expect(hidden.body.total).toBe(0);
   });
 });

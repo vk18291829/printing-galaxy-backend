@@ -13,6 +13,7 @@ const site = (path = '') => `${env.WEBSITE_URL.replace(/\/$/, '')}${path}`;
 /** Follows "Your order PG…" / "आपका ऑर्डर PG…". */
 const STATUS_SENTENCE: Record<string, Record<Lang, string>> = {
   quote_pending: { en: 'has been received. We will share the price shortly', hi: 'प्राप्त हो गया है। हम जल्द ही कीमत बताएँगे' },
+  quote_sent: { en: 'quote is ready. Review and accept it from My orders to start production', hi: 'का कोटेशन तैयार है। प्रोडक्शन शुरू करने के लिए मेरे ऑर्डर में देखकर स्वीकार करें' },
   awaiting_payment: { en: 'is waiting for payment. Pay from My orders to start printing', hi: 'भुगतान की प्रतीक्षा में है। प्रिंटिंग शुरू करने के लिए मेरे ऑर्डर से भुगतान करें' },
   delivery_failed: { en: 'could not be delivered today', hi: 'आज डिलीवर नहीं हो सका' },
   refunded: { en: 'refund has been started. It reaches your account in 5–7 working days', hi: 'का रिफ़ंड शुरू हो गया है। यह 5–7 कार्य दिवसों में आपके खाते में पहुँचेगा' },
@@ -30,6 +31,7 @@ const STATUS_SENTENCE: Record<string, Record<Lang, string>> = {
 /** Short labels for subjects. */
 const STATUS_LABEL: Record<string, Record<Lang, string>> = {
   quote_pending: { en: 'Received, price coming soon', hi: 'प्राप्त, कीमत जल्द' },
+  quote_sent: { en: 'Quote ready', hi: 'कोटेशन तैयार' },
   awaiting_payment: { en: 'Payment pending', hi: 'भुगतान बाकी' },
   delivery_failed: { en: 'Delivery not completed', hi: 'डिलीवरी नहीं हो सकी' },
   refunded: { en: 'Refund started', hi: 'रिफ़ंड शुरू' },
@@ -124,12 +126,12 @@ export function institutionRegisteredEmail(lang: Lang, p: { name: string; contac
     ? {
         subject: 'आपका संस्थान पंजीकरण मिल गया है',
         text: `${hello(lang, p.contactName)}\n\nहमें ${p.name} का पंजीकरण मिल गया है। हम इसकी जाँच करेंगे (आमतौर पर 1 कार्य दिवस में) और मंज़ूरी मिलते ही आपको ईमेल करेंगे।\n\nतब तक आप सामान्य कीमतों पर ऑर्डर कर सकते हैं।`,
-        action: { label: 'साइन इन करें', url: site('/institutions/login') },
+        action: { label: 'साइन इन करें', url: site('/login?tab=institution') },
       }
     : {
         subject: 'We received your institution registration',
         text: `${hello(lang, p.contactName)}\n\nWe received the registration for ${p.name}. We will review it, usually within 1 working day, and email you as soon as it is approved.\n\nUntil then you can order at individual prices.`,
-        action: { label: 'Sign in', url: site('/institutions/login') },
+        action: { label: 'Sign in', url: site('/login?tab=institution') },
       };
 }
 
@@ -139,7 +141,7 @@ export function institutionReviewedEmail(lang: Lang, p: { name: string; contactN
       ? {
           subject: 'आपका संस्थान खाता मंज़ूर हो गया है',
           text: `${hello(lang, p.contactName)}\n\nख़ुशख़बरी: ${p.name} मंज़ूर हो गया है। साइन इन करने पर अब संस्थान की कीमतें लागू होंगी।`,
-          action: { label: 'साइन इन करें', url: site('/institutions/login') },
+          action: { label: 'साइन इन करें', url: site('/login?tab=institution') },
         }
       : {
           subject: 'आपके संस्थान खाते के बारे में',
@@ -150,7 +152,7 @@ export function institutionReviewedEmail(lang: Lang, p: { name: string; contactN
     ? {
         subject: 'Your institution account is approved',
         text: `${hello(lang, p.contactName)}\n\nGood news: ${p.name} is approved. Institution prices are now active when you sign in.`,
-        action: { label: 'Sign in', url: site('/institutions/login') },
+        action: { label: 'Sign in', url: site('/login?tab=institution') },
       }
     : {
         subject: 'About your institution account',

@@ -30,12 +30,18 @@ export function FileUploader({
   files,
   onChange,
   disabled,
+  max,
+  purpose,
 }: {
   productId: string;
   accepted: string[];
   files: CartFile[];
   onChange: (files: CartFile[]) => void;
   disabled?: boolean;
+  /** Most files allowed in total; extra picks are skipped with a message. */
+  max?: number;
+  /** `bulk` for class lists and photos: private and deleted after the retention period. */
+  purpose?: 'order' | 'bulk';
 }) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +54,12 @@ export function FileUploader({
 
   async function handleFiles(list: FileList | null) {
     if (!list || disabled) return;
+    let room = max ? max - filesRef.current.length - pending.length : Infinity;
     for (const file of Array.from(list)) {
+      if (room <= 0) {
+        toast.error(t('upload.maxFiles', { count: max }));
+        break;
+      }
       if (!accepted.includes(fileExtension(file.name))) {
         toast.error(`${file.name}: ${t('upload.typeNotAllowed')}`);
         continue;
@@ -57,11 +68,13 @@ export function FileUploader({
         toast.error(`${file.name}: ${t('upload.tooLarge')}`);
         continue;
       }
+      room -= 1;
       const key = crypto.randomUUID();
       setPending((p) => [...p, { key, name: file.name, size: file.size, progress: 0, stage: 'uploading' }]);
       try {
         const uploaded = await uploadFile(file, {
           productId,
+          purpose,
           onProgress: (progress) =>
             setPending((p) =>
               p.map((u) => (u.key === key ? { ...u, progress, stage: progress >= 100 ? 'processing' : 'uploading' } : u)),
@@ -92,11 +105,13 @@ export function FileUploader({
     void handleFiles(e.dataTransfer.files);
   };
 
+  const full = Boolean(max && files.length + pending.length >= max);
+
   return (
     <div className="space-y-3">
       <button
         type="button"
-        disabled={disabled}
+        disabled={disabled || full}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
@@ -107,7 +122,7 @@ export function FileUploader({
         className={cn(
           'flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition-colors',
           dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-accent/40',
-          disabled && 'pointer-events-none opacity-50',
+          (disabled || full) && 'pointer-events-none opacity-50',
         )}
       >
         <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
@@ -116,6 +131,7 @@ export function FileUploader({
         <span className="text-sm font-semibold">{t('upload.drop')}</span>
         <span className="text-xs text-muted-foreground">
           {t('upload.accepted', { types: accepted.map((a) => a.toUpperCase()).join(', '), size: MAX_UPLOAD_MB })}
+          {max ? ` · ${t('upload.maxShort', { count: max, done: files.length })}` : ''}
         </span>
       </button>
       <input

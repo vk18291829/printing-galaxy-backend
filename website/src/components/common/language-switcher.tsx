@@ -1,40 +1,38 @@
-import { IconLanguage } from '@tabler/icons-react';
+import { IconWorld } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { LANGUAGES, type Language } from '@/lib/i18n';
+import { LANGUAGES } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { useSetLanguage } from './language-prompt';
 
-export function LanguageSwitcher() {
+/** Segmented EN / हि pill for the navy top bar; the active language gets the orange chip. */
+export function LanguageSwitcher({ className }: { className?: string }) {
   const { t, i18n } = useTranslation();
   const setLanguage = useSetLanguage();
-  const current = LANGUAGES.find((l) => l.code === i18n.language) ?? LANGUAGES[0];
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-2.5" aria-label={t('nav.language')}>
-          <IconLanguage className="size-[18px]" />
-          <span className="text-xs font-bold">{current.short}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>{t('nav.language')}</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={i18n.language} onValueChange={(v) => setLanguage(v as Language)}>
-          {LANGUAGES.map((l) => (
-            <DropdownMenuRadioItem key={l.code} value={l.code}>
-              {l.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div role="group" aria-label={t('nav.language')} className={cn('flex shrink-0 items-center gap-1.5', className)}>
+      <IconWorld className="size-3.5 text-white/55" aria-hidden />
+      <div className="flex items-center rounded-full bg-white/10 p-0.5 ring-1 ring-white/15">
+        {LANGUAGES.map((l) => {
+          const active = i18n.language === l.code;
+          return (
+            <button
+              key={l.code}
+              type="button"
+              lang={l.code}
+              aria-pressed={active}
+              title={l.label}
+              onClick={() => !active && setLanguage(l.code)}
+              className={cn(
+                'h-6 min-w-9 rounded-full px-2.5 text-[11px] leading-none font-bold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none',
+                active ? 'bg-primary text-white shadow-sm' : 'text-white/70 hover:text-white',
+              )}
+            >
+              {l.short}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

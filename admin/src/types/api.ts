@@ -167,6 +167,7 @@ export interface UploadedFile {
 
 export type OrderStatus =
   | 'quote_pending'
+  | 'quote_sent'
   | 'awaiting_payment'
   | 'received'
   | 'proof_sent'
@@ -206,8 +207,17 @@ export interface OrderItem {
   discount: number;
   lineTotal: number;
   notes?: string;
+  /** A size typed in by the customer instead of a listed one. */
+  customSize?: CustomSize;
   files: (UploadedFile | string)[];
   proofs: Proof[];
+}
+
+export type SizeUnit = 'mm' | 'cm' | 'in';
+export interface CustomSize {
+  width: number;
+  height: number;
+  unit: SizeUnit;
 }
 
 export interface Order {
@@ -223,6 +233,9 @@ export interface Order {
   payment: { method: 'online' | 'counter'; status: PaymentStatus; amountPaid: number; amountRefunded?: number; dueBy?: string };
   contact: { name?: string; phone?: string; email?: string };
   customerNote?: string;
+  /** The customer's purchase order / reference number. */
+  reference?: string;
+  quote?: { requested?: boolean; sentAt?: string; validUntil?: string; acceptedAt?: string };
   invoice?: { number: string; issuedAt: string };
   createdAt: string;
 }

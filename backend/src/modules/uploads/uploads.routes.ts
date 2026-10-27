@@ -55,7 +55,7 @@ const presignSchema = z.object({
     .int()
     .positive()
     .max(env.MAX_UPLOAD_MB * 1024 * 1024, `Files must be smaller than ${env.MAX_UPLOAD_MB} MB`),
-  purpose: z.enum(['order', 'logo', 'proof', 'catalog', 'bulk']).default('order'),
+  purpose: z.enum(['order', 'logo', 'proof', 'catalog', 'bulk', 'roster']).default('order'),
   productId: objectId.optional(),
 });
 
@@ -66,12 +66,12 @@ uploadsRouter.post('/presign', authenticate, validate({ body: presignSchema }), 
   if ((input.purpose === 'proof' || input.purpose === 'catalog') && !isStaff(auth)) {
     throw ApiError.forbidden();
   }
-  if (input.purpose === 'bulk' && auth.kind !== 'institution' && !isStaff(auth)) {
+  if ((input.purpose === 'bulk' || input.purpose === 'roster') && auth.kind !== 'institution' && !isStaff(auth)) {
     throw ApiError.forbidden();
   }
 
   // Class lists and student photos are personal data: private, deleted after the retention period.
-  let sensitive = input.purpose === 'bulk';
+  let sensitive = input.purpose === 'bulk' || input.purpose === 'roster';
   if (input.productId) {
     const product = await ProductModel.findById(input.productId).select('sensitive').lean();
     sensitive ||= Boolean(product?.sensitive);

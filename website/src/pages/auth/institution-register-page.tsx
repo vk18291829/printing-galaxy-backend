@@ -150,7 +150,7 @@ export default function InstitutionRegisterPage() {
       footer={
         <p>
           {t('auth.haveAccount')}{' '}
-          <Link to="/institutions/login" className="font-semibold text-primary hover:underline">
+          <Link to="/login?tab=institution" className="font-semibold text-primary hover:underline">
             {t('nav.institutionLogin')}
           </Link>
         </p>

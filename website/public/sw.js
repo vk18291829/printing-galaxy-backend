@@ -1,6 +1,6 @@
 /* Printing Galaxy service worker: installable app, fast repeat visits, and an offline page
  * that points customers to the shop counter. API calls (another origin) are never cached. */
-const VERSION = 'pg-v1';
+const VERSION = 'pg-v2';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = ['/', '/offline.html', '/manifest.webmanifest', '/logo.png', '/icons/icon-192.png'];

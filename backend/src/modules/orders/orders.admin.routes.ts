@@ -20,7 +20,7 @@ import { getSettings } from '@/modules/settings/settings.model';
 import { FileModel } from '@/modules/uploads/file.model';
 import { UserModel } from '@/modules/users/user.model';
 import { completeHandover } from './handover.service';
-import { OrderModel, PRE_PRODUCTION_STATUSES, TERMINAL_STATUSES, type Order, type OrderStatus } from './order.model';
+import { OrderModel, PRE_PRODUCTION_STATUSES, QUOTE_VALID_DAYS, TERMINAL_STATUSES, type Order, type OrderStatus } from './order.model';
 import {
   adminOrderListQuery,
   assignSchema,
@@ -130,6 +130,9 @@ adminOrdersRouter.patch(
     if (order.status === 'quote_pending' && status !== 'cancelled' && !override) {
       throw ApiError.conflict('Set the quote price before moving this order forward');
     }
+    if (order.status === 'quote_sent' && status !== 'cancelled' && !override) {
+      throw ApiError.conflict('The customer has not accepted the quote yet');
+    }
     assertTransition(order, status as OrderStatus, { override, note, role: req.auth?.role });
     if (status === 'cancelled') order.cancelReason = note || 'Cancelled by the shop';
     await changeStatus(req, order, status as OrderStatus, { note: override ? `Override: ${note}` : note, notify });
@@ -234,7 +237,18 @@ adminOrdersRouter.patch(
       changes: body,
     });
 
-    if (order.status === 'quote_pending') {
+    if (order.quote?.requested && ['quote_pending', 'quote_sent'].includes(order.status)) {
+      // The customer asked for a quote: send them the price and wait for them to accept it.
+      order.set('quote.sentAt', new Date());
+      order.set('quote.validUntil', new Date(Date.now() + QUOTE_VALID_DAYS * 86_400_000));
+      const note = body.note ?? `Quote: ₹${order.totals.total}`;
+      if (order.status === 'quote_sent') {
+        await order.save();
+        await notifyStatus(order, note);
+      } else {
+        await changeStatus(req, order, 'quote_sent', { note });
+      }
+    } else if (order.status === 'quote_pending') {
       // Individuals who chose online payment pay before work starts.
       const payFirst = order.payment.method === 'online' && order.audience === 'retail' && amountDue(order) > 0;
       if (payFirst) {

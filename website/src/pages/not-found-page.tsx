@@ -1,4 +1,4 @@
-import { IconArrowRight, IconHome, IconMail, IconPackage, IconReceipt2, IconSearch, IconShoppingBag } from '@tabler/icons-react';
+import { IconArrowRight, IconHome, IconMail, IconPackage, IconSearch, IconShoppingBag } from '@tabler/icons-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useCategories } from '@/features/catalog/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useLocalized } from '@/lib/i18n';
+import { categoryHome } from '@/features/catalog/sections';
 
 export default function NotFoundPage() {
   const { t } = useTranslation();
@@ -24,7 +25,6 @@ export default function NotFoundPage() {
   const links = [
     { to: '/', label: t('nav.home'), icon: IconHome },
     { to: '/products', label: t('nav.products'), icon: IconShoppingBag },
-    { to: '/pricing', label: t('nav.pricing'), icon: IconReceipt2 },
     { to: '/account/orders', label: t('nav.myOrders'), icon: IconPackage },
     { to: '/contact', label: t('nav.contact'), icon: IconMail },
   ];
@@ -66,7 +66,7 @@ export default function NotFoundPage() {
             {categories.map((c) => (
               <Link
                 key={c._id}
-                to={`/products?category=${c.slug}`}
+                to={categoryHome(c.slug)}
                 className="group flex items-center gap-3 rounded-xl border bg-card p-3 text-sm font-medium transition-colors hover:border-foreground/20"
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">

@@ -17,6 +17,8 @@ export async function runFileRetention() {
       { order: { $exists: false }, purpose: 'order', createdAt: { $lte: new Date(now.getTime() - 48 * HOUR) } },
       // Bulk uploads that never became an order.
       { order: { $exists: false }, purpose: 'bulk', createdAt: { $lte: new Date(now.getTime() - 30 * 24 * HOUR) } },
+      // Roster photos that were uploaded but never saved to a person.
+      { attachedAt: { $exists: false }, purpose: 'roster', createdAt: { $lte: new Date(now.getTime() - 48 * HOUR) } },
     ],
   }).limit(500);
 

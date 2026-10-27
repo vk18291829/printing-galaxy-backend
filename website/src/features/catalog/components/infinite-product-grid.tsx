@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyState, ErrorState, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useBrowseProducts, type ProductSort } from '@/features/catalog/api';
+import { useBrowseProducts, type ProductSort, type Section } from '@/features/catalog/api';
 import { useInView } from '@/hooks/use-in-view';
 import { cn } from '@/lib/utils';
 import { ProductCard } from './product-card';
@@ -17,12 +17,16 @@ export const PRODUCT_GRID = 'grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:g
  */
 export function InfiniteProductGrid({
   category,
+  section,
+  excludeCategory,
   q,
   sort = 'popular',
   empty,
   header,
 }: {
   category?: string;
+  section?: Section;
+  excludeCategory?: string;
   q?: string;
   sort?: ProductSort;
   empty?: ReactNode;
@@ -30,7 +34,7 @@ export function InfiniteProductGrid({
   header?: (total: number, shown: number) => ReactNode;
 }) {
   const { t } = useTranslation();
-  const { data, isLoading, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, error, refetch, isPlaceholderData } = useBrowseProducts({ category, q, sort });
+  const { data, isLoading, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, error, refetch, isPlaceholderData } = useBrowseProducts({ category, section, excludeCategory, q, sort });
   const products = data?.pages.flatMap((p) => p.items) ?? [];
   const total = data?.pages[0]?.total ?? 0;
 
@@ -56,7 +60,7 @@ export function InfiniteProductGrid({
       {header?.(total, products.length)}
       <div className={cn(PRODUCT_GRID, isPlaceholderData && isFetching && 'opacity-60 transition-opacity')}>
         {products.map((p) => (
-          <ProductCard key={p._id} product={p} />
+          <ProductCard key={p._id} product={p} section={section} />
         ))}
         {isFetchingNextPage && Array.from({ length: 4 }).map((_, i) => <Skeleton key={`s${i}`} className="h-80 rounded-xl" />)}
       </div>

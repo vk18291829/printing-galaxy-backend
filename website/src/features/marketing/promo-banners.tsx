@@ -47,7 +47,7 @@ export function FeatureBanner({ banner }: { banner: Banner }) {
               <IconSparkles className="size-6" />
             </span>
             <div>
-              <span className="mb-1.5 inline-block rounded bg-brand-yellow px-1.5 py-0.5 text-[11px] font-bold tracking-wider text-zinc-950 uppercase">
+              <span className="mb-1.5 inline-block rounded bg-brand-yellow px-1.5 py-0.5 text-[11px] font-bold tracking-wider text-brand-navy uppercase">
                 {banner.badge || t('home.newBadge')}
               </span>
               <h2 className="text-xl font-bold sm:text-2xl">{l(banner.title)}</h2>
@@ -57,7 +57,7 @@ export function FeatureBanner({ banner }: { banner: Banner }) {
           {banner.link && (
             <SmartLink
               href={banner.link}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-zinc-950 hover:bg-white/90 focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-brand-navy hover:bg-white/90 focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none"
             >
               {(banner.ctaLabel && l(banner.ctaLabel)) || t('home.tryIt')} <IconArrowRight className="size-4" />
             </SmartLink>

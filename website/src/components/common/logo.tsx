@@ -1,28 +1,34 @@
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 
-/** The PG mark; the dark-theme file has light ink so it stays visible without a white box. */
-export function LogoMark({ className }: { className?: string }) {
+/** The P mark. `light` swaps in the white-ink file for navy or photo backgrounds. */
+export function LogoMark({ className, light = false }: { className?: string; light?: boolean }) {
   return (
-    <>
-      <img src="/logo-mark.png" alt="" width={48} height={48} className={cn('size-12 object-contain dark:hidden', className)} />
-      <img src="/logo-mark-dark.png" alt="" width={48} height={48} className={cn('hidden size-12 object-contain dark:block', className)} />
-    </>
+    <img
+      src={light ? '/logo-mark-dark.png' : '/logo-mark.png'}
+      alt=""
+      width={48}
+      height={48}
+      className={cn('size-12 object-contain', className)}
+    />
   );
 }
 
-export function Logo({ className, compact = false }: { className?: string; compact?: boolean }) {
+/** Mark + wordmark. `inverted` is for the navy footer and other dark panels. */
+export function Logo({ className, compact = false, inverted = false }: { className?: string; compact?: boolean; inverted?: boolean }) {
   return (
     <Link to="/" className={cn('group flex items-center gap-2.5', className)} aria-label="Printing Galaxy home">
-      <span className="shrink-0 transition-transform group-hover:scale-105">
-        <LogoMark className="size-11 sm:size-12" />
+      <span className="shrink-0 transition-transform duration-200 group-hover:scale-105">
+        <LogoMark light={inverted} className="size-10 sm:size-11" />
       </span>
       {!compact && (
         <span className="flex flex-col leading-none">
-          <span className="text-lg font-bold tracking-tight sm:text-xl">
-            Printing <span className="text-brand-gradient">Galaxy</span>
+          <span className={cn('text-[17px] font-extrabold tracking-tight whitespace-nowrap sm:text-xl', inverted ? 'text-white' : 'text-brand-navy')}>
+            Printing <span className="text-brand-orange">Galaxy</span>
           </span>
-          <span className="mt-1.5 hidden h-0.75 w-full rounded-full cmyk-strip sm:block" />
+          <span className={cn('mt-1 hidden text-[8.5px] font-semibold tracking-[0.14em] whitespace-nowrap uppercase sm:block', inverted ? 'text-white/60' : 'text-muted-foreground')}>
+            Print · Customize · Create
+          </span>
         </span>
       )}
     </Link>

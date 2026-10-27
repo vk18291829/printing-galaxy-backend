@@ -19,6 +19,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   reports: 'Reports',
   inventory: 'Materials & stock',
   'bulk-jobs': 'Bulk card lists',
+  students: 'Students & staff',
   deliveries: 'Deliveries',
 };
 
@@ -36,15 +37,19 @@ const useCrumbStore = create<CrumbState>((set) => ({
   set: (path, label) => set({ path, label }),
 }));
 
-/** Lets a detail page name itself in the breadcrumb and the mobile header. */
-export function useBreadcrumbLabel(label: string | undefined | null) {
+/**
+ * Lets a detail page name itself in the breadcrumb and the mobile header. A sub-page (e.g.
+ * /institutions/:id/students) passes `path` to name its parent crumb instead.
+ */
+export function useBreadcrumbLabel(label: string | undefined | null, path?: string) {
   const { pathname } = useLocation();
+  const target = path ?? pathname;
   const setCrumb = useCrumbStore((s) => s.set);
   useEffect(() => {
     if (!label) return;
-    setCrumb(pathname, label);
+    setCrumb(target, label);
     return () => setCrumb(null, null);
-  }, [pathname, label, setCrumb]);
+  }, [target, label, setCrumb]);
 }
 
 export interface Crumb {
@@ -54,17 +59,19 @@ export interface Crumb {
 
 export function useBreadcrumbs(): Crumb[] {
   const { pathname } = useLocation();
-  const dynamic = useCrumbStore((s) => (s.path === pathname ? s.label : null));
+  const named = useCrumbStore((s) => (s.path && pathname.startsWith(s.path) ? s : null));
   const segments = pathname.split('/').filter(Boolean);
   const crumbs: Crumb[] = [{ label: 'Dashboard', to: '/' }];
   segments.forEach((segment, i) => {
     const to = `/${segments.slice(0, i + 1).join('/')}`;
     const parent = segments[i - 1];
     const isLast = i === segments.length - 1;
+    const dynamic = named?.path === to ? named.label : null;
     const label =
       SEGMENT_LABEL[segment] ??
       (segment === 'new' && parent ? NEW_LABEL[parent] : undefined) ??
-      (isLast ? (dynamic ?? 'Details') : segment);
+      dynamic ??
+      (isLast ? 'Details' : segment);
     crumbs.push({ label, to });
   });
   return crumbs;

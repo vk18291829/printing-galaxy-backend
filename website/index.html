@@ -10,18 +10,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Printing Galaxy" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1d6cf0" />
+    <meta name="theme-color" content="#142b4a" />
     <meta
       name="description"
       content="Printing Galaxy — notes printing, PVC cards, school ID cards, visiting cards, gifts and more. Order online in English or Hindi."
     />
     <title>Printing Galaxy — Print anything, delivered</title>
     <script>
-      // Apply the saved theme before first paint to avoid a flash.
+      // Dark mode is disabled for now, so only the saved language is applied before first paint.
       try {
-        var t = localStorage.getItem('pg-theme') || 'system';
-        var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-        if (dark) document.documentElement.classList.add('dark');
         var l = localStorage.getItem('pg-lang');
         if (l) document.documentElement.lang = l;
       } catch (e) {}

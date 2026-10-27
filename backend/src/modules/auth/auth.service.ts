@@ -13,6 +13,7 @@ import { UserModel } from '@/modules/users/user.model';
 import type { z } from 'zod';
 import { OtpModel } from './otp.model';
 import { SessionModel } from './session.model';
+import { assertContactAvailable } from './unique-contact';
 import type { institutionRegisterSchema } from './auth.schema';
 import {
   clearRefreshCookie,
@@ -203,10 +204,12 @@ function loginTarget(input: { email?: string; phone?: string }) {
   return { phone: input.phone };
 }
 
-export const requestOtp = (input: { email?: string; phone?: string; lang?: 'en' | 'hi' }) => {
+export async function requestOtp(input: { email?: string; phone?: string; lang?: 'en' | 'hi' }) {
   const target = loginTarget(input);
+  // Someone new can't sign up with a number or email another account already uses.
+  if (!(await UserModel.exists(target))) await assertContactAvailable(target);
   return issueOtp(target.email ?? target.phone!, 'login', input.lang);
-};
+}
 
 export async function verifyOtp(
   req: Request,
@@ -220,6 +223,7 @@ export async function verifyOtp(
 
   let user = await UserModel.findOne(target);
   const isNew = !user;
+  if (!user) await assertContactAvailable(target);
   if (!user) user = await UserModel.create({ ...target, name: name ?? '', role: 'customer', language: input.lang ?? 'en' });
   else if (name && !user.name) user.name = name;
   if (!user.isActive) throw ApiError.forbidden('This account has been disabled');
@@ -242,8 +246,7 @@ export async function registerInstitution(
   res: Response,
   input: z.infer<typeof institutionRegisterSchema>,
 ) {
-  const exists = await InstitutionModel.exists({ email: input.email });
-  if (exists) throw ApiError.conflict('An institution with this email is already registered');
+  await assertContactAvailable({ email: input.email, phone: input.phone });
 
   const { password, lang, ...rest } = input;
   const institution = await InstitutionModel.create({

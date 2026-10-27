@@ -8,7 +8,7 @@ import {
   IconMapPin,
   IconPackage,
   IconPhone,
-  IconReceipt2,
+  IconShoppingBag,
   type Icon,
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
@@ -48,7 +48,7 @@ export default function ContactPage() {
   const help = [
     { icon: IconPackage, title: t('contact.helpTrack'), desc: t('contact.helpTrackDesc'), to: '/account/orders' },
     { icon: IconBuildingCommunity, title: t('contact.helpBulk'), desc: t('contact.helpBulkDesc'), to: '/institutions' },
-    { icon: IconReceipt2, title: t('contact.helpPrices'), desc: t('contact.helpPricesDesc'), to: '/pricing' },
+    { icon: IconShoppingBag, title: t('contact.helpPrices'), desc: t('contact.helpPricesDesc'), to: '/products' },
   ];
 
   return (
@@ -174,10 +174,10 @@ export default function ContactPage() {
               </details>
             ))}
           </div>
-          <div className="rounded-2xl bg-zinc-950 p-6 text-white">
+          <div className="rounded-2xl bg-brand-navy p-6 text-white">
             <p className="text-lg font-semibold">{t('contact.ctaTitle')}</p>
             <p className="mt-1 text-sm text-white/70">{t('contact.ctaDesc')}</p>
-            <Button className="mt-4 bg-white text-zinc-950 hover:bg-white/90" asChild>
+            <Button variant="brand" className="mt-4" asChild>
               <Link to="/products">
                 {t('home.ctaPrimary')} <IconArrowRight />
               </Link>

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { addressInput, indianPhone, objectId } from '@/common/validation';
-import { ORDER_STATUSES, PAYMENT_METHODS } from './order.model';
+import { ORDER_STATUSES, PAYMENT_METHODS, SIZE_UNITS } from './order.model';
 
 export const orderItemInput = z.object({
   productId: objectId,
@@ -10,6 +10,13 @@ export const orderItemInput = z.object({
   copies: z.coerce.number().int().min(1).max(10_000).optional(),
   notes: z.string().trim().max(1000).optional(),
   fileIds: z.array(objectId).max(20).default([]),
+  customSize: z
+    .object({
+      width: z.coerce.number().positive().max(10_000),
+      height: z.coerce.number().positive().max(10_000),
+      unit: z.enum(SIZE_UNITS),
+    })
+    .optional(),
 });
 
 export const createOrderSchema = z
@@ -22,8 +29,11 @@ export const createOrderSchema = z
     paymentMethod: z.enum(PAYMENT_METHODS),
     customerNote: z.string().trim().max(1000).optional(),
     contactName: z.string().trim().max(80).optional(),
-    /** Optional, for customers who signed in by email: lets the shop or rider call. */
+    /** Required when the account has no number (email sign-ins): the shop or rider calls it. */
     contactPhone: indianPhone.optional(),
+    /** Ask the shop for a price instead of placing the order straight away. */
+    requestQuote: z.boolean().default(false),
+    reference: z.string().trim().max(60).optional(),
   })
   .refine((v) => v.fulfilment.method === 'pickup' || v.fulfilment.address, {
     message: 'Delivery address is required',
@@ -45,6 +55,10 @@ export const walkInOrderSchema = z.object({
   amountPaid: z.coerce.number().min(0).default(0),
   paymentProvider: z.enum(['cash', 'upi_counter']).default('cash'),
   internalNote: z.string().trim().max(2000).optional(),
+});
+
+export const addItemFilesSchema = z.object({
+  fileIds: z.array(objectId).min(1).max(10),
 });
 
 export const proofResponseSchema = z.object({

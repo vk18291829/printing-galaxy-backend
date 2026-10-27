@@ -5,6 +5,7 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status
 import { EmptyState, ErrorState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { formatDate, formatINR } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import { useMyOrders } from '../api';
@@ -13,6 +14,7 @@ export function OrderList({ limit }: { limit?: number }) {
   const { t, i18n } = useTranslation();
   const l = useLocalized();
   const { data, isLoading, error, refetch } = useMyOrders();
+  const isInstitution = useAuthStore((s) => s.principal?.kind === 'institution');
 
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />;
   if (isLoading) {
@@ -33,7 +35,11 @@ export function OrderList({ limit }: { limit?: number }) {
         description={t('orders.emptyDesc')}
         action={
           <Button asChild>
-            <Link to="/products">{t('cart.browse')}</Link>
+            {isInstitution ? (
+              <Link to="/institution/orders/new">{t('institutionDashboard.newOrder')}</Link>
+            ) : (
+              <Link to="/products">{t('cart.browse')}</Link>
+            )}
           </Button>
         }
       />

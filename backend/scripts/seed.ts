@@ -123,7 +123,7 @@ const categories = [
     name: L('Student Printing', 'स्टूडेंट प्रिंटिंग'),
     description: L('Notes, PPTs, photos, binding and project files.', 'नोट्स, पीपीटी, फ़ोटो, बाइंडिंग और प्रोजेक्ट फ़ाइल।'),
     icon: 'file-text',
-    audiences: ['retail', 'institution'],
+    audiences: ['retail'],
     sortOrder: 2,
   },
   {
@@ -131,7 +131,7 @@ const categories = [
     name: L('Gifts & Frames', 'गिफ़्ट और फ़्रेम'),
     description: L('Personalised key chains and photo frames.', 'नाम और फ़ोटो वाले की-चेन और फ़ोटो फ़्रेम।'),
     icon: 'gift',
-    audiences: ['retail', 'institution'],
+    audiences: ['retail'],
     sortOrder: 3,
   },
   {
@@ -139,7 +139,7 @@ const categories = [
     name: L('School Works', 'स्कूल वर्क्स'),
     description: L('ID cards, diaries, report cards, medals, ties and belts.', 'आईडी कार्ड, डायरी, रिपोर्ट कार्ड, मेडल, टाई और बेल्ट।'),
     icon: 'school',
-    audiences: ['retail', 'institution'],
+    audiences: ['institution'],
     sortOrder: 4,
   },
   {
@@ -147,7 +147,7 @@ const categories = [
     name: L('Business Works', 'बिज़नेस वर्क्स'),
     description: L('Visiting cards, hand bills, logo key chains and stickers.', 'विज़िटिंग कार्ड, हैंडबिल, लोगो की-चेन और स्टिकर।'),
     icon: 'briefcase',
-    audiences: ['retail', 'institution'],
+    audiences: ['retail'],
     sortOrder: 5,
   },
 ];
@@ -450,7 +450,7 @@ const products: ProductSeed[] = [
       ),
       options: [cardFinish, lanyard, cardHolder],
       pricing: {
-        retail: book(1, [1, 80]),
+        retail: disabled,
         institution: book(50, [50, 30], [200, 26], [500, 22]),
       },
       isFeatured: featured,
@@ -487,7 +487,7 @@ const products: ProductSeed[] = [
         ],
       },
     ],
-    pricing: { retail: book(1, [1, 70]), institution: book(20, [20, 45], [100, 38]) },
+    pricing: { retail: disabled, institution: book(20, [20, 45], [100, 38]) },
     leadTimeDays: 5,
     sortOrder: 4,
   },
@@ -511,7 +511,7 @@ const products: ProductSeed[] = [
         ],
       },
     ],
-    pricing: { retail: book(1, [1, 450]), institution: book(5, [5, 350], [25, 320]) },
+    pricing: { retail: disabled, institution: book(5, [5, 350], [25, 320]) },
     leadTimeDays: 5,
     sortOrder: 5,
   },

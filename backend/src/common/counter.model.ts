@@ -9,12 +9,17 @@ const CounterModel = model('Counter', counterSchema);
 
 /** Atomic, gap-free sequence per key (e.g. invoice numbers per financial year). */
 export async function nextSequence(key: string) {
+  return (await reserveSequence(key, 1))[0]!;
+}
+
+/** Reserves `count` consecutive numbers in one atomic step. */
+export async function reserveSequence(key: string, count: number) {
   const doc = await CounterModel.findOneAndUpdate(
     { _id: key },
-    { $inc: { seq: 1 } },
+    { $inc: { seq: count } },
     { upsert: true, new: true },
   ).lean();
-  return doc.seq;
+  return Array.from({ length: count }, (_, i) => doc.seq - count + 1 + i);
 }
 
 /** Indian financial year label for a date, e.g. 2026-10-15 → "2026-27". */

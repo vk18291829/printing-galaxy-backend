@@ -39,7 +39,7 @@ export function HeroCarousel({ slides }: { slides: Banner[] }) {
 
   return (
     <section
-      className="container-page pt-4 sm:pt-6"
+      className="container-page pt-2"
       aria-roledescription="carousel"
       aria-label={t('home.heroLabel')}
       onMouseEnter={() => setPaused(true)}
@@ -59,7 +59,7 @@ export function HeroCarousel({ slides }: { slides: Banner[] }) {
               aria-hidden={i !== active}
             >
               <BannerBackground banner={s} />
-              <div className="relative flex min-h-[260px] flex-col justify-center gap-3 px-6 py-10 text-white sm:min-h-[340px] sm:px-12 lg:min-h-[400px] lg:px-16">
+              <div className="relative flex min-h-[260px] flex-col justify-center gap-3 px-6 py-10 text-white sm:min-h-[300px] sm:px-12 lg:min-h-[340px] lg:px-16">
                 {s.badge && (
                   <span className="w-fit rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-wide ring-1 ring-white/25 backdrop-blur">{s.badge}</span>
                 )}
@@ -69,7 +69,7 @@ export function HeroCarousel({ slides }: { slides: Banner[] }) {
                   <SmartLink
                     href={s.link}
                     tabIndex={i === active ? 0 : -1}
-                    className="mt-2 inline-flex h-11 w-fit items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-zinc-950 shadow-sm transition-colors hover:bg-white/90 focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none"
+                    className="mt-2 inline-flex h-11 w-fit items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-orange-hover focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none"
                   >
                     {(s.ctaLabel && l(s.ctaLabel)) || t('home.shopNow')} <IconArrowRight className="size-4" />
                   </SmartLink>
@@ -88,7 +88,7 @@ export function HeroCarousel({ slides }: { slides: Banner[] }) {
                 onClick={() => goTo(active + dir)}
                 aria-label={dir < 0 ? t('offers.previous') : t('offers.next')}
                 className={cn(
-                  'absolute top-1/2 hidden size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-zinc-900 shadow-md transition-opacity hover:bg-white sm:grid sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100',
+                  'absolute top-1/2 hidden size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-brand-navy shadow-md transition-opacity hover:bg-white sm:grid sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100',
                   dir < 0 ? 'left-3' : 'right-3',
                 )}
               >

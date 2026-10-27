@@ -33,6 +33,7 @@ export async function ensureInvoiceNumber(order: OrderDoc) {
 export function assertInvoiceable(order: OrderDoc) {
   if (order.status === 'cancelled') throw ApiError.conflict('Cancelled orders have no invoice');
   if (order.status === 'quote_pending') throw ApiError.conflict('The price for this order is not confirmed yet');
+  if (order.status === 'quote_sent') throw ApiError.conflict('The invoice is available once the quote is accepted');
   if (order.status === 'awaiting_payment') throw ApiError.conflict('The invoice is available once the order is paid');
 }
 
@@ -97,6 +98,7 @@ export async function renderInvoicePdf(order: OrderDoc, settingsArg?: Settings) 
     ['Order no.', order.orderNumber],
     ['Order date', fmtDate(order.createdAt)],
   ];
+  if (order.reference) metaRows.push(['Your ref.', order.reference]);
   if (isTaxInvoice && placeOfSupply) metaRows.push(['Place of supply', placeOfSupply]);
 
   let yl = y;
@@ -152,7 +154,8 @@ export async function renderInvoicePdf(order: OrderDoc, settingsArg?: Settings) 
   y -= 22;
 
   order.items.forEach((item, index) => {
-    const opts = item.options.map((o) => `${o.label?.en}: ${o.valueLabel?.en}`).join(', ');
+    const size = item.customSize ? `Size: ${item.customSize.width} x ${item.customSize.height} ${item.customSize.unit}` : '';
+    const opts = [size, ...item.options.map((o) => `${o.label?.en}: ${o.valueLabel?.en}`)].filter(Boolean).join(', ');
     const qtyLabel =
       item.unit === 'page'
         ? `${item.pageCount ?? 0} pages x ${item.copies}`

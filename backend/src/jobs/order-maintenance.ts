@@ -30,6 +30,23 @@ export async function cancelUnpaidOrders(now = new Date()) {
   return cancelled;
 }
 
+const QUOTE_EXPIRED_REASON = 'Quote expired without being accepted';
+
+/** Quotes the customer never accepted within their validity are closed. */
+export async function expireQuotes(now = new Date()) {
+  const expired = await OrderModel.find({ status: 'quote_sent', 'quote.validUntil': { $lte: now } }).limit(100);
+  for (const order of expired) {
+    try {
+      order.cancelReason = QUOTE_EXPIRED_REASON;
+      await changeStatus(null, order, 'cancelled', { note: QUOTE_EXPIRED_REASON, byKind: 'system' });
+    } catch (err) {
+      logger.warn({ err, orderNumber: order.orderNumber }, 'Could not close expired quote');
+    }
+  }
+  if (expired.length) logEvent('job.quotes_expired', { expired: expired.length });
+  return expired.length;
+}
+
 /** Payment windows opened 15 minutes – 3 days ago and never confirmed: check them with Razorpay. */
 export async function reconcilePayments(now = new Date()) {
   if (!razorpayEnabled()) return 0;
@@ -61,6 +78,7 @@ export function scheduleOrderMaintenance() {
     running = true;
     try {
       await cancelUnpaidOrders();
+      await expireQuotes();
     } catch (err) {
       logger.error({ err }, 'Unpaid order job failed');
     } finally {

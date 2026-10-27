@@ -15,6 +15,7 @@ const ProductFormPage = lazy(() => import('@/pages/catalog/product-form-page'));
 const CategoriesPage = lazy(() => import('@/pages/catalog/categories-page'));
 const InstitutionsPage = lazy(() => import('@/pages/institutions/institutions-page'));
 const InstitutionDetailPage = lazy(() => import('@/pages/institutions/institution-detail-page'));
+const InstitutionRosterPage = lazy(() => import('@/pages/institutions/institution-roster-page'));
 const CustomersPage = lazy(() => import('@/pages/people/customers-page'));
 const StaffPage = lazy(() => import('@/pages/people/staff-page'));
 const SettingsPage = lazy(() => import('@/pages/system/settings-page'));
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
       { path: 'promotions', element: page(<PromotionsPage />, true) },
       { path: 'institutions', element: page(<InstitutionsPage />) },
       { path: 'institutions/:id', element: page(<InstitutionDetailPage />) },
+      { path: 'institutions/:id/students', element: page(<InstitutionRosterPage />) },
       { path: 'customers', element: page(<CustomersPage />) },
       { path: 'staff', element: page(<StaffPage />, true) },
       { path: 'settings', element: page(<SettingsPage />, true) },

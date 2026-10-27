@@ -72,7 +72,7 @@ describe('deliveries', () => {
     expect(order.body.totals.total).toBe(280);
     await api().patch(`/api/v1/admin/orders/${orderId}/assign`).set(bearer(admin)).send({ deliveryPerson: String(seed.users.rider._id) }).expect(200);
     // Riders see an order once production has started.
-    await api().patch(`/api/v1/admin/orders/${orderId}/status`).set(bearer(admin)).send({ status: 'printing' }).expect(200);
+    await api().patch(`/api/v1/admin/orders/${orderId}/status`).set(bearer(admin)).send({ status: 'printing', override: true, note: 'Proof approved at the counter' }).expect(200);
     riderToken = await staffToken('rider@test.in');
   });
 

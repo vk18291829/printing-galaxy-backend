@@ -94,7 +94,7 @@ export default function CheckoutPage() {
   const savedAddress =
     principal?.kind === 'institution' ? principal.institution.address : principal?.user.addresses?.[0];
   const needsName = principal?.kind === 'user' && !principal.user.name;
-  // Customers who signed in by email may add a mobile number (optional) so the shop or rider can call.
+  // Customers who signed in by email must add a mobile number so the shop or rider can call.
   const needsPhone = principal?.kind === 'user' && !principal.user.phone;
 
   const [method, setMethod] = useState<'pickup' | 'delivery'>('pickup');
@@ -127,7 +127,7 @@ export default function CheckoutPage() {
     method === 'pickup' || (address.line1.trim().length >= 3 && address.city.trim() && /^\d{6}$/.test(address.pincode));
   const nameValid = !needsName || contactName.trim().length > 0;
   const cleanPhone = contactPhone.replace(/\D/g, '').slice(-10);
-  const phoneValid = !needsPhone || !cleanPhone || /^[6-9]\d{9}$/.test(cleanPhone);
+  const phoneValid = !needsPhone || /^[6-9]\d{9}$/.test(cleanPhone);
   const canReview = !invalid && addressValid && nameValid && phoneValid;
   const canSubmit = canReview && confirmed && !createOrder.isPending && !paying;
   const contact =
@@ -160,13 +160,13 @@ export default function CheckoutPage() {
         paymentMethod,
         customerNote: note.trim() || undefined,
         contactName: contactName.trim() || undefined,
-        contactPhone: needsPhone && cleanPhone ? cleanPhone : undefined,
+        contactPhone: needsPhone ? cleanPhone : undefined,
       },
       {
         onSuccess: async (order) => {
           clearCart();
           // The number was saved to the account; refresh it so the next checkout does not ask again.
-          if (needsPhone && cleanPhone) void authApi.me().then(useAuthStore.getState().setPrincipal).catch(() => undefined);
+          if (needsPhone) void authApi.me().then(useAuthStore.getState().setPrincipal).catch(() => undefined);
           toast.success(t('checkout.success'), { description: t('toast.orderPlacedDesc', { number: order.orderNumber, total: formatINR(order.totals.total) }) });
           if (paymentMethod === 'online' && order.status !== 'quote_pending') {
             setPaying(true);
@@ -327,7 +327,7 @@ export default function CheckoutPage() {
               {needsPhone && (
                 <div className="space-y-2">
                   <Label htmlFor="contactPhone">
-                    {t('checkout.contactPhone')} <span className="font-normal text-muted-foreground">({t('common.optional')})</span>
+                    {t('checkout.contactPhone')} <span className="text-destructive">*</span>
                   </Label>
                   <PrefixedInput
                     id="contactPhone"
@@ -337,6 +337,7 @@ export default function CheckoutPage() {
                     autoComplete="tel-national"
                     placeholder="98765 43210"
                     value={contactPhone}
+                    required
                     onChange={(e) => setContactPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))}
                     aria-invalid={contactPhone.length > 0 && !phoneValid}
                   />

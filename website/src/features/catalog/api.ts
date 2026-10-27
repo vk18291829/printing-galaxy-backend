@@ -18,15 +18,31 @@ export const catalogKeys = {
   quote: (input: QuoteInput, principal: string) => ['quote', principal, input] as const,
 };
 
-export function useCategories() {
+/**
+ * The shop has two catalogues that never mix: everyday products for individuals ('retail', the
+ * Products page) and school/college products ('institution', the Institutions page).
+ */
+export type Section = Audience;
+
+/** The catalogue a product belongs to, from its category. */
+export function sectionOf(product: Pick<Product, 'category'>): Section {
+  return product.category.audiences?.includes('retail') ? 'retail' : 'institution';
+}
+
+export function useCategories(section: Section = 'retail') {
   return useQuery({
     queryKey: catalogKeys.categories,
     queryFn: async () => (await api.get<Category[]>('/categories')).data,
     staleTime: 5 * 60_000,
+    select: (all) => all.filter((c) => c.audiences.includes(section)),
   });
 }
 
-export function useProducts(params: { category?: string; audience?: Audience; featured?: boolean; q?: string } = {}) {
+export function useProducts({
+  section = 'retail',
+  ...rest
+}: { category?: string; section?: Section; excludeCategory?: string; featured?: boolean; q?: string } = {}) {
+  const params = { section, ...rest };
   return useQuery({
     queryKey: catalogKeys.products(params),
     queryFn: async () => (await api.get<Product[]>('/products', { params })).data,
@@ -72,8 +88,12 @@ interface BrowsePage {
 }
 
 /** Paged product list for infinite scroll; prices are sorted by the visitor's own price book. */
-export function useBrowseProducts(params: { category?: string; q?: string; sort?: ProductSort; limit?: number }) {
+export function useBrowseProducts({
+  section = 'retail',
+  ...rest
+}: { category?: string; section?: Section; excludeCategory?: string; q?: string; sort?: ProductSort; limit?: number }) {
   const audience = useAudience();
+  const params = { section, ...rest };
   return useInfiniteQuery({
     queryKey: ['products-browse', audience, params],
     queryFn: async ({ pageParam }) =>

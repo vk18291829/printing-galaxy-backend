@@ -1,6 +1,7 @@
 import {
   IconAlertTriangle,
   IconBuildingStore,
+  IconCheck,
   IconClockHour4,
   IconCreditCard,
   IconFileInvoice,
@@ -23,8 +24,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { orderKeys, useCancelOrder, useOrder } from '@/features/orders/api';
+import { orderKeys, useAcceptQuote, useCancelOrder, useOrder } from '@/features/orders/api';
 import { OrderProgress } from '@/features/orders/components/order-progress';
+import { DataSheetCard } from '@/features/orders/components/data-sheet-card';
 import { ProofReview } from '@/features/orders/components/proof-review';
 import { payWithRazorpay } from '@/features/orders/razorpay';
 import { usePublicSettings } from '@/features/settings/api';
@@ -44,6 +46,7 @@ export default function OrderDetailPage() {
   const { data: order, isLoading, error, refetch } = useOrder(id);
   const { data: settings } = usePublicSettings();
   const cancel = useCancelOrder(id);
+  const acceptQuote = useAcceptQuote(id);
   const [paying, setPaying] = useState(false);
   useDocumentTitle(order ? `${t('orders.order')} ${order.orderNumber}` : t('orders.title'));
 
@@ -60,7 +63,9 @@ export default function OrderDetailPage() {
   const netPaid = Math.max(0, order.payment.amountPaid - refunded);
   const due = Math.max(0, order.totals.total - netPaid);
   const canPay =
-    due > 0 && settings?.payments.onlineEnabled && !['quote_pending', 'cancelled'].includes(order.status);
+    due > 0 && settings?.payments.onlineEnabled && !['quote_pending', 'quote_sent', 'cancelled'].includes(order.status);
+  const quoteSent = order.status === 'quote_sent';
+  // A sent quote has its own Accept / Decline buttons.
   const canCancel = ['quote_pending', 'awaiting_payment', 'received'].includes(order.status);
   const awaitingPayment = order.status === 'awaiting_payment';
   const isDelivery = order.fulfilment.method === 'delivery';
@@ -91,10 +96,15 @@ export default function OrderDetailPage() {
             <span className="text-sm text-muted-foreground">
               {t('orders.placedOn', { date: formatDate(order.createdAt, i18n.language, true) })}
             </span>
+            {order.reference && (
+              <span className="text-sm text-muted-foreground">
+                · {t('orders.reference')}: <span className="font-mono font-medium text-foreground">{order.reference}</span>
+              </span>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {!['quote_pending', 'cancelled'].includes(order.status) && (
+          {!['quote_pending', 'quote_sent', 'cancelled'].includes(order.status) && (
             <Button
               variant="outline"
               onClick={() =>
@@ -137,8 +147,59 @@ export default function OrderDetailPage() {
       {order.status === 'quote_pending' && (
         <Alert variant="info" className="mb-6">
           <IconClockHour4 />
-          <AlertDescription className="text-foreground">{t('orders.awaitingQuote')}</AlertDescription>
+          <AlertDescription className="text-foreground">{t(order.quote?.requested ? 'orders.quoteInReview' : 'orders.awaitingQuote')}</AlertDescription>
         </Alert>
+      )}
+
+      {quoteSent && (
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-primary/40 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex gap-3">
+            <IconFileInvoice className="mt-0.5 size-6 shrink-0 text-primary" />
+            <div>
+              <p className="text-lg font-bold text-brand-navy">{t('orders.quoteReadyTitle', { amount: formatINR(order.totals.total) })}</p>
+              <p className="text-sm text-muted-foreground">
+                {order.quote?.validUntil
+                  ? t('orders.quoteReady', { date: formatDate(order.quote.validUntil, i18n.language) })
+                  : t('orders.quoteReadyNoDate')}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={cancel.isPending || acceptQuote.isPending}
+              onClick={() =>
+                void confirmAction({
+                  tone: 'danger',
+                  title: t('orders.declineQuoteTitle'),
+                  description: t('orders.declineQuoteDesc'),
+                  confirmLabel: t('orders.declineQuote'),
+                  cancelLabel: t('confirm.keepOrder'),
+                  action: () => cancel.mutateAsync('Quote declined by customer'),
+                  successTitle: t('orders.quoteDeclined'),
+                })
+              }
+            >
+              <IconX /> {t('orders.declineQuote')}
+            </Button>
+            <Button
+              variant="brand"
+              disabled={cancel.isPending || acceptQuote.isPending}
+              onClick={() =>
+                void confirmAction({
+                  title: t('orders.acceptQuoteTitle', { amount: formatINR(order.totals.total) }),
+                  description: t('orders.acceptQuoteDesc'),
+                  confirmLabel: t('orders.acceptQuote'),
+                  action: () => acceptQuote.mutateAsync(),
+                  successTitle: t('orders.quoteAccepted'),
+                  successDescription: t('orders.quoteAcceptedNext'),
+                })
+              }
+            >
+              <IconCheck /> {t('orders.acceptQuote')}
+            </Button>
+          </div>
+        </div>
       )}
 
       {awaitingPayment && (
@@ -163,6 +224,8 @@ export default function OrderDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
+          {order.audience === 'institution' &&
+            order.items.map((item) => <DataSheetCard key={item._id} order={order} item={item} />)}
           <Card>
             <CardHeader>
               <CardTitle>{t('orders.items')}</CardTitle>
@@ -186,6 +249,11 @@ export default function OrderDetailPage() {
                           ? `${formatNumber(item.pageCount ?? 0)} ${t('units.page', { count: item.pageCount ?? 0 })} × ${item.copies} ${t('units.copy', { count: item.copies })}`
                           : `${formatNumber(item.quantity)} ${t(`units.${item.unit}`, { count: item.quantity })}`}
                       </p>
+                      {item.customSize && (
+                        <p className="text-xs text-muted-foreground">
+                          {t('orders.customSize')}: {item.customSize.width} × {item.customSize.height} {t(`newOrder.sizeUnits.${item.customSize.unit}`)}
+                        </p>
+                      )}
                       {item.options.length > 0 && (
                         <p className="text-xs text-muted-foreground">
                           {item.options.map((o) => `${l(o.label)}: ${l(o.valueLabel)}`).join(' · ')}

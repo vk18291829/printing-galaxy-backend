@@ -147,3 +147,105 @@ describe('proof approval for personalised school items', () => {
     expect(approved.body.status).toBe('approved');
   });
 });
+
+describe('institution quote requests', () => {
+  it('prices a requested quote, waits for acceptance, then starts the order', async () => {
+    const token = await (await import('./helpers')).institutionToken('school@test.in');
+    const created = await api()
+      .post('/api/v1/orders')
+      .set(bearer(token))
+      .send({
+        items: [{ productId: seed.products.medal._id, quantity: 40, fileIds: [], customSize: { width: 70, height: 70, unit: 'mm' } }],
+        fulfilment: { method: 'pickup' },
+        paymentMethod: 'counter',
+        reference: 'PO-2026-118',
+      })
+      .expect(201);
+    // A custom size cannot be priced from the list, so it becomes a quote request.
+    expect(created.body.status).toBe('quote_pending');
+    expect(created.body.quote.requested).toBe(true);
+    expect(created.body.reference).toBe('PO-2026-118');
+    expect(created.body.items[0].customSize).toEqual({ width: 70, height: 70, unit: 'mm' });
+    await api().post(`/api/v1/orders/${created.body._id}/accept-quote`).set(bearer(token)).expect(409);
+
+    const priced = await api()
+      .patch(`/api/v1/admin/orders/${created.body._id}/quote`)
+      .set(bearer(admin))
+      .send({ items: [{ itemId: created.body.items[0]._id, lineTotal: 2400 }] })
+      .expect(200);
+    expect(priced.body.status).toBe('quote_sent');
+    expect(new Date(priced.body.quote.validUntil).getTime()).toBeGreaterThan(Date.now());
+    await api().patch(`/api/v1/admin/orders/${created.body._id}/status`).set(bearer(admin)).send({ status: 'printing' }).expect(409);
+    await api().get(`/api/v1/orders/${created.body._id}/invoice`).set(bearer(token)).expect(409);
+
+    const accepted = await api().post(`/api/v1/orders/${created.body._id}/accept-quote`).set(bearer(token)).expect(200);
+    expect(accepted.body.status).toBe('received');
+    expect(accepted.body.totals.subtotal).toBe(2400);
+  });
+
+  it('lets the institution ask for a quote on a standard item and decline it', async () => {
+    const token = await (await import('./helpers')).institutionToken('school@test.in');
+    const created = await api()
+      .post('/api/v1/orders')
+      .set(bearer(token))
+      .send({ items: [{ productId: seed.products.medal._id, quantity: 100, fileIds: [] }], fulfilment: { method: 'pickup' }, paymentMethod: 'counter', requestQuote: true })
+      .expect(201);
+    expect(created.body.status).toBe('quote_pending');
+    // The list price is kept as the starting estimate for staff.
+    expect(created.body.totals.subtotal).toBe(100 * 45);
+    await api()
+      .patch(`/api/v1/admin/orders/${created.body._id}/quote`)
+      .set(bearer(admin))
+      .send({ items: [{ itemId: created.body.items[0]._id, lineTotal: 4000 }] })
+      .expect(200);
+    const declined = await api().post(`/api/v1/orders/${created.body._id}/cancel`).set(bearer(token)).send({ reason: 'Over budget' }).expect(200);
+    expect(declined.body.status).toBe('cancelled');
+  });
+});
+
+describe('status follows actions', () => {
+  it('refuses automatic steps from the dropdown and prints design items only after approval', async () => {
+    const token = await (await import('./helpers')).institutionToken('school@test.in');
+    const created = await api()
+      .post('/api/v1/orders')
+      .set(bearer(token))
+      .send({ items: [{ productId: seed.products.medal._id, quantity: 20, fileIds: [] }], fulfilment: { method: 'pickup' }, paymentMethod: 'counter' })
+      .expect(201);
+    const url = `/api/v1/admin/orders/${created.body._id}/status`;
+    for (const status of ['proof_sent', 'approved', 'out_for_delivery', 'picked_up']) {
+      await api().patch(url).set(bearer(admin)).send({ status, override: true, note: 'Trying a shortcut' }).expect(409);
+    }
+    const blocked = await api().patch(url).set(bearer(admin)).send({ status: 'printing' }).expect(409);
+    expect(blocked.body.error.message).toMatch(/approve/);
+
+    // The school adds its data sheet once the order is confirmed.
+    const sheet = await upload(token, { name: 'students.csv', mimeType: 'text/csv', bytes: Buffer.from('Name,Class\nAsha,5A\n'), purpose: 'bulk' });
+    const withSheet = await api()
+      .post(`/api/v1/orders/${created.body._id}/items/${created.body.items[0]._id}/files`)
+      .set(bearer(token))
+      .send({ fileIds: [sheet._id] })
+      .expect(200);
+    expect(withSheet.body.items[0].files).toHaveLength(1);
+    await api()
+      .post(`/api/v1/orders/${created.body._id}/items/${created.body.items[0]._id}/files`)
+      .set(bearer(token))
+      .send({ fileIds: [sheet._id] })
+      .expect(422);
+
+    const proof = await upload(admin, { name: 'proof.pdf', mimeType: 'application/pdf', bytes: await pdfWithPages(1), purpose: 'proof' });
+    const sent = await api()
+      .post(`/api/v1/admin/orders/${created.body._id}/items/${created.body.items[0]._id}/proofs`)
+      .set(bearer(admin))
+      .send({ fileId: proof._id })
+      .expect(200);
+    expect(sent.body.status).toBe('proof_sent');
+    const approved = await api()
+      .post(`/api/v1/orders/${created.body._id}/items/${created.body.items[0]._id}/proof`)
+      .set(bearer(token))
+      .send({ decision: 'approved' })
+      .expect(200);
+    expect(approved.body.status).toBe('approved');
+    const printing = await api().patch(url).set(bearer(admin)).send({ status: 'printing' }).expect(200);
+    expect(printing.body.status).toBe('printing');
+  });
+});

@@ -42,7 +42,7 @@ export default function InstitutionPasswordPage() {
     mutationFn: async () => (await api.post('/auth/institution/password/reset', { email, code, password })).data,
     onSuccess: () => {
       toast.success(t('auth.resetDone'), { description: t('toast.resetDoneDesc') });
-      navigate('/institutions/login', { replace: true });
+      navigate('/login?tab=institution', { replace: true });
     },
   });
 
@@ -53,7 +53,7 @@ export default function InstitutionPasswordPage() {
       title={t('auth.resetTitle')}
       subtitle={byEmail ? t('auth.resetSubtitleEmail') : t('auth.resetSubtitle')}
       footer={
-        <Link to="/institutions/login" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+        <Link to="/login?tab=institution" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
           <IconArrowLeft className="size-4" /> {t('auth.backToLogin')}
         </Link>
       }

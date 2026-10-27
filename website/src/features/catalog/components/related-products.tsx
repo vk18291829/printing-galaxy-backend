@@ -3,16 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Rail } from '@/components/common/section';
 import { Button } from '@/components/ui/button';
-import { useProducts } from '@/features/catalog/api';
+import { sectionOf, useProducts } from '@/features/catalog/api';
 import { useLocalized } from '@/lib/i18n';
 import type { Product } from '@/types/api';
+import { categoryHome } from '@/features/catalog/sections';
 import { ProductCard } from './product-card';
 
 /** Other products from the same category, shown under the product details. */
 export function RelatedProducts({ product }: { product: Product }) {
   const { t } = useTranslation();
   const l = useLocalized();
-  const { data } = useProducts({ category: product.category.slug });
+  const section = sectionOf(product);
+  const { data } = useProducts({ category: product.category.slug, section });
   const items = (data ?? []).filter((p) => p._id !== product._id);
   if (items.length === 0) return null;
 
@@ -24,7 +26,7 @@ export function RelatedProducts({ product }: { product: Product }) {
           <p className="mt-1 text-sm text-muted-foreground">{t('product.relatedSubtitle', { category: l(product.category.name) })}</p>
         </div>
         <Button variant="outline" size="sm" className="shrink-0" asChild>
-          <Link to={`/products?category=${product.category.slug}`}>
+          <Link to={section === 'retail' ? categoryHome(product.category.slug) : '/institutions'}>
             {t('common.viewAll')} <IconArrowRight />
           </Link>
         </Button>

@@ -3,6 +3,7 @@ import { addressSchema, AUDIENCES, localizedSchema } from '@/common/types';
 
 export const ORDER_STATUSES = [
   'quote_pending', // waiting for staff to price a custom job
+  'quote_sent', // priced by the shop; waiting for the customer to accept the quote
   'awaiting_payment', // online payment chosen but not received yet; hidden from production
   'received',
   'proof_sent',
@@ -19,25 +20,50 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const TERMINAL_STATUSES: OrderStatus[] = ['delivered', 'picked_up', 'cancelled'];
 
 /** Not yet in the production queue: staff do not work on these. */
-export const PRE_PRODUCTION_STATUSES: OrderStatus[] = ['quote_pending', 'awaiting_payment'];
+export const PRE_PRODUCTION_STATUSES: OrderStatus[] = ['quote_pending', 'quote_sent', 'awaiting_payment'];
 
 /**
- * Moves staff may make with the normal status control. Anything else needs an admin override
- * with a reason. `picked_up` and `delivered` are reached through the handover-code flows.
+ * Moves staff may make with the manual status control: only the shop-floor steps (printing,
+ * ready) and cancelling. Everything else follows from an action, never from the dropdown:
+ *  - quote_sent: the shop sends a price      - received: order placed / quote accepted / paid
+ *  - proof_sent: the shop sends a proof      - approved: the customer approves every proof
+ *  - out_for_delivery: the rider starts it   - picked_up / delivered: the handover code
+ * An admin override (with a reason) can still reopen an order or move printing/ready.
  */
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   quote_pending: ['cancelled'],
+  quote_sent: ['cancelled'],
   awaiting_payment: ['cancelled'],
-  received: ['proof_sent', 'approved', 'printing', 'cancelled'],
-  proof_sent: ['received', 'approved', 'cancelled'],
-  approved: ['proof_sent', 'printing', 'cancelled'],
-  printing: ['ready', 'approved', 'cancelled'],
-  ready: ['printing', 'out_for_delivery', 'cancelled'],
-  out_for_delivery: ['ready', 'cancelled'],
+  received: ['printing', 'cancelled'],
+  proof_sent: ['cancelled'],
+  approved: ['printing', 'cancelled'],
+  printing: ['ready', 'cancelled'],
+  ready: ['printing', 'cancelled'],
+  out_for_delivery: ['cancelled'],
   delivered: [],
   picked_up: [],
   cancelled: [],
 };
+
+/** Statuses only an action can set, with what staff should do instead. */
+export const AUTOMATIC_STATUSES: Partial<Record<OrderStatus, string>> = {
+  quote_pending: 'This status is set when the order is placed',
+  quote_sent: 'Send the price with the quote form',
+  awaiting_payment: 'This status is set when online payment is chosen',
+  proof_sent: 'Send a proof from the item; the order moves to "Proof sent" by itself',
+  approved: 'The customer approves the proof; the order moves to "Approved" by itself',
+  out_for_delivery: 'The rider starts the delivery from the delivery screen',
+  picked_up: "Hand the order over with the customer's code (Hand over button)",
+  delivered: "The rider completes delivery with the customer's code",
+};
+
+/** Statuses in which a confirmed order still accepts files from the customer (before printing). */
+export const FILE_OPEN_STATUSES: OrderStatus[] = ['received', 'proof_sent', 'approved'];
+
+/** How long a quote sent to the customer can be accepted. */
+export const QUOTE_VALID_DAYS = 15;
+
+export const SIZE_UNITS = ['mm', 'cm', 'in'] as const;
 
 /** Wrong handover codes allowed before staff must step in. */
 export const HANDOVER_MAX_ATTEMPTS = 5;
@@ -93,6 +119,18 @@ const orderItemSchema = new Schema({
   discount: { type: Number, default: 0 },
   lineTotal: { type: Number, required: true },
   notes: { type: String, trim: true, maxlength: 1000 },
+  /** A size the customer typed in instead of a listed one; always priced by staff. */
+  customSize: {
+    type: new Schema(
+      {
+        width: { type: Number, required: true },
+        height: { type: Number, required: true },
+        unit: { type: String, enum: SIZE_UNITS, required: true },
+      },
+      { _id: false },
+    ),
+    default: undefined,
+  },
   files: [{ type: Schema.Types.ObjectId, ref: 'FileObject' }],
   proofs: { type: [proofSchema], default: [] },
 });
@@ -183,6 +221,18 @@ const orderSchema = new Schema(
     /** `<kind>:<id>:<client key>`: a retried checkout returns the first order instead of a copy. */
     idempotencyKey: { type: String, unique: true, sparse: true, select: false },
     customerNote: { type: String, trim: true, maxlength: 1000 },
+    /** The customer's own reference, e.g. an institution's purchase order number. */
+    reference: { type: String, trim: true, maxlength: 60 },
+    /**
+     * Quote cycle. `requested`: the customer asked for a quote rather than placing the order, so a
+     * confirmed price goes back to them (quote_sent) and work starts only when they accept it.
+     */
+    quote: {
+      requested: { type: Boolean, default: false },
+      sentAt: Date,
+      validUntil: Date,
+      acceptedAt: Date,
+    },
     internalNote: { type: String, trim: true, maxlength: 2000 },
     cancelReason: String,
     completedAt: Date,

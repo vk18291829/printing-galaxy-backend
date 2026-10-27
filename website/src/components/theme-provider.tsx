@@ -10,12 +10,15 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = 'pg-theme';
+// Dark mode is hidden for now: every visitor gets the light theme. Flip to re-enable.
+const DARK_MODE_ENABLED = false;
 
 function systemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function readStoredTheme(): Theme {
+  if (!DARK_MODE_ENABLED) return 'light';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
@@ -45,6 +48,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const setTheme = useCallback((next: Theme) => {
+    if (!DARK_MODE_ENABLED) return;
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {

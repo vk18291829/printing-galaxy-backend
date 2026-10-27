@@ -1,11 +1,10 @@
 import {
   IconAlertCircle,
   IconBuildingCommunity,
+  IconClipboardList,
   IconClock,
   IconLock,
-  IconMinus,
   IconPalette,
-  IconPlus,
   IconShoppingBagPlus,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -14,6 +13,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { PageNav } from '@/components/common/page-nav';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { QuantityStepper as Stepper } from '@/components/common/quantity-stepper';
 import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -23,67 +23,22 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useAudience, useAuthStore } from '@/features/auth/auth-store';
-import { useProduct, useQuote, type QuoteInput } from '@/features/catalog/api';
+import { sectionOf, useProduct, useQuote, type QuoteInput } from '@/features/catalog/api';
 import { OptionPicker } from '@/features/catalog/components/option-picker';
 import { ProductGallery } from '@/features/catalog/components/product-gallery';
 import { PriceTierTable } from '@/features/catalog/components/price-tier-table';
 import { RelatedProducts } from '@/features/catalog/components/related-products';
 import { useCartStore, type CartFile } from '@/features/cart/cart-store';
 import { CardCropUploader } from '@/features/crop/card-crop-uploader';
-import { DesignStudio, type AttachedDesign } from '@/features/design/design-studio';
-import { DESIGN_FOR_SLUG } from '@/features/design/designs';
 import { ProductReviews, RatingSummaryLink } from '@/features/reviews/product-reviews';
 import { FileUploader } from '@/features/uploads/file-uploader';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import type { Product, Quote } from '@/types/api';
-
-function Stepper({
-  value,
-  onChange,
-  min = 1,
-  step = 1,
-  id,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  step?: number;
-  id?: string;
-}) {
-  return (
-    <div className="flex h-11 w-full max-w-[220px] items-center rounded-xl border bg-background">
-      <button
-        type="button"
-        className="grid h-full w-11 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-40"
-        onClick={() => onChange(Math.max(min, value - step))}
-        disabled={value <= min}
-        aria-label="Decrease"
-      >
-        <IconMinus className="size-4" />
-      </button>
-      <input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        min={min}
-        value={Number.isFinite(value) ? value : ''}
-        onChange={(e) => onChange(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-        className="h-full min-w-0 flex-1 bg-transparent text-center text-base font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-      />
-      <button
-        type="button"
-        className="grid h-full w-11 place-items-center text-muted-foreground hover:text-foreground"
-        onClick={() => onChange(value + step)}
-        aria-label="Increase"
-      >
-        <IconPlus className="size-4" />
-      </button>
-    </div>
-  );
-}
+import { categoryHome } from '@/features/catalog/sections';
 
 function defaultOptions(product: Product) {
   return Object.fromEntries(
@@ -98,6 +53,7 @@ function PriceSummary({
   extraErrors,
   onAdd,
   canAdd,
+  orderLink,
 }: {
   product: Product;
   quote?: Quote;
@@ -105,6 +61,8 @@ function PriceSummary({
   extraErrors: string[];
   onAdd: () => void;
   canAdd: boolean;
+  /** Institutions configure and place orders in the order builder instead of a cart. */
+  orderLink?: string;
 }) {
   const { t } = useTranslation();
   const unitLabel = (count: number) => t(`units.${product.unit}`, { count });
@@ -179,11 +137,66 @@ function PriceSummary({
           </ul>
         )}
 
-        <Button size="lg" variant="brand" className="w-full" onClick={onAdd} disabled={!canAdd}>
-          <IconShoppingBagPlus /> {t('product.addToCart')}
-        </Button>
+        {orderLink ? (
+          <Button size="lg" variant="brand" className="w-full" asChild>
+            <Link to={orderLink}>
+              <IconClipboardList /> {t('product.orderThis')}
+            </Link>
+          </Button>
+        ) : (
+          <Button size="lg" variant="brand" className="w-full" onClick={onAdd} disabled={!canAdd}>
+            <IconShoppingBagPlus /> {t('product.addToCart')}
+          </Button>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Why this visitor can't order the product, with the way forward. */
+function LockedCard({ forInstitutions, className }: { forInstitutions: boolean; className?: string }) {
+  const { t } = useTranslation();
+  const location = useLocation();
+  return (
+      <div className={cn('rounded-2xl border bg-card/95 p-6 text-center backdrop-blur sm:p-8', className)}>
+        <span className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
+          <IconLock className="size-7" />
+        </span>
+        <h2 className="text-xl font-semibold">{t(forInstitutions ? 'product.lockedInstitutionTitle' : 'product.lockedRetailTitle')}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t(forInstitutions ? 'product.lockedInstitutionDesc' : 'product.lockedRetailDesc')}</p>
+        <div className="mt-6 grid gap-2 sm:grid-cols-2">
+          {forInstitutions ? (
+            <>
+              <Button asChild>
+                <Link to="/login?tab=institution" state={{ from: location.pathname }}>
+                  <IconBuildingCommunity /> {t('nav.institutionLogin')}
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/institutions/register">{t('institutions.register')}</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild>
+                <Link to="/institutions">{t('product.lockedSchoolProducts')}</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/products">{t('nav.products')}</Link>
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+  );
+}
+
+/** Lock over a blurred page: a signed-in account of the other kind can't even browse it. */
+function LockedOverlay({ forInstitutions }: { forInstitutions: boolean }) {
+  return (
+    <div className="absolute inset-0 z-10 flex justify-center px-2">
+      <LockedCard forInstitutions={forInstitutions} className="sticky top-40 mt-16 h-fit w-full max-w-md shadow-2xl" />
+    </div>
   );
 }
 
@@ -204,25 +217,24 @@ export default function ProductPage() {
   const [manualPages, setManualPages] = useState(0);
   const [files, setFiles] = useState<CartFile[]>([]);
   const [notes, setNotes] = useState('');
-  const [design, setDesign] = useState<AttachedDesign | null>(null);
-  // Crop tool / design studio by default; plain upload for customers with a ready file.
+  // Crop tool by default; plain upload for customers with a ready file.
   const [plainUpload, setPlainUpload] = useState(false);
 
   useDocumentTitle(product ? l(product.name) : undefined);
 
-  const book = product ? (product.pricing[audience].enabled ? product.pricing[audience] : product.pricing.retail) : null;
-  const audienceBlocked = product ? !product.pricing[audience].enabled : false;
+  const book = product ? (product.pricing[audience].enabled ? product.pricing[audience] : product.pricing[sectionOf(product)]) : null;
+  // School products are for institutions only, everyday products for individuals only.
+  const audienceBlocked = product ? !product.pricing[audience].enabled || !product.category.audiences?.includes(audience) : false;
 
   useEffect(() => {
     if (!product) return;
     setOptions(defaultOptions(product));
-    const minQty = product.pricing[audience].enabled ? product.pricing[audience].minQty : product.pricing.retail.minQty;
+    const minQty = product.pricing[audience].enabled ? product.pricing[audience].minQty : product.pricing[sectionOf(product)].minQty;
     setQuantity(product.unit === 'page' ? 1 : minQty);
     setManualPages(product.unit === 'page' ? minQty : 0);
     setCopies(1);
     setFiles([]);
     setNotes('');
-    setDesign(null);
     setPlainUpload(false);
   }, [product, audience]);
 
@@ -254,14 +266,14 @@ export default function ProductPage() {
     );
   }
 
-  const designKind = DESIGN_FOR_SLUG[product.slug];
   const useCropper = product.workflow === 'identity' && !plainUpload;
-  const useStudio = Boolean(designKind) && !plainUpload;
-  const allFiles = [...files, ...(design?.files ?? [])];
   const needsUpload = product.requiresUpload && product.workflow !== 'quote';
-  const extraErrors = needsUpload && allFiles.length === 0 ? [t('product.errors.UPLOAD_REQUIRED')] : [];
+  const extraErrors = needsUpload && files.length === 0 ? [t('product.errors.UPLOAD_REQUIRED')] : [];
   const stale = debouncedInput !== quoteInput;
+  // Guests may browse everything; only a signed-in account of the wrong kind gets the blurred lock.
+  const locked = audienceBlocked && Boolean(principal);
   const canAdd = Boolean(quote?.valid) && extraErrors.length === 0 && !stale && !audienceBlocked;
+  const orderLink = principal?.kind === 'institution' ? `/institution/orders/new?product=${product.slug}` : undefined;
 
   const handleAdd = () => {
     if (!quote) return;
@@ -276,8 +288,8 @@ export default function ProductPage() {
       options,
       optionLabels: quote.selectedOptions.map((o) => ({ label: o.label, value: o.valueLabel })),
       ...(isPageBased ? { pageCount, copies } : { quantity }),
-      notes: [design?.summary, notes.trim()].filter(Boolean).join('\n').slice(0, 1000) || undefined,
-      files: allFiles,
+      notes: notes.trim() || undefined,
+      files,
       estimate: quote.subtotal,
     });
     toast.success(t('product.added'), {
@@ -286,7 +298,6 @@ export default function ProductPage() {
     });
     setFiles([]);
     setNotes('');
-    setDesign(null);
   };
 
   const signInButton = (
@@ -301,35 +312,22 @@ export default function ProductPage() {
     <Card>
       <CardHeader>
         <CardTitle>
-          {useStudio ? t('design.title') : useCropper ? t('crop.title') : t('product.upload')}{' '}
-          {!needsUpload && !useStudio && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
+          {useCropper ? t('crop.title') : t('product.upload')}{' '}
+          {!needsUpload && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
         </CardTitle>
-        {useStudio ? (
-          <p className="text-sm text-muted-foreground">{t('design.subtitle')}</p>
-        ) : (
-          !useCropper && l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>
-        )}
+        {!useCropper && l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>}
       </CardHeader>
       <CardContent className="space-y-4">
-        {useStudio && designKind ? (
-          <DesignStudio
-            kind={designKind}
-            productId={product._id}
-            options={options}
-            attached={design}
-            onAttach={setDesign}
-            signIn={principal ? undefined : signInButton}
-          />
-        ) : !principal ? (
+        {!principal ? (
           signInButton
         ) : useCropper ? (
           <CardCropUploader productId={product._id} files={files} onChange={setFiles} />
         ) : (
           <FileUploader productId={product._id} accepted={product.acceptedFileTypes} files={files} onChange={setFiles} />
         )}
-        {principal && (designKind || product.workflow === 'identity') && (
+        {principal && product.workflow === 'identity' && (
           <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => setPlainUpload((v) => !v)}>
-            {plainUpload ? (designKind ? t('design.useStudio') : t('crop.useCropper')) : designKind ? t('design.orUpload') : t('crop.orUpload')}
+            {plainUpload ? t('crop.useCropper') : t('crop.orUpload')}
           </button>
         )}
       </CardContent>
@@ -339,14 +337,26 @@ export default function ProductPage() {
   return (
     <div className="container-page pt-6 sm:pt-8 lg:pb-8">
       <PageNav
-        items={[
-          { label: t('nav.products'), to: '/products' },
-          { label: l(product.category.name), to: `/products?category=${product.category.slug}` },
-          { label: l(product.name) },
-        ]}
+        items={
+          sectionOf(product) === 'institution'
+            ? [{ label: t('nav.institutions'), to: '/institutions' }, { label: l(product.name) }]
+            : [
+                ...(categoryHome(product.category.slug).startsWith('/products')
+                  ? [{ label: t('nav.products'), to: '/products' }]
+                  : []),
+                { label: l(product.category.name), to: categoryHome(product.category.slug) },
+                { label: l(product.name) },
+              ]
+        }
       />
 
-      <div className="grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="relative">
+      {locked && <LockedOverlay forInstitutions={sectionOf(product) === 'institution'} />}
+      <div
+        className={cn('grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]', locked && 'pointer-events-none max-h-[900px] overflow-hidden blur-md select-none')}
+        aria-hidden={locked || undefined}
+        inert={locked}
+      >
         <div className="space-y-6">
           <header className="grid gap-6 *:min-w-0 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start">
             <ProductGallery product={product} />
@@ -367,24 +377,13 @@ export default function ProductPage() {
                 {product.specs.map((s) => (
                   <Badge key={s} variant="outline">{s}</Badge>
                 ))}
-                <Badge variant="outline">
-                  <IconClock /> {t('product.leadTime')}:{' '}
-                  {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
-                </Badge>
+                {sectionOf(product) === 'retail' && (
+                  <Badge variant="outline">
+                    <IconClock /> {t('product.leadTime')}:{' '}
+                    {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
+                  </Badge>
+                )}
               </div>
-              {audienceBlocked && (
-                <Alert variant="warning">
-                  <IconAlertCircle />
-                  <AlertDescription className="text-foreground">
-                    <p>{t('product.notAvailable')}</p>
-                    {audience === 'retail' && (
-                      <Link to="/institutions" className="font-semibold text-primary hover:underline">
-                        {t('product.retailNoteCta')} →
-                      </Link>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
               {product.workflow === 'design' && (
                 <Alert variant="info">
                   <IconPalette />
@@ -448,7 +447,7 @@ export default function ProductPage() {
             </CardContent>
           </Card>
 
-          {(product.requiresUpload || product.acceptedFileTypes.length > 0 || designKind) && uploadCard}
+          {(product.requiresUpload || product.acceptedFileTypes.length > 0) && uploadCard}
 
           <Card>
             <CardHeader>
@@ -470,33 +469,36 @@ export default function ProductPage() {
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
-          <PriceSummary
-            product={product}
-            quote={quote}
-            loading={quoting || stale}
-            extraErrors={extraErrors}
-            onAdd={handleAdd}
-            canAdd={canAdd}
-          />
+          {audienceBlocked ? (
+            <LockedCard forInstitutions={sectionOf(product) === 'institution'} className="p-5 sm:p-6" />
+          ) : (
+            <PriceSummary
+              product={product}
+              quote={quote}
+              loading={quoting || stale}
+              extraErrors={extraErrors}
+              onAdd={handleAdd}
+              canAdd={canAdd}
+              orderLink={orderLink}
+            />
+          )}
           {book.tiers.length > 0 && (
             <PriceTierTable book={book} unit={product.unit} activeUnits={quote?.units} />
-          )}
-          {audience === 'retail' && product.pricing.institution.enabled && (
-            <div className="rounded-2xl border border-dashed p-4 text-sm">
-              <p className="text-muted-foreground">{t('product.retailNote')}</p>
-              <Link to="/institutions" className="mt-1 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
-                <IconBuildingCommunity className="size-4" /> {t('product.retailNoteCta')}
-              </Link>
-            </div>
           )}
         </aside>
       </div>
 
-      <ProductReviews slug={product.slug} />
-      <RelatedProducts product={product} />
+      </div>
+
+      {!locked && (
+        <>
+          <ProductReviews slug={product.slug} />
+          <RelatedProducts product={product} />
+        </>
+      )}
 
       {/* Phones & tablets: keep the price and the add button in reach while choosing options. */}
-      <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] backdrop-blur-xl sm:-mx-6 lg:hidden">
+      <div className={cn('sticky bottom-0 z-30 -mx-4 mt-6 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] backdrop-blur-xl sm:-mx-6 lg:hidden', audienceBlocked && 'hidden')}>
         <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
             {quote?.requiresQuote ? (
@@ -521,9 +523,17 @@ export default function ProductPage() {
               </p>
             )}
           </div>
-          <Button size="lg" variant="brand" className="shrink-0 px-4 sm:px-6" onClick={handleAdd} disabled={!canAdd}>
-            <IconShoppingBagPlus /> <span className="max-[359px]:sr-only">{t('product.addToCart')}</span>
-          </Button>
+          {orderLink ? (
+            <Button size="lg" variant="brand" className="shrink-0 px-4 sm:px-6" asChild>
+              <Link to={orderLink}>
+                <IconClipboardList /> <span className="max-[359px]:sr-only">{t('product.orderThis')}</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button size="lg" variant="brand" className="shrink-0 px-4 sm:px-6" onClick={handleAdd} disabled={!canAdd}>
+              <IconShoppingBagPlus /> <span className="max-[359px]:sr-only">{t('product.addToCart')}</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>

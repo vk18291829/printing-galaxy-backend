@@ -20,6 +20,7 @@ import type { OrderStatus } from '@/types/api';
 const STATUS_TABS: (OrderStatus | 'active' | 'all')[] = [
   'active',
   'quote_pending',
+  'quote_sent',
   'awaiting_payment',
   'received',
   'proof_sent',

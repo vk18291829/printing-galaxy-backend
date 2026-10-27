@@ -55,7 +55,7 @@ export const EXTRA_CATEGORIES = [
     name: L('Photo Printing', 'फ़ोटो प्रिंटिंग'),
     description: L('Photo prints, posters and calendars in true colour.', 'असली रंगों में फ़ोटो प्रिंट, पोस्टर और कैलेंडर।'),
     icon: 'photo',
-    audiences: ['retail', 'institution'],
+    audiences: ['retail'],
     sortOrder: 6,
   },
   {
@@ -63,7 +63,7 @@ export const EXTRA_CATEGORIES = [
     name: L('Banners & Signage', 'बैनर और साइनेज'),
     description: L('Flex banners, roll-up standees and welcome boards.', 'फ़्लेक्स बैनर, रोल-अप स्टैंडी और वेलकम बोर्ड।'),
     icon: 'presentation',
-    audiences: ['retail', 'institution'],
+    audiences: ['retail'],
     sortOrder: 7,
   },
   {
@@ -71,7 +71,7 @@ export const EXTRA_CATEGORIES = [
     name: L('Office Stationery', 'ऑफ़िस स्टेशनरी'),
     description: L('Letterheads, bill books, envelopes and certificates.', 'लेटरहेड, बिल बुक, लिफ़ाफ़े और सर्टिफ़िकेट।'),
     icon: 'receipt',
-    audiences: ['retail', 'institution'],
+    audiences: ['retail'],
     sortOrder: 8,
   },
 ];

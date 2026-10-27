@@ -81,6 +81,9 @@ export const productInputSchema = z.object({
 export const productListQuery = z.object({
   category: z.string().trim().optional(),
   audience: z.enum(AUDIENCES).optional(),
+  /** Which catalogue: only products in categories offered to this audience. */
+  section: z.enum(AUDIENCES).optional(),
+  excludeCategory: z.string().trim().optional(),
   featured: z
     .enum(['true', 'false'])
     .optional()
@@ -93,6 +96,8 @@ export const PRODUCT_SORTS = ['popular', 'newest', 'price-asc', 'price-desc', 'r
 export const productBrowseQuery = z.object({
   category: z.string().trim().optional(),
   audience: z.enum(AUDIENCES).default('retail'),
+  section: z.enum(AUDIENCES).optional(),
+  excludeCategory: z.string().trim().optional(),
   q: z.string().trim().max(100).optional(),
   sort: z.enum(PRODUCT_SORTS).default('popular'),
   page: z.coerce.number().int().min(1).default(1),

@@ -2,16 +2,40 @@ import { Router } from 'express';
 import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
+import type { Audience } from '@/common/types';
 import { escapeRegex, objectId } from '@/common/validation';
 import { optionalAuth } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { resolvePricingContext } from '@/modules/institutions/institution.service';
 import { quoteProduct } from '@/modules/pricing/pricing.service';
+import { categoryIdsFor, restrictToCategoryAudience } from './audience';
 import { CategoryModel } from './category.model';
 import { productBrowseQuery, productListQuery } from './catalog.schema';
 import { ProductModel, type Product } from './product.model';
 
 export const catalogRouter = Router();
+
+/**
+ * Category condition for product lists. `undefined` = no condition, `null` = nothing can match.
+ * `section` limits the list to categories offered to that audience; `excludeCategory` drops
+ * categories (comma-separated slugs, e.g. the business and wedding ranges with their own pages).
+ */
+async function resolveCategoryFilter(category?: string, section?: Audience, excludeCategory?: string) {
+  const excluded = excludeCategory?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+  // Several categories at once (comma-separated), e.g. everything on the Business Printing page.
+  if (category?.includes(',')) {
+    const slugs = category.split(',').map((s) => s.trim()).filter((s) => s && !excluded.includes(s));
+    const ids = await CategoryModel.find({ slug: { $in: slugs }, isActive: true, ...(section && { audiences: section }) }).distinct('_id');
+    return ids.length ? { $in: ids } : null;
+  }
+  if (category) {
+    const cat = await CategoryModel.findOne({ slug: category, isActive: true, ...(section && { audiences: section }) }).select('_id').lean();
+    return cat && !excluded.includes(category) ? cat._id : null;
+  }
+  if (!section && !excluded.length) return undefined;
+  const ids = await CategoryModel.find({ isActive: true, ...(section && { audiences: section }), ...(excluded.length && { slug: { $nin: excluded } }) }).distinct('_id');
+  return { $in: ids };
+}
 
 catalogRouter.get('/categories', async (_req, res) => {
   const categories = await CategoryModel.find({ isActive: true }).sort({ sortOrder: 1 }).lean();
@@ -24,16 +48,15 @@ catalogRouter.get('/categories', async (_req, res) => {
 });
 
 catalogRouter.get('/products', validate({ query: productListQuery }), async (_req, res) => {
-  const { category, audience, featured, q } = res.locals.query as z.infer<typeof productListQuery>;
+  const { category, audience, section, excludeCategory, featured, q } = res.locals.query as z.infer<typeof productListQuery>;
   const filter: FilterQuery<Product> = { isActive: true };
 
-  if (category) {
-    const cat = await CategoryModel.findOne({ slug: category, isActive: true }).select('_id').lean();
-    // Unknown or hidden category (old link, typo): an empty list, not an error page.
-    if (!cat) return void res.json([]);
-    filter.category = cat._id;
-  }
+  const categoryFilter = await resolveCategoryFilter(category, section, excludeCategory);
+  // Unknown or hidden category (old link, typo): an empty list, not an error page.
+  if (categoryFilter === null) return void res.json([]);
+  if (categoryFilter) filter.category = categoryFilter;
   if (audience) filter[`pricing.${audience}.enabled`] = true;
+  if (section) filter[`pricing.${section}.enabled`] = true;
   if (featured !== undefined) filter.isFeatured = featured;
   if (q) {
     const rx = new RegExp(escapeRegex(q), 'i');
@@ -42,7 +65,7 @@ catalogRouter.get('/products', validate({ query: productListQuery }), async (_re
 
   const products = await ProductModel.find(filter)
     .sort({ sortOrder: 1, createdAt: 1 })
-    .populate('category', 'name slug icon')
+    .populate('category', 'name slug icon audiences')
     .lean();
   res.json(products);
 });
@@ -57,17 +80,16 @@ const BROWSE_SORT: Record<z.infer<typeof productBrowseQuery>['sort'], Record<str
 
 /** Paged, sortable product list for the catalogue page's infinite scroll. */
 catalogRouter.get('/products/browse', validate({ query: productBrowseQuery }), async (_req, res) => {
-  const { category, audience, q, sort, page, limit } = res.locals.query as z.infer<typeof productBrowseQuery>;
+  const { category, audience, section, excludeCategory, q, sort, page, limit } = res.locals.query as z.infer<typeof productBrowseQuery>;
   const match: FilterQuery<Product> = { isActive: true };
 
-  if (category) {
-    const cat = await CategoryModel.findOne({ slug: category, isActive: true }).select('_id').lean();
-    if (!cat) {
-      res.json({ items: [], total: 0, page, pages: 0 });
-      return;
-    }
-    match.category = cat._id;
+  const categoryFilter = await resolveCategoryFilter(category, section, excludeCategory);
+  if (categoryFilter === null) {
+    res.json({ items: [], total: 0, page, pages: 0 });
+    return;
   }
+  if (categoryFilter) match.category = categoryFilter;
+  if (section) match[`pricing.${section}.enabled`] = true;
   if (q) {
     const rx = new RegExp(escapeRegex(q), 'i');
     match.$or = [{ 'name.en': rx }, { 'name.hi': rx }, { tags: rx }, { 'shortDescription.en': rx }];
@@ -90,7 +112,7 @@ catalogRouter.get('/products/browse', validate({ query: productBrowseQuery }), a
         items: [
           { $skip: (page - 1) * limit },
           { $limit: limit },
-          { $lookup: { from: 'categories', localField: 'category', foreignField: '_id', as: 'category', pipeline: [{ $project: { name: 1, slug: 1, icon: 1 } }] } },
+          { $lookup: { from: 'categories', localField: 'category', foreignField: '_id', as: 'category', pipeline: [{ $project: { name: 1, slug: 1, icon: 1, audiences: 1 } }] } },
           { $unwind: '$category' },
           { $project: { minPrice: 0, __v: 0 } },
         ],
@@ -104,7 +126,7 @@ catalogRouter.get('/products/browse', validate({ query: productBrowseQuery }), a
 
 catalogRouter.get('/products/:slug', async (req, res) => {
   const product = await ProductModel.findOne({ slug: req.params.slug, isActive: true })
-    .populate('category', 'name slug icon')
+    .populate('category', 'name slug icon audiences')
     .lean();
   if (!product) throw ApiError.notFound('Product');
   res.json(product);
@@ -124,5 +146,6 @@ catalogRouter.post('/pricing/quote', optionalAuth, validate({ body: quoteSchema 
   const product = await ProductModel.findOne({ _id: productId, isActive: true }).lean();
   if (!product) throw ApiError.notFound('Product');
   const ctx = await resolvePricingContext(req.auth);
-  res.json(quoteProduct(product, ctx.audience, input, ctx.discountPercent));
+  const [allowed] = await restrictToCategoryAudience([product], ctx.audience);
+  res.json(quoteProduct(allowed!, ctx.audience, input, ctx.discountPercent));
 });

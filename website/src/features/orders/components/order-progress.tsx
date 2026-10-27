@@ -9,6 +9,7 @@ function stagesFor(order: Order): OrderStatus[] {
   const history = new Set(order.statusHistory?.map((h) => h.status));
   const start: OrderStatus[] = [
     ...(history.has('quote_pending') ? (['quote_pending'] as const) : []),
+    ...(history.has('quote_sent') ? (['quote_sent'] as const) : []),
     ...(history.has('awaiting_payment') ? (['awaiting_payment'] as const) : []),
     'received',
   ];
