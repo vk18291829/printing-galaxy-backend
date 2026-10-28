@@ -69,7 +69,7 @@ const toDateInput = (iso: string | null) => {
 
 function scheduleLabel(b: AdminBanner) {
   const now = Date.now();
-  if (b.endsAt && new Date(b.endsAt).getTime() < now) return { text: 'Ended', variant: 'secondary' as const };
+  if (b.endsAt && new Date(b.endsAt).getTime() < now) return { text: 'Ended · hidden on website', variant: 'warning' as const };
   if (b.startsAt && new Date(b.startsAt).getTime() > now) return { text: `Starts ${formatDate(b.startsAt)}`, variant: 'info' as const };
   if (b.endsAt) return { text: `Until ${formatDate(b.endsAt)}`, variant: 'outline' as const };
   return null;
@@ -244,7 +244,14 @@ function BannerDialog({ banner, kind, onClose }: { banner: AdminBanner | null; k
             <p className="text-xs text-muted-foreground">Shown with a copy button in the offer strip. Apply the discount at the counter.</p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="b-start">Show from</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="b-start">Show from</Label>
+              {form.startsAt && (
+                <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => set('startsAt', null)}>
+                  Clear
+                </button>
+              )}
+            </div>
             <Input
               id="b-start"
               type="date"
@@ -253,7 +260,14 @@ function BannerDialog({ banner, kind, onClose }: { banner: AdminBanner | null; k
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="b-end">Show until</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="b-end">Show until</Label>
+              {form.endsAt && (
+                <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => set('endsAt', null)}>
+                  No end date
+                </button>
+              )}
+            </div>
             <Input
               id="b-end"
               type="date"
