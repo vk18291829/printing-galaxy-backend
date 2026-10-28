@@ -219,6 +219,7 @@ function render(page) {
     `<meta name="twitter:title" content="${esc(fullTitle)}" />`,
     `<meta name="twitter:description" content="${esc(description)}" />`,
     `<meta name="twitter:image" content="${esc(image)}" />`,
+    '<style>#root>[data-prerender]{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}#root>.pg-splash{min-height:100vh;display:grid;place-items:center}#root>.pg-splash img{animation:pg-pulse 1.2s ease-in-out infinite alternate}@keyframes pg-pulse{from{opacity:.55}to{opacity:1}}</style>',
     page.jsonLd ? `<script type="application/ld+json" id="seo-jsonld">${JSON.stringify(page.jsonLd).replace(/</g, '\\u003c')}</script>` : '',
   ]
     .filter(Boolean)
@@ -228,10 +229,12 @@ function render(page) {
     .replace(/<title>[\s\S]*?<\/title>/, () => head)
     .replace(
       '<div id="root"></div>',
-      // The server falls back to the home page's file for app-only routes (/account, /checkout…);
-      // the guard clears its text there so it never flashes before the app loads.
-      () => `<div id="root">${page.html}</div>
-    <script>if (location.pathname.replace(/\\/$/, '') !== ${JSON.stringify(page.path === '/' ? '' : page.path)}) document.getElementById('root').innerHTML = '';</script>`,
+      // Visitors see the logo for the moment before the app starts; the page text stays in the HTML
+      // for search engines and link previews but is visually hidden, so it never flashes on screen.
+      // On app-only routes (/account, /checkout…) the server falls back to the home page's file;
+      // the guard drops its text there.
+      () => `<div id="root"><div class="pg-splash" aria-hidden="true"><img src="/logo-mark.png?v=3" width="56" height="56" alt="" /></div><div data-prerender>${page.html}</div></div>
+    <script>if (location.pathname.replace(/\\/$/, '') !== ${JSON.stringify(page.path === '/' ? '' : page.path)}) document.querySelector('#root > [data-prerender]')?.remove();</script>`,
     );
 }
 

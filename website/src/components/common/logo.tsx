@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 export function LogoMark({ className, light = false }: { className?: string; light?: boolean }) {
   return (
     <img
-      src={light ? '/logo-mark-dark.png' : '/logo-mark.png'}
+      src={light ? '/logo-mark-dark.png?v=3' : '/logo-mark.png?v=3'}
       alt=""
       width={48}
       height={48}

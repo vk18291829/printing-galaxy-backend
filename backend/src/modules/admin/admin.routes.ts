@@ -9,7 +9,7 @@ import { adminInventoryRouter } from '@/modules/inventory/inventory.admin.routes
 import { adminMarketingRouter } from '@/modules/marketing/marketing.admin.routes';
 import { adminPromoRouter } from '@/modules/marketing/promo.admin.routes';
 import { adminOrdersRouter } from '@/modules/orders/orders.admin.routes';
-import { adminPushRouter } from '@/modules/push/push.routes';
+import { adminAlertsRouter, adminPushRouter } from '@/modules/push/push.routes';
 import { adminReportsRouter } from '@/modules/reports/reports.admin.routes';
 import { adminReviewsRouter } from '@/modules/reviews/reviews.admin.routes';
 import { adminSettingsRouter } from '@/modules/settings/settings.admin.routes';
@@ -25,6 +25,7 @@ adminRouter.use(authenticate, requireStaff);
 
 adminRouter.use('/dashboard', dashboardRouter);
 adminRouter.use('/push', adminPushRouter);
+adminRouter.use('/alerts', adminAlertsRouter);
 adminRouter.use('/orders', requirePermission('orders'), adminOrdersRouter);
 adminRouter.use('/catalog', adminCatalogRouter);
 adminRouter.use('/institutions/:institutionId/roster', requirePermission('institutions'), adminRosterRouter);

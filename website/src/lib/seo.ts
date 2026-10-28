@@ -139,7 +139,7 @@ export function businessLd(shop?: { name?: string; phone?: string; email?: strin
       '@id': `${SITE_URL}/#business`,
       name: shop?.name || SITE_NAME,
       url: `${SITE_URL}/`,
-      logo: absolute('/logo.png'),
+      logo: absolute('/logo.png?v=3'),
       image: absolute(DEFAULT_IMAGE),
       ...(shop?.phone ? { telephone: `+91${shop.phone}` } : {}),
       ...(shop?.email ? { email: shop.email } : {}),

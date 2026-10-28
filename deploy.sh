@@ -26,8 +26,15 @@ main() {
   npm run build
 
   echo "→ Publishing website to $website_dir and admin to $admin_dir"
-  sudo rsync -a --delete website/dist/ "$website_dir/"
-  sudo rsync -a --delete admin/dist/ "$admin_dir/"
+  # Old build files in assets/ are kept for two weeks: a tab or installed app opened before this
+  # release still asks for them, and must not hit "Failed to fetch dynamically imported module".
+  local dir dest
+  for dir in website admin; do
+    [ "$dir" = website ] && dest="$website_dir" || dest="$admin_dir"
+    sudo rsync -a --delete --exclude '/assets/' "$dir/dist/" "$dest/"
+    sudo rsync -a "$dir/dist/assets/" "$dest/assets/"
+    sudo find "$dest/assets" -type f -mtime +14 -delete
+  done
 
   echo "→ Restarting API ($pm2_name)"
   pm2 restart "$pm2_name" --update-env

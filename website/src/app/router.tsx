@@ -1,9 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageLoader } from '@/components/common/states';
 import { GuestOnly, InstitutionLoginRedirect, RequireAuth } from '@/features/auth/guards';
 import HomePage from '@/pages/home-page';
+import { RouteError } from '@/lib/stale-build';
 
 const ProductsPage = lazy(() => import('@/pages/products-page'));
 const ProductPage = lazy(() => import('@/pages/product-page'));
@@ -31,7 +32,8 @@ const InstitutionPasswordPage = lazy(() => import('@/pages/auth/institution-pass
 
 const page = (node: ReactNode) => <Suspense fallback={<PageLoader />}>{node}</Suspense>;
 
-export const router = createBrowserRouter([
+// Every top-level route shows the same error screen (and recovers from a release made while open).
+const routes: RouteObject[] = [
   {
     element: <MainLayout />,
     children: [
@@ -72,4 +74,6 @@ export const router = createBrowserRouter([
       { path: '*', element: page(<NotFoundPage />) },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(routes.map((route) => ({ errorElement: <RouteError />, ...route })));

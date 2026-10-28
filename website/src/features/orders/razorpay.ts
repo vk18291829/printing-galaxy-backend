@@ -52,7 +52,7 @@ export async function payWithRazorpay(orderId: string, lang: string): Promise<bo
       order_id: rzp.razorpayOrderId,
       name: 'Printing Galaxy',
       description: `Order ${rzp.orderNumber}`,
-      image: `${window.location.origin}/logo.png`,
+      image: `${window.location.origin}/logo.png?v=3`,
       prefill: rzp.prefill,
       theme: { color: '#1d6cf0' },
       config: { display: { language: lang === 'hi' ? 'hi' : 'en' } },

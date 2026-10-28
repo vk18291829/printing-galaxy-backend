@@ -7,6 +7,7 @@ import { ProductModel } from '@/modules/catalog/product.model';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { OrderModel } from '@/modules/orders/order.model';
 import { UserModel } from '@/modules/users/user.model';
+import { notifyStaff } from '@/modules/push/push.service';
 import { ReviewModel } from './review.model';
 import { ratingSummary, refreshProductRating } from './review.service';
 
@@ -68,6 +69,13 @@ reviewsRouter.post('/products/:slug/reviews', authenticate, validate({ body: rev
   );
   // An edited review is hidden again until re-approved.
   await refreshProductRating(product._id);
+  void notifyStaff({
+    kind: 'review',
+    title: `New review · ${product.name?.en ?? 'Product'}`,
+    body: `${'★'.repeat(review.rating)} by ${authorName}. Waiting for approval.`,
+    path: '/reviews',
+    permission: 'reviews',
+  });
   res.status(201).json(review);
 });
 

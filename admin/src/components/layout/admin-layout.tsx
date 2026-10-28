@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertsBell, AlertWatcher } from '@/features/alerts/alerts';
 import { useStaffLogout } from '@/features/auth/api';
 import type { Permission } from '@/lib/permissions';
 import { PushToggle } from '@/lib/push';
@@ -137,8 +138,8 @@ function Brand({ collapsed }: { collapsed?: boolean }) {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-3">
       {/* No box: the dark-theme file has light ink so the mark stays visible. */}
-      <img src="/logo-mark.png" alt="" width={40} height={40} className="size-10 shrink-0 object-contain dark:hidden" />
-      <img src="/logo-mark-dark.png" alt="" width={40} height={40} className="hidden size-10 shrink-0 object-contain dark:block" />
+      <img src="/logo-mark.png?v=3" alt="" width={40} height={40} className="size-10 shrink-0 object-contain dark:hidden" />
+      <img src="/logo-mark-dark.png?v=3" alt="" width={40} height={40} className="hidden size-10 shrink-0 object-contain dark:block" />
       {!collapsed && (
         <span className="min-w-0 leading-tight">
           <span className="block truncate text-base font-semibold text-foreground">Printing Galaxy</span>
@@ -373,14 +374,24 @@ function HeaderNav() {
   return (
     <>
       <div className="flex min-w-0 items-center gap-1 lg:hidden">
-        {parent && crumbs.length > 2 && (
-          <Button variant="ghost" size="icon-sm" asChild aria-label={`Back to ${parent.label}`}>
-            <Link to={parent.to}>
-              <IconArrowLeft />
-            </Link>
-          </Button>
+        {parent && crumbs.length > 2 ? (
+          <>
+            <Button variant="ghost" size="icon-sm" asChild aria-label={`Back to ${parent.label}`}>
+              <Link to={parent.to}>
+                <IconArrowLeft />
+              </Link>
+            </Button>
+            <span className="truncate text-sm font-semibold">{current.label}</span>
+          </>
+        ) : (
+          // Main screens show the brand, like any app; the page title is already on the page.
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <img src="/logo-mark.png?v=3" alt="" width={32} height={32} className="size-8 shrink-0 object-contain" />
+            <span className="truncate font-display text-[15px] leading-tight font-bold">
+              Printing <span className="text-brand-amber">Galaxy</span>
+            </span>
+          </Link>
         )}
-        <span className="truncate text-sm font-semibold">{current.label}</span>
       </div>
       <Breadcrumb className="hidden min-w-0 lg:block">
         <BreadcrumbList>
@@ -456,6 +467,8 @@ export function AdminLayout() {
             </Sheet>
             <HeaderNav />
             <div className="ml-auto flex items-center gap-1">
+              <InstallAppButton pill className="lg:hidden" />
+              {user?.role !== 'delivery' && <AlertsBell />}
               <Button variant="ghost" size="sm" className="hidden text-muted-foreground sm:inline-flex" asChild>
                 <a href={WEBSITE_URL} target="_blank" rel="noreferrer">
                   <IconExternalLink /> Website
@@ -473,6 +486,7 @@ export function AdminLayout() {
         </div>
       </div>
       <BottomTabs onMore={() => setMobileOpen(true)} />
+      {user?.role !== 'delivery' && <AlertWatcher />}
     </TooltipProvider>
   );
 }

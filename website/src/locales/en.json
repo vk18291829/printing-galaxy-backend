@@ -792,7 +792,14 @@
     "installDesc": "Add Printing Galaxy to your home screen",
     "offline": "You are offline. Pages you opened before still work; orders need a connection.",
     "online": "Back online",
-    "counter": "You can still order at our counter: {{address}}."
+    "counter": "You can still order at our counter: {{address}}.",
+    "getApp": "Get app",
+    "howTitle": "Install Printing Galaxy",
+    "iosStep1": "Tap the Share button at the bottom of Safari.",
+    "iosStep2": "Choose “Add to Home Screen”, then tap Add.",
+    "otherStep1": "Open your browser menu (⋮ at the top right).",
+    "otherStep2": "Tap “Install app” or “Add to Home screen”.",
+    "gotIt": "Got it"
   },
   "offers": {
     "copied": "Code {{code}} copied",
@@ -1322,5 +1329,13 @@
     "contactDesc": "Call, WhatsApp or visit Printing Galaxy for printing, PVC cards, ID cards and custom orders.",
     "legalDesc": "Printing Galaxy policies: terms of service, privacy, refunds and shipping.",
     "registerDesc": "Register your school, college or business for institution prices, bulk ordering and online proofs."
+  },
+  "appError": {
+    "title": "Something went wrong",
+    "desc": "This page could not be shown. Reload, or go back to the home page.",
+    "updatedTitle": "A new version is ready",
+    "updatedDesc": "Printing Galaxy was updated while this page was open. Reload to continue.",
+    "reload": "Reload",
+    "home": "Home page"
   }
 }

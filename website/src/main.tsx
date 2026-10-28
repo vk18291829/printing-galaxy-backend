@@ -5,9 +5,11 @@ import { AppProviders } from '@/app/providers';
 import { router } from '@/app/router';
 import { registerServiceWorker } from '@/features/pwa/pwa';
 import '@/lib/i18n';
+import { handleStaleBuilds } from '@/lib/stale-build';
 import '@/styles/globals.css';
 
 registerServiceWorker();
+handleStaleBuilds();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

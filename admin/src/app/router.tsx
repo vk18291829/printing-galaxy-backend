@@ -1,9 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { createBrowserRouter, Link } from 'react-router';
+import { createBrowserRouter, Link, type RouteObject } from 'react-router';
 import { PageLoader } from '@/components/common/states';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { RequireAdmin, RequireStaff } from '@/features/auth/guards';
+import { RouteError } from '@/lib/stale-build';
 import LoginPage from '@/pages/login-page';
 
 const DashboardPage = lazy(() => import('@/pages/dashboard-page'));
@@ -49,7 +50,8 @@ function NotFound() {
   );
 }
 
-export const router = createBrowserRouter([
+// Every top-level route shows the same error screen (and recovers from a release made while open).
+const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   {
     element: (
@@ -86,4 +88,6 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFound /> },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(routes.map((route) => ({ errorElement: <RouteError />, ...route })));

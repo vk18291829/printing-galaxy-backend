@@ -25,6 +25,7 @@ import {
 import { useLogout } from '@/features/auth/api';
 import { useAuthStore, useDisplayName } from '@/features/auth/auth-store';
 import { useProduct } from '@/features/catalog/api';
+import { InstallAppButton } from '@/features/pwa/pwa';
 import { categoryHome } from '@/features/catalog/sections';
 import { useUpdates } from '@/features/updates/api';
 import { useCartCount } from '@/features/cart/cart-store';
@@ -205,6 +206,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <InstallAppButton variant="pill" className="mr-1 lg:hidden" />
           <UpdatesButton />
           {principal?.kind !== 'institution' && <CartButton />}
           {principal?.kind === 'institution' && (

@@ -2,6 +2,7 @@ import { IconCheck, IconChevronLeft, IconChevronRight, IconCopy, IconDiscount2, 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { InstallAppButton } from '@/features/pwa/pwa';
 import { toast } from 'sonner';
 import { LanguageSwitcher } from '@/components/common/language-switcher';
 import { SmartLink } from '@/components/common/smart-link';
@@ -105,6 +106,7 @@ export function TopBar() {
           )}
         </div>
 
+        <InstallAppButton variant="link" className="hidden text-white/75 hover:text-white lg:inline-flex" />
         <Link to="/track" className="hidden shrink-0 items-center gap-1.5 font-medium text-white/75 hover:text-white md:inline-flex">
           <IconPackage className="size-3.5" /> {t('footer.track')}
         </Link>

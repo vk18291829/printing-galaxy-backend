@@ -64,7 +64,7 @@ function BusinessVisual() {
 
       {/* Card front */}
       <div className="absolute right-[12%] bottom-[6%] flex aspect-[9/5.5] w-[56%] rotate-[-3deg] flex-col items-center justify-center gap-2 overflow-hidden rounded-lg bg-brand-navy shadow-2xl shadow-brand-navy/35">
-        <img src="/logo-mark-dark.png" alt="" className="size-10 object-contain" />
+        <img src="/logo-mark-dark.png?v=3" alt="" className="size-10 object-contain" />
         <span className="h-2 w-24 rounded bg-white/85" />
         <span className="h-1.5 w-16 rounded bg-white/40" />
         <span className="absolute inset-x-0 bottom-0 h-1 bg-primary" />
@@ -72,7 +72,7 @@ function BusinessVisual() {
 
       {/* Round sticker */}
       <div className="absolute bottom-[10%] left-[8%] grid size-[22%] place-items-center rounded-full bg-primary shadow-lg ring-4 ring-white">
-        <img src="/logo-mark-dark.png" alt="" className="size-1/2 object-contain" />
+        <img src="/logo-mark-dark.png?v=3" alt="" className="size-1/2 object-contain" />
       </div>
     </div>
   );
@@ -158,7 +158,7 @@ export default function BusinessPrintingPage() {
                     <div className="absolute top-6 right-10 aspect-[9/5.5] w-full rotate-[-12deg] rounded-lg bg-primary shadow-xl" />
                     <div className="absolute top-3 right-5 aspect-[9/5.5] w-full rotate-[-5deg] rounded-lg bg-white/90 shadow-xl" />
                     <div className="relative flex aspect-[9/5.5] w-full rotate-[3deg] flex-col justify-between rounded-lg bg-white p-4 shadow-2xl transition-transform duration-300 group-hover:rotate-[1deg]">
-                      <img src="/logo-mark.png" alt="" className="size-8 object-contain" />
+                      <img src="/logo-mark.png?v=3" alt="" className="size-8 object-contain" />
                       <div className="space-y-1.5">
                         <span className="block h-2 w-1/2 rounded bg-brand-navy" />
                         <span className="block h-1.5 w-1/3 rounded bg-primary/70" />

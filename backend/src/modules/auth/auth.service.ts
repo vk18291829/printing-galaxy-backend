@@ -12,6 +12,7 @@ import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { notifications } from '@/modules/notifications/notification.service';
 import { UserModel } from '@/modules/users/user.model';
 import type { z } from 'zod';
+import { notifyStaff } from '@/modules/push/push.service';
 import { OtpModel } from './otp.model';
 import { SessionModel } from './session.model';
 import { assertContactAvailable } from './unique-contact';
@@ -257,6 +258,13 @@ export async function registerInstitution(
     status: 'pending',
   });
   void notifications.institutionRegistered({ email: institution.email, name: institution.name, contactName: institution.contactName, lang: lang ?? 'en' });
+  void notifyStaff({
+    kind: 'institution',
+    title: `New institution · ${institution.name}`,
+    body: `${institution.contactName} registered and is waiting for approval.`,
+    path: `/institutions/${institution.id}`,
+    permission: 'institutions',
+  });
 
   const accessToken = await issueSession(req, res, 'website', {
     id: institution.id,

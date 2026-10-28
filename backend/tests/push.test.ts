@@ -53,5 +53,16 @@ describe('staff phone notifications', () => {
     expect(payload.url).toMatch(new RegExp(`/orders/${placed.body._id}$`));
     expect(sent.some((s) => s.endpoint.endsWith('/catalogue'))).toBe(false);
     await vi.waitFor(async () => expect(await PushSubscriptionModel.exists({ endpoint: 'https://push.example/gone' })).toBeNull());
+
+    // The same alert waits in the owner's bell, unread, and not in the catalogue person's.
+    const bell = (await api().get('/api/v1/admin/alerts').set(bearer(owner)).expect(200)).body;
+    expect(bell.unread).toBe(1);
+    expect(bell.items[0]).toMatchObject({ kind: 'order', title: `New order ${placed.body.orderNumber}`, path: `/orders/${placed.body._id}`, read: false });
+    expect((await api().get('/api/v1/admin/alerts').set(bearer(cat)).expect(200)).body).toMatchObject({ unread: 0, items: [] });
+
+    await api().post('/api/v1/admin/alerts/read').set(bearer(owner)).send({}).expect(204);
+    const after = (await api().get('/api/v1/admin/alerts').set(bearer(owner)).expect(200)).body;
+    expect(after.unread).toBe(0);
+    expect(after.items[0].read).toBe(true);
   });
 });

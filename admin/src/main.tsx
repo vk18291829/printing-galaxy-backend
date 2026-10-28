@@ -8,10 +8,12 @@ import { ConfirmHost } from '@/components/common/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { refreshSession } from '@/lib/api-client';
 import { registerServiceWorker } from '@/lib/pwa';
+import { handleStaleBuilds } from '@/lib/stale-build';
 import { queryClient } from '@/lib/query-client';
 import '@/styles/globals.css';
 
 registerServiceWorker();
+handleStaleBuilds();
 
 function SessionBootstrap() {
   useEffect(() => {

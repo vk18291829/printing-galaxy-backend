@@ -23,6 +23,7 @@ import {
   IconPhone,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
@@ -1026,18 +1027,26 @@ function NextActionBar({ order, onUpdate }: { order: AdminOrder; onUpdate: () =>
   if (!action && !isClosed(order.status)) action = { label: 'Update status', run: onUpdate };
   if (!action) return null;
 
+  // The bar is rendered on <body> so it always sits just above the tab bar, whatever the page
+  // wrapper does; the spacer keeps the last card on the page clear of it.
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t bg-card/95 px-4 py-2.5 backdrop-blur-xl lg:hidden">
-      <div className="mx-auto flex max-w-lg items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="font-mono text-xs font-semibold">{order.orderNumber}</p>
-          <OrderStatusBadge status={order.status} />
-        </div>
-        <Button className="shrink-0" onClick={action.run} disabled={change.isPending}>
-          {change.isPending && <Spinner className="size-4 text-current" />} {action.label}
-        </Button>
-      </div>
-    </div>
+    <>
+      <div className="h-16 lg:hidden" aria-hidden />
+      {createPortal(
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t bg-card/95 px-4 py-2.5 backdrop-blur-xl lg:hidden">
+          <div className="mx-auto flex max-w-lg items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-mono text-xs font-semibold">{order.orderNumber}</p>
+              <OrderStatusBadge status={order.status} />
+            </div>
+            <Button className="shrink-0" onClick={action.run} disabled={change.isPending}>
+              {change.isPending && <Spinner className="size-4 text-current" />} {action.label}
+            </Button>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 

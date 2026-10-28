@@ -256,8 +256,10 @@ input:-webkit-autofill:focus {
     transform: none;
   }
 }
+/* `backwards`, not `both`: a transform left on the page after the fade would pin fixed bars
+   (bottom action bars) to the page instead of the screen. */
 @utility page-enter {
-  animation: page-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: page-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 html {
   -webkit-tap-highlight-color: transparent;

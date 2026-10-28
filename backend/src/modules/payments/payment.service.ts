@@ -10,6 +10,7 @@ import { notifications } from '@/modules/notifications/notification.service';
 import { OrderModel, type OrderDoc } from '@/modules/orders/order.model';
 import { amountDue, changeStatus, netPaid } from '@/modules/orders/order.service';
 import { round2 } from '@/modules/pricing/pricing.service';
+import { notifyStaff } from '@/modules/push/push.service';
 import { PaymentModel } from './payment.model';
 
 /** Set as the cancel reason by the unpaid-order sweeper; such orders come back if payment arrives late. */
@@ -173,6 +174,7 @@ export async function applyCapture(razorpayOrderId: string, razorpayPaymentId: s
   if (!order) return payment;
   logEvent('payment.captured', { orderNumber: order.orderNumber, amount, razorpayPaymentId });
   audit(null, { action: 'payment.captured', entity: 'Order', entityId: order._id, summary: `${order.orderNumber}: ₹${amount} received online` });
+  void notifyStaff({ kind: 'payment', title: `Payment received · ${order.orderNumber}`, body: `₹${amount} paid online.`, path: `/orders/${order.id}`, permission: 'payments', tag: `order-${order.id}` });
 
   const after = await afterPayment(null, order._id);
   // Paid for an order the customer or shop had cancelled: send the money back.

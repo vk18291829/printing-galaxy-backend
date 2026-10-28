@@ -65,7 +65,7 @@ function HeroVisual() {
             <span className="block h-2.5 w-24 rounded bg-white/90" />
             <span className="block h-1.5 w-16 rounded bg-white/45" />
           </div>
-          <img src="/logo-mark-dark.png" alt="" className="size-8 object-contain" />
+          <img src="/logo-mark-dark.png?v=3" alt="" className="size-8 object-contain" />
         </div>
         <div className="mt-6 space-y-1.5">
           <span className="block h-1.5 w-3/5 rounded bg-white/40" />

@@ -1,5 +1,6 @@
 import {
   IconCamera,
+  IconChevronDown,
   IconDownload,
   IconFileSpreadsheet,
   IconFileZip,
@@ -18,6 +19,13 @@ import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -240,45 +248,63 @@ export default function InstitutionRosterPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">Students & staff</h1>
           <p className="text-sm text-muted-foreground">{institution?.name} · codes and photo names are ready for an ID card data merge.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <Button className="shrink-0" onClick={() => setEditing('new')}>
+          <IconPlus /> <span className="max-sm:sr-only">Add {isStaff ? 'staff' : 'student'}</span>
+        </Button>
+      </div>
+
+      {/* One toolbar: who is listed on the left, getting data in and out on the right. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-xl bg-secondary p-1">
+          {(['student', 'staff'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => {
+                setKind(k);
+                setCls(ALL);
+                setSection(ALL);
+              }}
+              className={cn(
+                'h-8 rounded-lg px-4 text-sm font-medium transition-colors',
+                kind === k ? 'bg-card text-primary' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {k === 'student' ? 'Students' : 'Staff'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setImporting(true)}>
             <IconFileSpreadsheet /> Import
           </Button>
-          <Button variant="outline" disabled={total === 0 || exporting !== null} onClick={() => void download('xlsx')}>
-            {exporting === 'xlsx' ? <Spinner className="size-4" /> : <IconDownload />} Excel ({scope})
-          </Button>
-          <Button variant="outline" disabled={done === 0 || exporting !== null} onClick={() => void download('zip')}>
-            {exporting === 'zip' ? <Spinner className="size-4" /> : <IconFileZip />} Photos ZIP ({scope})
-          </Button>
-          <Button variant="outline" disabled={total === 0 || exporting !== null} onClick={() => void download('pdf')}>
-            {exporting === 'pdf' ? <Spinner className="size-4" /> : <IconId />} ID cards PDF ({scope})
-          </Button>
-          <Button onClick={() => setEditing('new')}>
-            <IconPlus /> Add {isStaff ? 'staff' : 'student'}
-          </Button>
+          {total > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={exporting !== null}>
+                  {exporting ? <Spinner className="size-4" /> : <IconDownload />} Export <IconChevronDown className="opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Download {scope}</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => void download('xlsx')}>
+                  <IconFileSpreadsheet /> Excel sheet
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={done === 0} onSelect={() => void download('zip')}>
+                  <IconFileZip /> Photos ZIP{done === 0 && <span className="ml-auto text-xs text-muted-foreground">no photos yet</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void download('pdf')}>
+                  <IconId /> ID cards PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-      </div>
-
-      <div className="inline-flex rounded-lg shadow-card bg-muted/40 p-1">
-        {(['student', 'staff'] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => {
-              setKind(k);
-              setCls(ALL);
-              setSection(ALL);
-            }}
-            className={cn('h-8 rounded-md px-4 text-sm font-medium', kind === k ? 'bg-background shadow-sm' : 'text-muted-foreground')}
-          >
-            {k === 'student' ? 'Students' : 'Staff'}
-          </button>
-        ))}
       </div>
 
       {isLoading ? (

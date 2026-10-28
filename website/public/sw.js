@@ -1,9 +1,9 @@
 /* Printing Galaxy service worker: installable app, fast repeat visits, and an offline page
  * that points customers to the shop counter. API calls (another origin) are never cached. */
-const VERSION = 'pg-v2';
+const VERSION = 'pg-v3';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
-const PRECACHE = ['/', '/offline.html', '/manifest.webmanifest', '/logo.png', '/icons/icon-192.png'];
+const PRECACHE = ['/', '/offline.html', '/manifest.webmanifest', '/logo.png?v=3', '/icons/icon-192.png?v=3'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));

@@ -25,7 +25,31 @@ function configure() {
   return true;
 }
 
+/** What an alert is about; the admin app picks its icon from this. */
+export const ALERT_KINDS = ['order', 'quote', 'proof', 'payment', 'cancel', 'institution', 'review', 'files'] as const;
+export type AlertKind = (typeof ALERT_KINDS)[number];
+
+/**
+ * Every staff alert is also kept for the admin app's notification list (bell), for 30 days.
+ * `readBy` holds the staff who have seen it, so each person has their own unread count.
+ */
+const alertSchema = new Schema(
+  {
+    kind: { type: String, enum: ALERT_KINDS, required: true },
+    title: { type: String, required: true },
+    body: { type: String, default: '' },
+    path: { type: String, required: true },
+    permission: { type: String, required: true, index: true },
+    readBy: { type: [Schema.Types.ObjectId], default: [] },
+    createdAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 30 },
+  },
+  { versionKey: false },
+);
+alertSchema.index({ createdAt: -1 });
+export const StaffAlertModel = model('StaffAlert', alertSchema);
+
 export interface StaffAlert {
+  kind: AlertKind;
   title: string;
   body: string;
   /** Admin path to open on tap, e.g. /orders/<id>. */
@@ -41,6 +65,11 @@ export interface StaffAlert {
  * a failed push must not fail the order that triggered it. Dead subscriptions are removed.
  */
 export async function notifyStaff(alert: StaffAlert) {
+  try {
+    await StaffAlertModel.create({ kind: alert.kind, title: alert.title, body: alert.body, path: alert.path, permission: alert.permission });
+  } catch (err) {
+    logger.warn({ err }, 'Could not save staff alert');
+  }
   if (!configure()) return 0;
   try {
     const staff = await UserModel.find({ role: { $in: ['admin', 'staff'] }, isActive: true }).select('role staffRoles').lean();

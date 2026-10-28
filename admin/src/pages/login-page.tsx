@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center text-white">
           {/* Light-ink mark: the background here is always navy. */}
-          <img src="/logo-mark-dark.png" alt="" width={80} height={80} className="mb-4 size-20 object-contain drop-shadow-xl" />
+          <img src="/logo-mark-dark.png?v=3" alt="" width={80} height={80} className="mb-4 size-20 object-contain drop-shadow-xl" />
           <h1 className="text-2xl font-semibold tracking-tight">Printing Galaxy Admin</h1>
           <p className="mt-1 text-sm text-white/60">Staff and owner sign in</p>
         </div>

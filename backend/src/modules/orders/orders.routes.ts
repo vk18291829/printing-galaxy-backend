@@ -104,6 +104,7 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
     await notifyStatus(order);
     const segment = { individual: 'Individual', institution: 'School & College', business: 'Business', wedding: 'Wedding' }[order.segment ?? 'individual'];
     void notifyStaff({
+      kind: status === 'quote_pending' ? 'quote' : 'order',
       title: status === 'quote_pending' ? `Quote request ${order.orderNumber}` : `New order ${order.orderNumber}`,
       body: `${segment} · ${order.contact?.name || 'Customer'} · ₹${order.totals.total} · ${order.items.map((i) => i.productName?.en).join(', ')}`,
       path: `/orders/${order.id}`,
@@ -182,6 +183,14 @@ ordersRouter.post(
     }
     order.cancelReason = req.body.reason || 'Cancelled by customer';
     await changeStatus(req, order, 'cancelled', { note: req.body.reason });
+    void notifyStaff({
+      kind: 'cancel',
+      title: `Order cancelled · ${order.orderNumber}`,
+      body: `${order.contact?.name || 'Customer'} cancelled${req.body.reason ? `: “${req.body.reason}”` : '.'}`,
+      path: `/orders/${order.id}`,
+      permission: 'orders',
+      tag: `order-${order.id}`,
+    });
     const result = paid > 0
       ? await refundOrder(req, order, { reason: 'Order cancelled by customer', idempotencyKey: `cancel:${order.id}` })
       : order;
@@ -203,7 +212,7 @@ ordersRouter.post('/:id/accept-quote', validate({ params: z.object({ id: objectI
   const payFirst = order.payment.method === 'online' && order.audience === 'retail' && order.totals.total > netPaid(order);
   if (payFirst) order.payment.dueBy = new Date(Date.now() + settings.payments.quotePaymentDays * 86_400_000);
   await changeStatus(req, order, payFirst ? 'awaiting_payment' : 'received', { note: 'Quote accepted' });
-  void notifyStaff({ title: `Quote accepted · ${order.orderNumber}`, body: `₹${order.totals.total}. Ready to start.`, path: `/orders/${order.id}`, permission: 'orders', tag: `order-${order.id}` });
+  void notifyStaff({ kind: 'quote', title: `Quote accepted · ${order.orderNumber}`, body: `₹${order.totals.total}. Ready to start.`, path: `/orders/${order.id}`, permission: 'orders', tag: `order-${order.id}` });
   res.json(order.toJSON());
 });
 
@@ -257,6 +266,7 @@ ordersRouter.post(
     proof.status = decision;
     proof.customerComment = comment;
     void notifyStaff({
+      kind: 'proof',
       title: decision === 'approved' ? `Proof approved · ${order.orderNumber}` : `Changes requested · ${order.orderNumber}`,
       body: decision === 'approved' ? `${item.productName?.en}: ready to print.` : `${item.productName?.en}: “${comment ?? ''}”`,
       path: `/orders/${order.id}`,
