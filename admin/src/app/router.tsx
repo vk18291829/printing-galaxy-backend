@@ -12,6 +12,7 @@ const OrdersPage = lazy(() => import('@/pages/orders/orders-page'));
 const MyWorkPage = lazy(() => import('@/pages/orders/my-work-page'));
 const OrderDetailPage = lazy(() => import('@/pages/orders/order-detail-page'));
 const WalkInPage = lazy(() => import('@/pages/orders/walk-in-page'));
+const InstitutionOrderPage = lazy(() => import('@/pages/orders/institution-order-page'));
 const ProductsPage = lazy(() => import('@/pages/catalog/products-page'));
 const ProductFormPage = lazy(() => import('@/pages/catalog/product-form-page'));
 const CategoriesPage = lazy(() => import('@/pages/catalog/categories-page'));
@@ -64,6 +65,7 @@ const routes: RouteObject[] = [
       { path: 'orders', element: page(<OrdersPage />) },
       { path: 'my-work', element: page(<MyWorkPage />) },
       { path: 'orders/new', element: page(<WalkInPage />) },
+      { path: 'orders/school', element: page(<InstitutionOrderPage />) },
       { path: 'orders/:id', element: page(<OrderDetailPage />) },
       { path: 'products', element: page(<ProductsPage />, true) },
       { path: 'products/new', element: page(<ProductFormPage />, true) },

@@ -58,6 +58,28 @@ export const walkInOrderSchema = z.object({
   internalNote: z.string().trim().max(2000).optional(),
 });
 
+/** Order placed by staff for a school or college, priced from its own price book. */
+export const institutionOrderSchema = z.object({
+  institutionId: objectId,
+  items: z.array(orderItemInput).min(1).max(50),
+  /** Delivery goes to the institution's address on file. */
+  fulfilment: z.object({ method: z.enum(['pickup', 'delivery']) }),
+  requestQuote: z.boolean().default(false),
+  reference: z.string().trim().max(60).optional(),
+  customerNote: z.string().trim().max(1000).optional(),
+  internalNote: z.string().trim().max(2000).optional(),
+});
+
+export const institutionQuoteSchema = z.object({
+  institutionId: objectId,
+  productId: objectId,
+  options: z.record(z.string()).default({}),
+  quantity: z.coerce.number().int().min(0).max(1_000_000).optional(),
+  pageCount: z.coerce.number().int().min(0).max(100_000).optional(),
+  copies: z.coerce.number().int().min(1).max(10_000).optional(),
+  method: z.enum(['pickup', 'delivery']).default('pickup'),
+});
+
 export const addItemFilesSchema = z.object({
   fileIds: z.array(objectId).min(1).max(10),
 });

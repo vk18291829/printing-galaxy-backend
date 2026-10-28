@@ -15,7 +15,11 @@ import {
 } from '@/modules/invoices/invoice.service';
 import { PaymentModel } from '@/modules/payments/payment.model';
 import { recordPayment, refundOrder } from '@/modules/payments/payment.service';
-import { round2 } from '@/modules/pricing/pricing.service';
+import { categoryIdsFor, restrictToCategoryAudience } from '@/modules/catalog/audience';
+import { ProductModel } from '@/modules/catalog/product.model';
+import { InstitutionModel } from '@/modules/institutions/institution.model';
+import { resolvePricingContext } from '@/modules/institutions/institution.service';
+import { quoteProduct, round2 } from '@/modules/pricing/pricing.service';
 import { getSettings } from '@/modules/settings/settings.model';
 import { FileModel } from '@/modules/uploads/file.model';
 import { UserModel } from '@/modules/users/user.model';
@@ -25,6 +29,8 @@ import {
   adminOrderListQuery,
   assignSchema,
   handoverSchema,
+  institutionOrderSchema,
+  institutionQuoteSchema,
   quoteItemsSchema,
   dueDateSchema,
   recordPaymentSchema,
@@ -45,6 +51,7 @@ import {
   ORDER_POPULATE,
   persistOrder,
   recalculateTotals,
+  resolveContact,
 } from './order.service';
 
 export const adminOrdersRouter = Router();
@@ -56,6 +63,95 @@ async function loadOrder(id: string) {
   if (!order) throw ApiError.notFound('Order');
   return order;
 }
+
+// ── Orders for a school or college, entered by staff ──────────────────────
+// Registered before `/:id` so the path is not read as an order id.
+
+/** The institution's own pricing context; only approved institutions get school prices. */
+async function institutionContext(institutionId: string) {
+  const ctx = await resolvePricingContext({ id: institutionId, kind: 'institution', role: 'institution' });
+  if (!ctx.institutionStatus) throw ApiError.notFound('Institution');
+  if (ctx.audience !== 'institution') throw ApiError.conflict('Approve this institution before placing orders for it');
+  return ctx;
+}
+
+/** Products offered to schools, with their school price books (staff tokens would see retail ones). */
+adminOrdersRouter.get('/institution-order/products', requirePermission('walkin'), async (_req, res) => {
+  const products = await ProductModel.find({
+    isActive: true,
+    'pricing.institution.enabled': true,
+    category: { $in: await categoryIdsFor('institution') },
+  })
+    .sort({ sortOrder: 1, createdAt: 1 })
+    .populate('category', 'name slug icon audiences')
+    .lean();
+  res.json(products);
+});
+
+/** Live price for one line at the institution's prices, with delivery and tax for the review step. */
+adminOrdersRouter.post('/institution-order/quote', requirePermission('walkin'), validate({ body: institutionQuoteSchema }), async (req, res) => {
+  const { institutionId, productId, method, ...input } = req.body as z.infer<typeof institutionQuoteSchema>;
+  const ctx = await institutionContext(institutionId);
+  const product = await ProductModel.findOne({ _id: productId, isActive: true }).lean();
+  if (!product) throw ApiError.notFound('Product');
+  const [allowed] = await restrictToCategoryAudience([product], ctx.audience);
+  const quote = quoteProduct(allowed!, ctx.audience, input, ctx.discountPercent);
+  res.json({ ...quote, totals: await computeTotals(quote.subtotal, method) });
+});
+
+/** Same order a school places from its dashboard, entered by staff (phone call, visit, email). */
+adminOrdersRouter.post('/institution-order', requirePermission('walkin'), validate({ body: institutionOrderSchema }), async (req, res) => {
+  const input = req.body as z.infer<typeof institutionOrderSchema>;
+  const key = idempotencyHeader(req);
+  const previous = await findByIdempotencyKey(key);
+  if (previous) {
+    res.status(200).json(previous.toJSON());
+    return;
+  }
+
+  const ctx = await institutionContext(input.institutionId);
+  const institution = await InstitutionModel.findById(input.institutionId).lean();
+  const settings = await getSettings();
+  if (input.fulfilment.method === 'delivery') {
+    if (!settings.delivery.enabled) throw ApiError.badRequest('Home delivery is not available right now');
+    if (!institution?.address?.line1) throw ApiError.badRequest('This institution has no address on file for delivery');
+  }
+
+  // Schools hand files over in person or by email, so uploads are optional here.
+  const items = await buildItems(input.items, ctx, req.auth, { requireUploads: false });
+  // Custom sizes have no list price, so they always go through a quote the school accepts.
+  const quoteRequested = input.requestQuote || items.some((i) => i.customSize);
+  const needsQuote = quoteRequested || items.some((i) => i.workflow === 'quote');
+  const subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
+  const totals = await computeTotals(subtotal, input.fulfilment.method);
+  const who = await resolveContact({ id: input.institutionId, kind: 'institution', role: 'institution' });
+  const status = needsQuote ? 'quote_pending' : 'received';
+
+  const { order, replayed } = await persistOrder({
+    audience: ctx.audience,
+    ...who,
+    source: 'walk_in',
+    items,
+    status,
+    statusHistory: [{ status, by: req.auth!.id, byKind: 'user', at: new Date(), note: 'Entered by staff' }],
+    fulfilment: input.fulfilment.method === 'delivery' ? { method: 'delivery', address: institution!.address } : { method: 'pickup' },
+    totals,
+    // Institutions are invoiced on their account.
+    payment: { method: 'counter', status: 'pending', amountPaid: 0 },
+    customerNote: input.customerNote,
+    reference: input.reference,
+    quote: { requested: quoteRequested },
+    assignedTo: req.auth!.id,
+    internalNote: input.internalNote,
+  }, key);
+  if (replayed) {
+    res.status(200).json(order.toJSON());
+    return;
+  }
+  await notifyStatus(order);
+  audit(req, { action: 'order.institution', entity: 'Order', entityId: order._id, summary: `${order.orderNumber} for ${institution?.name}` });
+  res.status(201).json(order.toJSON());
+});
 
 adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req, res) => {
   const q = res.locals.query as z.infer<typeof adminOrderListQuery>;

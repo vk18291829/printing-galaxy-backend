@@ -22,6 +22,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   students: 'Students & staff',
   'my-work': 'My work',
   deliveries: 'Deliveries',
+  school: 'School order',
 };
 
 const NEW_LABEL: Record<string, string> = { orders: 'Walk-in order', products: 'New product' };

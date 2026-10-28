@@ -1,7 +1,7 @@
-import { IconPlus, IconReceipt, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconReceipt, IconSchool, IconTrash } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageHeader, Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -213,7 +213,17 @@ export default function WalkInPage() {
 
   return (
     <div>
-      <PageHeader title="Walk-in order" description="Enter counter orders so every job lives in one system. Uses individual prices." />
+      <PageHeader
+        title="Walk-in order"
+        description="Enter counter orders so every job lives in one system. Uses individual prices."
+        actions={
+          <Button variant="outline" asChild>
+            <Link to="/orders/school">
+              <IconSchool /> For a school or college
+            </Link>
+          </Button>
+        }
+      />
       <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[1fr_340px]">
         <div className="space-y-6">
           <Card>

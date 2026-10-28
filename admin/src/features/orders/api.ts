@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import axios from 'axios';
 import { api, idempotent } from '@/lib/api-client';
 import type { AdminOrder, AdminOrderList } from '@/types/admin';
-import type { Address, OrderSegment, OrderStatus } from '@/types/api';
+import type { Address, OrderSegment, OrderStatus, Product, Quote, SizeUnit } from '@/types/api';
 
 export interface OrderListParams {
   page?: number;
@@ -118,6 +118,68 @@ export function useCreateWalkIn() {
     mutationFn: async ({ key, ...input }: WalkInInput & { key: string }) =>
       (await api.post<AdminOrder>('/admin/orders/walk-in', input, idempotent(key))).data,
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: orderKeys.all }),
+  });
+}
+
+// ── Orders for a school or college ────────────────────────────────────────
+export type OrderTotals = { subtotal: number; deliveryFee: number; taxRate: number; tax: number; total: number };
+
+/** Products offered to schools, with their school price books. */
+export function useInstitutionProducts() {
+  return useQuery({
+    queryKey: ['institution-order-products'],
+    queryFn: async () => (await api.get<Product[]>('/admin/orders/institution-order/products')).data,
+  });
+}
+
+export interface InstitutionQuoteInput {
+  institutionId: string;
+  productId: string;
+  options: Record<string, string>;
+  quantity?: number;
+  pageCount?: number;
+  copies?: number;
+  method: 'pickup' | 'delivery';
+}
+
+/** Live price at the institution's own prices (its extra discount included). */
+export function useInstitutionQuote(input: InstitutionQuoteInput | null) {
+  return useQuery({
+    queryKey: ['institution-order-quote', input],
+    queryFn: async () => (await api.post<Quote & { totals: OrderTotals }>('/admin/orders/institution-order/quote', input)).data,
+    enabled: Boolean(input),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export interface InstitutionOrderInput {
+  institutionId: string;
+  items: {
+    productId: string;
+    options: Record<string, string>;
+    quantity?: number;
+    pageCount?: number;
+    copies?: number;
+    notes?: string;
+    fileIds: string[];
+    customSize?: { width: number; height: number; unit: SizeUnit };
+  }[];
+  fulfilment: { method: 'pickup' | 'delivery' };
+  requestQuote: boolean;
+  reference?: string;
+  customerNote?: string;
+  internalNote?: string;
+}
+
+export function useCreateInstitutionOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, ...input }: InstitutionOrderInput & { key: string }) =>
+      (await api.post<AdminOrder>('/admin/orders/institution-order', input, idempotent(key))).data,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['admin-institution'] });
+    },
   });
 }
 

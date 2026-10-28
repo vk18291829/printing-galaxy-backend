@@ -203,6 +203,54 @@ describe('institution quote requests', () => {
   });
 });
 
+describe('orders for an institution entered by staff', () => {
+  it('lists school products, quotes at school prices and places the order on the institution', async () => {
+    const schoolId = String(seed.institutions.school._id);
+    const products = await api().get('/api/v1/admin/orders/institution-order/products').set(bearer(admin)).expect(200);
+    const medal = products.body.find((p: { slug: string }) => p.slug === 'school-medal');
+    // Staff see the school price book, not the retail one.
+    expect(medal.pricing.institution.tiers).toEqual([{ minQty: 20, unitPrice: 45 }]);
+
+    const quote = await api()
+      .post('/api/v1/admin/orders/institution-order/quote')
+      .set(bearer(admin))
+      .send({ institutionId: schoolId, productId: seed.products.medal._id, quantity: 25 })
+      .expect(200);
+    expect(quote.body.unitPrice).toBe(45);
+    expect(quote.body.totals.total).toBe(25 * 45);
+
+    const key = 'staff-school-order-1';
+    const body = {
+      institutionId: schoolId,
+      items: [{ productId: seed.products.medal._id, quantity: 25, fileIds: [] }],
+      fulfilment: { method: 'pickup' },
+      reference: 'PO-77',
+      internalNote: 'Phoned in by the principal',
+    };
+    const created = await api().post('/api/v1/admin/orders/institution-order').set(bearer(admin)).set('Idempotency-Key', key).send(body).expect(201);
+    expect(created.body.audience).toBe('institution');
+    expect(String(created.body.institution)).toBe(schoolId);
+    expect(created.body.status).toBe('received');
+    expect(created.body.totals.total).toBe(25 * 45);
+    expect(created.body.payment.method).toBe('counter');
+    expect(created.body.reference).toBe('PO-77');
+
+    // A retry returns the same order; the school sees it in its own list.
+    const again = await api().post('/api/v1/admin/orders/institution-order').set(bearer(admin)).set('Idempotency-Key', key).send(body).expect(200);
+    expect(again.body._id).toBe(created.body._id);
+    const token = await (await import('./helpers')).institutionToken('school@test.in');
+    await api().get(`/api/v1/orders/${created.body._id}`).set(bearer(token)).expect(200);
+  });
+
+  it('refuses institutions that are not approved', async () => {
+    await api()
+      .post('/api/v1/admin/orders/institution-order')
+      .set(bearer(admin))
+      .send({ institutionId: String(seed.institutions.pendingSchool._id), items: [{ productId: seed.products.medal._id, quantity: 25, fileIds: [] }], fulfilment: { method: 'pickup' } })
+      .expect(409);
+  });
+});
+
 describe('status follows actions', () => {
   it('refuses automatic steps from the dropdown and prints design items only after approval', async () => {
     const token = await (await import('./helpers')).institutionToken('school@test.in');

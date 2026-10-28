@@ -1,4 +1,4 @@
-import { IconBan, IconCheck, IconUsers, IconX } from '@tabler/icons-react';
+import { IconBan, IconCheck, IconPlus, IconUsers, IconX } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useIsAdmin } from '@/features/auth/auth-store';
+import { useCan, useIsAdmin } from '@/features/auth/auth-store';
 import { useInstitution, useReviewInstitution } from '@/features/management/api';
 import { useRoster } from '@/features/roster/api';
 import { formatDate, formatINR } from '@/lib/format';
@@ -57,6 +57,7 @@ function RosterCard({ institutionId }: { institutionId: string }) {
 export default function InstitutionDetailPage() {
   const { id = '' } = useParams();
   const isAdmin = useIsAdmin();
+  const canOrder = useCan('walkin');
   const { data, isLoading, error, refetch } = useInstitution(id);
   const review = useReviewInstitution(id);
   const [reason, setReason] = useState('');
@@ -96,6 +97,13 @@ export default function InstitutionDetailPage() {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{data.name}</h1>
         <InstitutionStatusBadge status={data.status} />
+        {canOrder && data.status === 'approved' && (
+          <Button className="ml-auto" asChild>
+            <Link to={`/orders/school?institution=${id}`}>
+              <IconPlus /> New order
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-[1fr_360px]">
