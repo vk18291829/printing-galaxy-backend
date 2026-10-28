@@ -158,7 +158,7 @@ export default function ProductsPage() {
                     if (needle) setQuery('');
                     requestAnimationFrame(() => scrollToCategory(c.slug));
                   }}
-                  className={cn('group flex flex-col items-start gap-3 rounded-2xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] hover:shadow-md sm:p-5', tint.tile)}
+                  className={cn('group flex flex-col items-start gap-3 rounded-2xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] sm:p-5', tint.tile)}
                 >
                   <span className={cn('grid size-11 place-items-center rounded-xl shadow-xs', tint.icon)}>
                     <DynamicIcon name={c.icon} className="size-5.5" />

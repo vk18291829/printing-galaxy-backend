@@ -28,7 +28,7 @@ function Tab({ to, icon, label, end, badge }: { to: string; icon: ReactNode; lab
     >
       {icon}
       {badge ? (
-        <span className="absolute top-1.5 left-1/2 ml-1.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] leading-4 font-bold text-white">{badge}</span>
+        <span className="absolute top-1.5 left-1/2 ml-1.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] leading-4 font-bold text-primary-foreground">{badge}</span>
       ) : null}
       <span className="max-w-full truncate px-1">{label}</span>
     </NavLink>

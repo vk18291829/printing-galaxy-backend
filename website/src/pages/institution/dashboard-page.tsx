@@ -178,7 +178,7 @@ export default function InstitutionDashboardPage() {
                 <Link
                   key={p._id}
                   to={`/institution/orders/new?product=${p.slug}`}
-                  className="group flex items-center gap-3 rounded-xl shadow-card px-3 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:border-primary/50"
+                  className="group flex items-center gap-3 rounded-xl shadow-card px-3 py-2.5 text-sm font-semibold text-brand-navy transition-colors"
                 >
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                     <DynamicIcon name={p.icon} className="size-4" />
@@ -190,9 +190,9 @@ export default function InstitutionDashboardPage() {
               {hidden > 0 && (
                 <Link
                   to="/institution/orders/new"
-                  className="group flex items-center gap-3 rounded-xl shadow-card border-primary/40 bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary transition-colors hover:border-primary"
+                  className="group flex items-center gap-3 rounded-xl shadow-card border-primary/40 bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary transition-colors"
                 >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
                     <IconPlus className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1 truncate">{t('institutionDashboard.quickMore', { count: hidden })}</span>

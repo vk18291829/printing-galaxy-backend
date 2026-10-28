@@ -150,7 +150,7 @@ export default function ContactPage() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             {help.map(({ icon: Icon, title, desc, to }) => (
-              <Link key={to} to={to} className="group rounded-2xl shadow-card bg-card p-5 transition-colors hover:border-foreground/20">
+              <Link key={to} to={to} className="group rounded-2xl shadow-card bg-card p-5 transition-colors">
                 <Icon className="mb-3 size-5 text-primary" />
                 <p className="flex items-center gap-1 font-semibold">
                   {title} <IconArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />

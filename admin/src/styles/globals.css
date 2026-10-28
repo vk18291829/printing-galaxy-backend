@@ -274,3 +274,15 @@ h3 {
 [data-slot='card'] .shadow-card:not([class*='bg-']) {
   background-color: var(--muted);
 }
+
+/* On navy panels a navy accent would vanish, so there "primary" becomes the logo's amber with navy
+   text: buttons, icons and highlights on dark backgrounds stay visible without per-page fixes. */
+.bg-brand-navy,
+.bg-brand-navy-deep,
+[class*='banner-'] {
+  --primary: var(--brand-amber);
+  --primary-foreground: var(--brand-navy);
+  --ring: var(--brand-amber);
+  --brand-navy-deep: #ffb02e;
+  --brand-orange-hover: #ffb02e;
+}

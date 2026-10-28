@@ -90,8 +90,8 @@ export default function InstitutionsPage() {
               key={to}
               to={to}
               className={cn(
-                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl shadow-card p-6 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-brand-navy/8',
-                featured ? 'bg-primary text-white sm:col-span-2 lg:row-span-2' : 'bg-card hover:border-brand-navy/20',
+                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl shadow-card p-6 transition-[border-color,box-shadow] duration-200',
+                featured ? 'bg-primary text-primary-foreground sm:col-span-2 lg:row-span-2' : 'bg-card hover:border-brand-navy/20',
               )}
             >
               {featured && (
@@ -155,7 +155,7 @@ export default function InstitutionsPage() {
           <ol className="mx-auto grid max-w-4xl gap-5 md:grid-cols-3">
             {steps.map((step, i) => (
               <li key={step} className="flex gap-4 rounded-xl shadow-card bg-card p-6 md:flex-col">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-bold text-white">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-bold text-primary-foreground">
                   {i + 1}
                 </span>
                 <p className="font-medium">{step}</p>

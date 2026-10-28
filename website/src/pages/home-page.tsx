@@ -70,7 +70,7 @@ function HeroVisual() {
 
       {/* Student ID */}
       <div className="absolute bottom-[8%] left-[12%] w-[38%] rotate-[-3deg] overflow-hidden rounded-xl shadow-card bg-card shadow-xl shadow-brand-navy/15">
-        <div className="flex items-center justify-between bg-primary px-3 py-2 text-white">
+        <div className="flex items-center justify-between bg-primary px-3 py-2 text-primary-foreground">
           <span className="text-[9px] font-bold tracking-widest uppercase">Student ID</span>
           <span className="size-2 rounded-full bg-white/70" />
         </div>
@@ -214,7 +214,7 @@ function AudienceSplit() {
               </li>
             ))}
           </ul>
-          <Button className="relative mt-auto w-fit bg-primary text-white hover:bg-brand-orange-hover" asChild>
+          <Button variant="brand" className="relative mt-auto w-fit" asChild>
             <Link to="/institutions">
               {t('home.institutionCta')} <IconArrowRight />
             </Link>

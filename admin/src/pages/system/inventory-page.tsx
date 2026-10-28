@@ -180,7 +180,7 @@ function MovementDialog({ material, onClose }: { material: Material; onClose: ()
               type="button"
               onClick={() => setReason(r.value)}
               className={cn(
-                'rounded-xl shadow-card px-3 py-2 text-left text-sm transition-colors hover:border-primary/40',
+                'rounded-xl shadow-card px-3 py-2 text-left text-sm transition-colors',
                 reason === r.value && 'border-primary bg-primary/5',
               )}
             >

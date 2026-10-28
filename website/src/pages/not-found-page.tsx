@@ -67,7 +67,7 @@ export default function NotFoundPage() {
               <Link
                 key={c._id}
                 to={categoryHome(c.slug)}
-                className="group flex items-center gap-3 rounded-xl shadow-card bg-card p-3 text-sm font-medium transition-colors hover:border-foreground/20"
+                className="group flex items-center gap-3 rounded-xl shadow-card bg-card p-3 text-sm font-medium transition-colors"
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                   <DynamicIcon name={c.icon} className="size-4.5" />

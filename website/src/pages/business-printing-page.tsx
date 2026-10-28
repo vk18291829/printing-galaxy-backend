@@ -29,7 +29,7 @@ function BusinessVisual() {
     <div className="relative mx-auto aspect-[5/4] w-full max-w-[520px] select-none" aria-hidden>
       {/* Flyer */}
       <div className="absolute top-[4%] left-[4%] w-[42%] rotate-[-5deg] overflow-hidden rounded-lg shadow-card bg-card shadow-xl shadow-brand-navy/10">
-        <div className="bg-primary px-3 pt-4 pb-6 text-white">
+        <div className="bg-primary px-3 pt-4 pb-6 text-primary-foreground">
           <span className="block h-2 w-3/4 rounded bg-white/90" />
           <span className="mt-1.5 block h-2 w-1/2 rounded bg-white/90" />
           <span className="mt-3 inline-block rounded-full bg-white px-2 py-0.5 text-[9px] font-bold text-primary">NOW OPEN</span>
@@ -146,7 +146,7 @@ export default function BusinessPrintingPage() {
               key={to}
               to={to}
               className={cn(
-                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl shadow-card p-6 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-brand-navy/8',
+                'group relative flex flex-col justify-between gap-6 overflow-hidden rounded-xl shadow-card p-6 transition-[border-color,box-shadow] duration-200',
                 featured ? 'bg-brand-navy text-white sm:col-span-2 lg:row-span-2' : 'bg-card hover:border-brand-navy/20',
               )}
             >

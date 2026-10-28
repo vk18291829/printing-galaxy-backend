@@ -94,7 +94,7 @@ function StepBar({ steps, current, reached, onGo }: { steps: StepId[]; current: 
               <span
                 className={cn(
                   'grid size-7 place-items-center rounded-full text-xs',
-                  active ? 'bg-primary text-white' : done ? 'bg-success text-white' : 'border bg-background',
+                  active ? 'bg-primary text-primary-foreground' : done ? 'bg-success text-white' : 'border bg-background',
                 )}
               >
                 {done ? <IconCheck className="size-4" stroke={3} /> : i + 1}
@@ -131,7 +131,7 @@ function ChoiceCard({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        'flex w-full items-start gap-3 rounded-xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] hover:border-primary/50',
+        'flex w-full items-start gap-3 rounded-xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow]',
         selected && 'border-primary ring-2 ring-primary/20',
       )}
     >
@@ -717,7 +717,7 @@ function ProductPicker({ products, selected, onPick }: { products: Product[]; se
                   type="button"
                   onClick={() => onPick(p)}
                   className={cn(
-                    'group flex items-center gap-4 rounded-xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] hover:border-primary/50 hover:shadow-md hover:shadow-brand-navy/5',
+                    'group flex items-center gap-4 rounded-xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow]',
                     selected === p._id && 'border-primary ring-2 ring-primary/20',
                   )}
                 >

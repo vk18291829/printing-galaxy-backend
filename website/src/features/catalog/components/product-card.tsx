@@ -98,7 +98,7 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group @container flex h-full flex-col overflow-hidden rounded-xl shadow-card bg-card transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:border-brand-navy/20 hover:shadow-lg hover:shadow-brand-navy/8 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group @container flex h-full flex-col overflow-hidden rounded-xl shadow-card bg-card transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <div className="relative aspect-4/3 overflow-hidden border-b bg-muted">
         <div className="size-full transition-transform duration-500 group-hover:scale-[1.03]">

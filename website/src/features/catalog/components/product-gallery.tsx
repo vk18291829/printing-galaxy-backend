@@ -32,7 +32,7 @@ function VideoSlide({ video, poster, title }: { video: VideoSource; poster?: str
     <button type="button" onClick={() => setPlaying(true)} className="group/play relative block size-full bg-brand-navy" aria-label={t('product.playVideo')}>
       {still && <img src={still} alt="" className="size-full object-cover opacity-80" />}
       <span className="absolute inset-0 grid place-items-center">
-        <span className="grid size-16 place-items-center rounded-full bg-primary text-white shadow-xl ring-8 ring-white/20 transition-transform group-hover/play:scale-105">
+        <span className="grid size-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl ring-8 ring-white/20 transition-transform group-hover/play:scale-105">
           <IconPlayerPlayFilled className="ml-1 size-7" />
         </span>
       </span>

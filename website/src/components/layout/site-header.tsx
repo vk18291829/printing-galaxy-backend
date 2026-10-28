@@ -51,7 +51,7 @@ function CartButton() {
       <Link to="/cart" aria-label={t('nav.cart')}>
         <IconShoppingBag className="size-[19px]" />
         {count > 0 && (
-          <span className="bg-primary absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-white">
+          <span className="bg-primary absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-primary-foreground">
             {count}
           </span>
         )}
@@ -71,7 +71,7 @@ function UpdatesButton() {
       <Link to="/account/updates" aria-label={unread ? t('updates.unread', { count: unread }) : t('nav.updates')}>
         <IconBell className="size-[19px]" />
         {unread > 0 && (
-          <span className="bg-primary absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-white">
+          <span className="bg-primary absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] leading-[18px] font-bold text-primary-foreground">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

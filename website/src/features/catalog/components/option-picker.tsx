@@ -39,7 +39,7 @@ export function OptionPicker({
                   aria-checked={selected}
                   onClick={() => onChange(option.key, v.value)}
                   className={cn(
-                    'flex items-center gap-2 rounded-lg shadow-card px-3.5 py-2.5 text-left text-sm font-medium transition-all hover:border-primary/50',
+                    'flex items-center gap-2 rounded-lg shadow-card px-3.5 py-2.5 text-left text-sm font-medium transition-all',
                     selected
                       ? 'border-primary bg-primary/8 text-foreground ring-2 ring-primary/20'
                       : 'bg-background text-muted-foreground',
