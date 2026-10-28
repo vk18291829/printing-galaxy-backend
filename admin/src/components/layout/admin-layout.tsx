@@ -443,7 +443,7 @@ export function AdminLayout() {
   return (
     <TooltipProvider>
       {/* App shell: the sidebar stays put and only the content column scrolls. */}
-      <div className="flex h-dvh overflow-hidden">
+      <div className="fixed inset-0 flex overflow-hidden">
         <aside
           className={cn(
             'hidden h-full shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:block',
@@ -453,13 +453,14 @@ export function AdminLayout() {
           <SidebarBody collapsed={collapsed} onToggle={toggle} />
         </aside>
 
-        <div ref={scroller} className="flex min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
-          <header className="sticky top-0 z-30 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        {/* `relative` keeps absolutely placed bits (hidden native selects, sr-only labels) inside this
+            scroller; without it they stretch the page and the browser adds a second scrollbar. */}
+        <div ref={scroller} className="relative flex min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+          {/* Solid, not frosted: a backdrop blur pulls the white sidebar into the header's edge and
+              re-renders (shimmers) whenever anything in the header changes on hover. */}
+          <header className="sticky top-0 z-30 border-b bg-background px-4 sm:px-6 lg:px-8">
             <div className="page-container flex h-14 items-center gap-2">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <Button variant="ghost" size="icon-sm" className="hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
-                <IconMenu2 className="size-5" />
-              </Button>
               <SheetContent side="left" className="w-72 gap-0 border-sidebar-border bg-sidebar p-0">
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                 <SidebarBody onNavigate={() => setMobileOpen(false)} />
