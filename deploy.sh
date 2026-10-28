@@ -32,14 +32,18 @@ main() {
   echo "→ Restarting API ($pm2_name)"
   pm2 restart "$pm2_name" --update-env
 
-  echo "→ Health check"
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    if curl -fsS http://127.0.0.1:4000/api/v1/health >/dev/null; then
+  # The API needs a few seconds to connect to the database; wait quietly instead of printing each miss.
+  echo -n "→ Health check (waiting for the API to start)"
+  for _ in $(seq 1 30); do
+    if curl -fs http://127.0.0.1:4000/api/v1/health >/dev/null 2>&1; then
+      echo
       echo "✔ Deployed $(git log -1 --format='%h %s')"
       return 0
     fi
+    echo -n "."
     sleep 2
   done
+  echo
   echo "✖ API did not come back healthy. Check: pm2 logs $pm2_name --lines 100" >&2
   return 1
 }
