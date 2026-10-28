@@ -7,11 +7,13 @@ import { scheduleOrderMaintenance } from '@/jobs/order-maintenance';
 import { scheduleFileRetention } from '@/jobs/file-retention';
 import { closeQueue, startWorker } from '@/jobs/queue';
 import { resumeBulkJobs } from '@/modules/bulk/bulk.service';
+import { enforceSchoolOnlyCatalog } from '@/modules/catalog/audience';
 import { ensureDevBuckets } from '@/modules/uploads/storage';
 
 async function main() {
   checkProductionReadiness();
   await connectDb();
+  await enforceSchoolOnlyCatalog().catch((err) => logger.error({ err }, 'Could not check the school catalogue'));
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 API ready on http://localhost:${env.PORT}/api/v1`);

@@ -8,7 +8,7 @@ import { optionalAuth } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { resolvePricingContext } from '@/modules/institutions/institution.service';
 import { quoteProduct } from '@/modules/pricing/pricing.service';
-import { categoryIdsFor, restrictToCategoryAudience } from './audience';
+import { categoryIdsFor, hideInstitutionPrices, restrictToCategoryAudience } from './audience';
 import { CategoryModel } from './category.model';
 import { productBrowseQuery, productListQuery } from './catalog.schema';
 import { ProductModel, type Product } from './product.model';
@@ -47,7 +47,7 @@ catalogRouter.get('/categories', async (_req, res) => {
   res.json(categories.map((c) => ({ ...c, productCount: countMap.get(String(c._id)) ?? 0 })));
 });
 
-catalogRouter.get('/products', validate({ query: productListQuery }), async (_req, res) => {
+catalogRouter.get('/products', optionalAuth, validate({ query: productListQuery }), async (req, res) => {
   const { category, audience, section, excludeCategory, featured, q } = res.locals.query as z.infer<typeof productListQuery>;
   const filter: FilterQuery<Product> = { isActive: true };
 
@@ -67,7 +67,8 @@ catalogRouter.get('/products', validate({ query: productListQuery }), async (_re
     .sort({ sortOrder: 1, createdAt: 1 })
     .populate('category', 'name slug icon audiences')
     .lean();
-  res.json(products);
+  const { audience: viewer } = await resolvePricingContext(req.auth);
+  res.json(products.map((p) => hideInstitutionPrices(p, viewer)));
 });
 
 const BROWSE_SORT: Record<z.infer<typeof productBrowseQuery>['sort'], Record<string, 1 | -1>> = {
@@ -79,9 +80,11 @@ const BROWSE_SORT: Record<z.infer<typeof productBrowseQuery>['sort'], Record<str
 };
 
 /** Paged, sortable product list for the catalogue page's infinite scroll. */
-catalogRouter.get('/products/browse', validate({ query: productBrowseQuery }), async (_req, res) => {
-  const { category, audience, section, excludeCategory, q, sort, page, limit } = res.locals.query as z.infer<typeof productBrowseQuery>;
+catalogRouter.get('/products/browse', optionalAuth, validate({ query: productBrowseQuery }), async (req, res) => {
+  const { category, section, excludeCategory, q, sort, page, limit } = res.locals.query as z.infer<typeof productBrowseQuery>;
   const match: FilterQuery<Product> = { isActive: true };
+  // Price sorting uses the visitor's own price book, decided by their account, not the query.
+  const { audience } = await resolvePricingContext(req.auth);
 
   const categoryFilter = await resolveCategoryFilter(category, section, excludeCategory);
   if (categoryFilter === null) {
@@ -121,15 +124,16 @@ catalogRouter.get('/products/browse', validate({ query: productBrowseQuery }), a
     },
   ]);
   const total = result?.total[0]?.n ?? 0;
-  res.json({ items: result?.items ?? [], total, page, pages: Math.ceil(total / limit) });
+  res.json({ items: (result?.items ?? []).map((p) => hideInstitutionPrices(p, audience)), total, page, pages: Math.ceil(total / limit) });
 });
 
-catalogRouter.get('/products/:slug', async (req, res) => {
+catalogRouter.get('/products/:slug', optionalAuth, async (req, res) => {
   const product = await ProductModel.findOne({ slug: req.params.slug, isActive: true })
     .populate('category', 'name slug icon audiences')
     .lean();
   if (!product) throw ApiError.notFound('Product');
-  res.json(product);
+  const { audience } = await resolvePricingContext(req.auth);
+  res.json(hideInstitutionPrices(product, audience));
 });
 
 const quoteSchema = z.object({

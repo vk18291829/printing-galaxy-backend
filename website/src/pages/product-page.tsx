@@ -1,12 +1,14 @@
 import {
   IconAlertCircle,
   IconBuildingCommunity,
+  IconCircleCheck,
   IconClipboardList,
   IconClock,
   IconBrandWhatsapp,
   IconLock,
   IconPalette,
   IconPhone,
+  IconSchool,
   IconShoppingBagPlus,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -194,10 +196,19 @@ function LockedCard({ forInstitutions, className }: { forInstitutions: boolean; 
   return (
       <div className={cn('rounded-2xl shadow-card bg-card/95 p-6 text-center backdrop-blur sm:p-8', className)}>
         <span className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
-          <IconLock className="size-7" />
+          {forInstitutions ? <IconSchool className="size-7" /> : <IconLock className="size-7" />}
         </span>
         <h2 className="text-xl font-semibold">{t(forInstitutions ? 'product.lockedInstitutionTitle' : 'product.lockedRetailTitle')}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{t(forInstitutions ? 'product.lockedInstitutionDesc' : 'product.lockedRetailDesc')}</p>
+        {forInstitutions && (
+          <ul className="mt-4 space-y-1.5 text-left text-sm">
+            {(['schoolStep1', 'schoolStep2', 'schoolStep3'] as const).map((k) => (
+              <li key={k} className="flex items-start gap-2">
+                <IconCircleCheck className="mt-0.5 size-4 shrink-0 text-success" /> {t(`product.${k}`)}
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="mt-6 grid gap-2 sm:grid-cols-2">
           {forInstitutions ? (
             <>
@@ -428,7 +439,7 @@ export default function ProductPage() {
                 {product.specs.map((s) => (
                   <Badge key={s} variant="outline">{s}</Badge>
                 ))}
-                {sectionOf(product) === 'retail' && (
+                {!audienceBlocked && sectionOf(product) === 'retail' && (
                   <Badge variant="outline">
                     <IconClock /> {t('product.leadTime')}:{' '}
                     {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
@@ -451,6 +462,8 @@ export default function ProductPage() {
             </div>
           </header>
 
+          {!audienceBlocked && (
+          <>
           {product.options.length > 0 && (
             <Card>
               <CardHeader>
@@ -517,7 +530,8 @@ export default function ProductPage() {
               />
             </CardContent>
           </Card>
-
+          </>
+          )}
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
@@ -534,7 +548,7 @@ export default function ProductPage() {
               orderLink={orderLink}
             />
           )}
-          {book.tiers.length > 0 && (
+          {!audienceBlocked && book.tiers.length > 0 && (
             <PriceTierTable book={book} unit={product.unit} activeUnits={quote?.units} />
           )}
         </aside>

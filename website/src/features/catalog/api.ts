@@ -1,5 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useAudience, useAuthStore } from '@/features/auth/auth-store';
+import { SCHOOL_CATEGORIES } from '@/features/catalog/sections';
 import { api } from '@/lib/api-client';
 import type { Audience, Category, Product, Quote } from '@/types/api';
 
@@ -13,8 +14,8 @@ export interface QuoteInput {
 
 export const catalogKeys = {
   categories: ['categories'] as const,
-  products: (params: object) => ['products', params] as const,
-  product: (slug: string) => ['product', slug] as const,
+  products: (params: object, audience: Audience) => ['products', audience, params] as const,
+  product: (slug: string, audience: Audience) => ['product', audience, slug] as const,
   quote: (input: QuoteInput, principal: string) => ['quote', principal, input] as const,
 };
 
@@ -26,6 +27,7 @@ export type Section = Audience;
 
 /** The catalogue a product belongs to, from its category. */
 export function sectionOf(product: Pick<Product, 'category'>): Section {
+  if (SCHOOL_CATEGORIES.includes(product.category.slug)) return 'institution';
   return product.category.audiences?.includes('retail') ? 'retail' : 'institution';
 }
 
@@ -42,9 +44,10 @@ export function useProducts({
   section = 'retail',
   ...rest
 }: { category?: string; section?: Section; excludeCategory?: string; featured?: boolean; q?: string } = {}) {
+  const audience = useAudience();
   const params = { section, ...rest };
   return useQuery({
-    queryKey: catalogKeys.products(params),
+    queryKey: catalogKeys.products(params, audience),
     queryFn: async () => (await api.get<Product[]>('/products', { params })).data,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
@@ -52,8 +55,9 @@ export function useProducts({
 }
 
 export function useProduct(slug: string) {
+  const audience = useAudience();
   return useQuery({
-    queryKey: catalogKeys.product(slug),
+    queryKey: catalogKeys.product(slug, audience),
     queryFn: async () => (await api.get<Product>(`/products/${slug}`)).data,
     enabled: Boolean(slug),
   });

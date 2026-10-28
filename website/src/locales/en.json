@@ -189,7 +189,9 @@
     "trust3": "Pickup or delivery",
     "allTitle": "All products",
     "startingAt": "Starting at",
-    "orderNow": "Order now"
+    "orderNow": "Order now",
+    "forSchools": "For schools & colleges",
+    "viewDetails": "View details"
   },
   "product": {
     "options": "Options",
@@ -233,8 +235,8 @@
     },
     "relatedTitle": "You may also like",
     "relatedSubtitle": "More from {{category}}",
-    "lockedInstitutionTitle": "Only for schools & colleges",
-    "lockedInstitutionDesc": "This product can be ordered only with a registered institution account. Sign in as an institution to order.",
+    "lockedInstitutionTitle": "Made for schools & colleges",
+    "lockedInstitutionDesc": "Not sold to individuals. Schools and colleges order this from their institution account.",
     "lockedRetailTitle": "Only for individual customers",
     "lockedRetailDesc": "This product is not part of the institution catalogue. See the products made for schools and colleges.",
     "lockedSchoolProducts": "School products",
@@ -243,7 +245,10 @@
     "demoVideo": "Demo video",
     "questions": "Questions about this product?",
     "call": "Call",
-    "whatsappMessage": "Hi, I have a question about {{product}}."
+    "whatsappMessage": "Hi, I have a question about {{product}}.",
+    "schoolStep1": "Institution prices for bulk orders",
+    "schoolStep2": "Design proof to approve before printing",
+    "schoolStep3": "Student list with photos, delivered to your campus"
   },
   "upload": {
     "drop": "Tap to upload or drag files here",

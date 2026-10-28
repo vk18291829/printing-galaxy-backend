@@ -10,6 +10,8 @@ export type OrderSegment = (typeof ORDER_SEGMENTS)[number];
 
 export const BUSINESS_CATEGORY_SLUGS = ['business-works', 'banners-signage', 'office-stationery'];
 export const WEDDING_CATEGORY_SLUGS = ['wedding-invitations'];
+/** School & college range: institutions only, whatever a category's settings say. */
+export const SCHOOL_CATEGORY_SLUGS = ['school-works'];
 
 export function segmentOf(audience: Audience, categorySlugs: string[]): OrderSegment {
   if (audience === 'institution') return 'institution';

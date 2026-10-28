@@ -7,6 +7,7 @@ import { requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import { OrderModel } from '@/modules/orders/order.model';
+import { isSchoolCategory } from './audience';
 import { CategoryModel } from './category.model';
 import { categoryInputSchema, productInputSchema } from './catalog.schema';
 import { ProductModel, type Product } from './product.model';
@@ -20,8 +21,13 @@ adminCatalogRouter.get('/categories', async (_req, res) => {
   res.json(await CategoryModel.find().sort({ sortOrder: 1 }).lean());
 });
 
+/** School categories are institution-only whatever the form says. */
+function schoolOnly<T extends { slug: string; audiences?: string[] }>(body: T): T {
+  return isSchoolCategory(body.slug) ? { ...body, audiences: ['institution'] } : body;
+}
+
 adminCatalogRouter.post('/categories', requirePermission('catalog'), validate({ body: categoryInputSchema }), async (req, res) => {
-  const category = await CategoryModel.create(req.body);
+  const category = await CategoryModel.create(schoolOnly(req.body));
   audit(req, { action: 'category.create', entity: 'Category', entityId: category._id, summary: category.name.en });
   res.status(201).json(category);
 });
@@ -31,7 +37,7 @@ adminCatalogRouter.put(
   requirePermission('catalog'),
   validate({ params: idParams, body: categoryInputSchema }),
   async (req, res) => {
-    const category = await CategoryModel.findByIdAndUpdate(req.params.id, req.body, {
+    const category = await CategoryModel.findByIdAndUpdate(req.params.id, schoolOnly(req.body), {
       new: true,
       runValidators: true,
     });
@@ -80,12 +86,15 @@ adminCatalogRouter.get('/products/:id', validate({ params: idParams }), async (r
   res.json(product);
 });
 
-async function assertCategory(id: string) {
-  if (!(await CategoryModel.exists({ _id: id }))) throw ApiError.badRequest('Category not found');
+/** Checks the category exists; school products never get an individual price book. */
+async function assertCategory(id: string, body: { pricing: { retail: { enabled: boolean } } }) {
+  const category = await CategoryModel.findById(id).select('slug').lean();
+  if (!category) throw ApiError.badRequest('Category not found');
+  if (isSchoolCategory(category.slug)) body.pricing.retail.enabled = false;
 }
 
 adminCatalogRouter.post('/products', requirePermission('catalog'), validate({ body: productInputSchema }), async (req, res) => {
-  await assertCategory(req.body.category);
+  await assertCategory(req.body.category, req.body);
   const product = await ProductModel.create(req.body);
   audit(req, { action: 'product.create', entity: 'Product', entityId: product._id, summary: product.name.en });
   res.status(201).json(product);
@@ -96,7 +105,7 @@ adminCatalogRouter.put(
   requirePermission('catalog'),
   validate({ params: idParams, body: productInputSchema }),
   async (req, res) => {
-    await assertCategory(req.body.category);
+    await assertCategory(req.body.category, req.body);
     const product = await ProductModel.findById(req.params.id);
     if (!product) throw ApiError.notFound('Product');
     const before = product.toObject().pricing;

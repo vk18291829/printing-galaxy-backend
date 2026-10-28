@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useLogout } from '@/features/auth/api';
 import { useAuthStore, useDisplayName } from '@/features/auth/auth-store';
+import { useProduct } from '@/features/catalog/api';
+import { categoryHome } from '@/features/catalog/sections';
 import { useUpdates } from '@/features/updates/api';
 import { useCartCount } from '@/features/cart/cart-store';
 import { cn } from '@/lib/utils';
@@ -37,10 +39,16 @@ const NAV: NavItem[] = [
   { to: '/wedding-cards', key: 'nav.weddingCards' },
 ];
 
-/** Lit for the page itself and anything below it (e.g. /products/visiting-card under Products). */
+/**
+ * Lit for the page itself and anything below it. A product page lights the section its product
+ * belongs to (a school ID card under School & College, a visiting card under Business Works).
+ */
 function useIsNavActive() {
   const { pathname } = useLocation();
-  return (item: NavItem) => pathname === item.to || pathname.startsWith(`${item.to}/`);
+  const slug = /^\/products\/([^/]+)/.exec(pathname)?.[1] ?? '';
+  const { data: product } = useProduct(slug);
+  const section = slug && product ? categoryHome(product.category.slug).split('?')[0]! : pathname;
+  return (item: NavItem) => section === item.to || section.startsWith(`${item.to}/`);
 }
 
 function CartButton() {

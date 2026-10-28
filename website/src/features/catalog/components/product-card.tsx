@@ -1,4 +1,4 @@
-import { IconArrowRight, IconClock } from '@tabler/icons-react';
+import { IconArrowRight, IconClock, IconSchool } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
@@ -75,6 +75,8 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
   const book = offerBook(product, audience);
   const price = startingPrice(product, audience);
   const forSchools = (section ?? sectionOf(product)) === 'institution';
+  // Individuals and guests only see what schools can order: no price, no cart.
+  const showcase = forSchools && audience !== 'institution';
   const unit = t(`units.${product.unit}`, { count: 1 });
 
   return (
@@ -99,6 +101,11 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
         <p className="mt-0.5 line-clamp-1 text-[13px] text-muted-foreground">{l(product.shortDescription)}</p>
         {product.rating && product.rating.count > 0 && <RatingChip average={product.rating.average} count={product.rating.count} className="mt-1.5" />}
 
+        {showcase ? (
+          <p className="mt-3 mb-3.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-primary">
+            <IconSchool className="size-3.5" /> {t('products.forSchools')}
+          </p>
+        ) : (
         <div className="mt-3 mb-3.5">
           {price !== null ? (
             <p className="flex flex-wrap items-baseline gap-x-1.5">
@@ -113,9 +120,10 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
             <p className="text-xs text-muted-foreground">{t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })}</p>
           )}
         </div>
+        )}
 
         <span className="mt-auto inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-secondary text-sm font-semibold text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground">
-          {t('products.orderNow')} <IconArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          {showcase ? t('products.viewDetails') : t('products.orderNow')} <IconArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
         </span>
       </div>
     </Link>
