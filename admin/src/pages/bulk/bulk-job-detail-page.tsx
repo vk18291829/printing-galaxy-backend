@@ -26,7 +26,7 @@ import type { BulkIssue } from '@/types/admin';
 const COLUMN_LABEL: Record<string, string> = {
   name: 'Name', rollNo: 'Roll no.', admissionNo: 'Adm. no.', employeeId: 'Emp. ID', class: 'Class', section: 'Sec.',
   fatherName: "Father's name", motherName: "Mother's name", dob: 'DOB', bloodGroup: 'Blood', phone: 'Phone',
-  address: 'Address', designation: 'Designation', department: 'Dept.', session: 'Session', route: 'Route', photo: 'Photo',
+  address: 'Address', designation: 'Designation', department: 'Dept.', qualification: 'Qualification', session: 'Session', route: 'Route', photo: 'Photo',
 };
 
 function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {

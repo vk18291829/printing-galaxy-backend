@@ -14,8 +14,8 @@ const TEMPLATES: Record<PersonKind, { columns: string[]; sample: string[] }> = {
     sample: ['Asha Verma', 'Ramesh Verma', 'Sunita Verma', '09-05-2015', '5', 'A', '1', 'A-1021', 'B+', '9876543210', '"12 Civil Lines, Jhansi"', '1.jpg'],
   },
   staff: {
-    columns: ['Name', 'Employee ID', 'Designation', 'Department', "Father's Name", 'Date of Birth', 'Blood Group', 'Phone', 'Address', 'Photo'],
-    sample: ['Meena Sharma', 'T-014', 'PGT', 'Science', 'Om Prakash Sharma', '12-03-1988', 'O+', '9876500011', '"Sipri Bazar, Jhansi"', 'T-014.jpg'],
+    columns: ['Name', 'Employee ID', 'Designation', 'Department', 'Qualification', "Father's Name", 'Date of Birth', 'Blood Group', 'Phone', 'Address', 'Photo'],
+    sample: ['Meena Sharma', 'T-014', 'PGT', 'Science', '"M.Sc., B.Ed."', 'Om Prakash Sharma', '12-03-1988', 'O+', '9876500011', '"Sipri Bazar, Jhansi"', 'T-014.jpg'],
   },
 };
 

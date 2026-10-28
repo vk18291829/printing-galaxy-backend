@@ -11,7 +11,7 @@ export type PersonKind = (typeof PERSON_KINDS)[number];
 /** Same keys as the bulk spreadsheet fields (card-kinds.ts), minus the photo column. */
 export const ROSTER_FIELDS = [
   'name', 'fatherName', 'motherName', 'dob', 'class', 'section', 'rollNo', 'admissionNo', 'bloodGroup',
-  'phone', 'address', 'route', 'session', 'employeeId', 'designation', 'department',
+  'phone', 'address', 'route', 'session', 'employeeId', 'designation', 'department', 'qualification',
 ] as const;
 export type RosterField = (typeof ROSTER_FIELDS)[number];
 

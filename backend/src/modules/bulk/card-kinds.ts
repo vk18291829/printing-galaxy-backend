@@ -7,7 +7,7 @@ export type CardKind = (typeof CARD_KINDS)[number];
 
 export const FIELD_KEYS = [
   'name', 'rollNo', 'admissionNo', 'employeeId', 'class', 'section', 'fatherName', 'motherName',
-  'dob', 'bloodGroup', 'phone', 'address', 'designation', 'department', 'session', 'route', 'photo',
+  'dob', 'bloodGroup', 'phone', 'address', 'designation', 'department', 'qualification', 'session', 'route', 'photo',
 ] as const;
 export type FieldKey = (typeof FIELD_KEYS)[number];
 
@@ -26,6 +26,7 @@ export const FIELD_LABELS: Record<FieldKey, string> = {
   address: 'Address',
   designation: 'Designation',
   department: 'Department',
+  qualification: 'Qualification',
   session: 'Session',
   route: 'Bus Route',
   photo: 'Photo',
@@ -47,6 +48,7 @@ const SYNONYMS: Record<string, FieldKey> = {
   address: 'address', residentialaddress: 'address',
   designation: 'designation', post: 'designation', role: 'designation',
   department: 'department', dept: 'department', subject: 'department',
+  qualification: 'qualification', qualifications: 'qualification', education: 'qualification', degree: 'qualification',
   session: 'session', academicyear: 'session', year: 'session',
   route: 'route', busroute: 'route', busno: 'route', transport: 'route',
   photo: 'photo', photofile: 'photo', photoname: 'photo', image: 'photo', imagefile: 'photo', picture: 'photo',
@@ -89,7 +91,7 @@ export const KIND_SPECS: Record<CardKind, KindSpec> = {
     productSlug: 'teacher-id-card',
     idField: 'employeeId',
     required: ['name', 'employeeId', 'designation'],
-    optional: ['department', 'dob', 'bloodGroup', 'phone', 'address', 'session', 'photo'],
+    optional: ['department', 'qualification', 'dob', 'bloodGroup', 'phone', 'address', 'session', 'photo'],
     defaultFields: ['designation', 'employeeId', 'department', 'bloodGroup', 'phone'],
     photoRequired: true,
     size: { w: 86, h: 54 },

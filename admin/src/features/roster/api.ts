@@ -7,13 +7,13 @@ export type PersonKind = 'student' | 'staff';
 
 export const ROSTER_FIELDS = [
   'name', 'fatherName', 'motherName', 'dob', 'class', 'section', 'rollNo', 'admissionNo', 'bloodGroup',
-  'phone', 'address', 'route', 'session', 'employeeId', 'designation', 'department',
+  'phone', 'address', 'route', 'session', 'employeeId', 'designation', 'department', 'qualification',
 ] as const;
 export type RosterField = (typeof ROSTER_FIELDS)[number];
 
 export const KIND_FIELDS: Record<PersonKind, RosterField[]> = {
   student: ['name', 'fatherName', 'motherName', 'dob', 'class', 'section', 'rollNo', 'admissionNo', 'bloodGroup', 'phone', 'address', 'route', 'session'],
-  staff: ['name', 'employeeId', 'designation', 'department', 'fatherName', 'dob', 'bloodGroup', 'phone', 'address', 'session'],
+  staff: ['name', 'employeeId', 'designation', 'department', 'qualification', 'fatherName', 'dob', 'bloodGroup', 'phone', 'address', 'session'],
 };
 
 export const FIELD_LABELS: Record<RosterField, string> = {
@@ -33,6 +33,7 @@ export const FIELD_LABELS: Record<RosterField, string> = {
   employeeId: 'Employee ID',
   designation: 'Designation',
   department: 'Department',
+  qualification: 'Qualification',
 };
 
 export type Person = { _id: string; code: string; kind: PersonKind; hasPhoto: boolean; photoUrl?: string; photoSource?: string } & Partial<

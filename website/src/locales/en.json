@@ -1285,7 +1285,8 @@
       "session": "Session",
       "employeeId": "Employee ID",
       "designation": "Designation",
-      "department": "Department"
+      "department": "Department",
+      "qualification": "Qualification"
     },
     "orderCards_one": "Order ID cards ({{count}})",
     "orderCards_other": "Order ID cards ({{count}})",

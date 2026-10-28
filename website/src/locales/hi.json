@@ -1285,7 +1285,8 @@
       "session": "सत्र",
       "employeeId": "कर्मचारी आईडी",
       "designation": "पद",
-      "department": "विभाग"
+      "department": "विभाग",
+      "qualification": "योग्यता"
     },
     "orderCards_one": "आईडी कार्ड ऑर्डर करें ({{count}})",
     "orderCards_other": "आईडी कार्ड ऑर्डर करें ({{count}})",

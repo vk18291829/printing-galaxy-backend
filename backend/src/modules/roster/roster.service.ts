@@ -38,12 +38,13 @@ export const COLUMN_LABELS: Record<RosterField, string> = {
   employeeId: 'Employee ID',
   designation: 'Designation',
   department: 'Department',
+  qualification: 'Qualification',
 };
 
 /** Columns shown and exported for each kind of person. */
 export const KIND_FIELDS: Record<PersonKind, RosterField[]> = {
   student: ['name', 'fatherName', 'motherName', 'dob', 'class', 'section', 'rollNo', 'admissionNo', 'bloodGroup', 'phone', 'address', 'route', 'session'],
-  staff: ['name', 'employeeId', 'designation', 'department', 'fatherName', 'dob', 'bloodGroup', 'phone', 'address', 'session'],
+  staff: ['name', 'employeeId', 'designation', 'department', 'qualification', 'fatherName', 'dob', 'bloodGroup', 'phone', 'address', 'session'],
 };
 
 /** Dates arrive as 2014-05-09 (date inputs) or 09-05-2014 / 09/05/2014 (sheets); keep DD-MM-YYYY. */
