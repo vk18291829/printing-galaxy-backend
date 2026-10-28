@@ -1,6 +1,9 @@
 import {
   IconArrowRight,
-  IconBuildingCommunity,
+  IconBriefcase,
+  IconFileText,
+  IconHeart,
+  IconSchool,
   IconCheck,
   IconCreditCard,
   IconHandFinger,
@@ -11,9 +14,9 @@ import {
   IconRosetteDiscountCheck,
   IconShieldLock,
   IconUpload,
-  IconUser,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { SafeImage } from '@/components/common/safe-image';
 import { Link } from 'react-router';
 import { Rail, Section } from '@/components/common/section';
 import { StarRating } from '@/components/common/star-rating';
@@ -21,13 +24,15 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProducts } from '@/features/catalog/api';
 import { Highlights, HOME_HIDDEN_CATEGORY } from '@/features/catalog/components/home-showcase';
+import { BUSINESS_CATEGORIES, NOT_INDIVIDUAL, WEDDING_CATEGORIES } from '@/features/catalog/sections';
 import { useBanners } from '@/features/marketing/api';
 import { HeroCarousel } from '@/features/marketing/hero-carousel';
 import { FeatureBanner, PromoTiles } from '@/features/marketing/promo-banners';
 import { useReviewHighlights } from '@/features/reviews/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useLocalized } from '@/lib/i18n';
-import type { Banner } from '@/types/api';
+import { cn } from '@/lib/utils';
+import type { Banner, Product } from '@/types/api';
 
 /** Print mockups: a bound document, a visiting card and a student ID, in brand colours. */
 function HeroVisual() {
@@ -165,61 +170,52 @@ function TrustStrip() {
   );
 }
 
-function AudienceSplit() {
+/** The four lines of business, each on its own pastel tile with a real product photo. */
+function ExploreServices() {
   const { t } = useTranslation();
-  const individualPoints = t('home.individualPoints', { returnObjects: true }) as string[];
-  const institutionPoints = t('home.institutionPoints', { returnObjects: true }) as string[];
+  const { data: retail } = useProducts({ excludeCategory: HOME_HIDDEN_CATEGORY });
+  const { data: wedding } = useProducts({ category: WEDDING_CATEGORIES.join(',') });
+  const { data: school } = useProducts({ section: 'institution' });
+  const photo = (list: Product[] | undefined, pick: (p: Product) => boolean = () => true) =>
+    list?.find((p) => pick(p) && p.images.length > 0)?.images[0];
+  const tiles = [
+    { to: '/products', title: t('home.exploreIndividual'), desc: t('home.exploreIndividualDesc'), icon: IconFileText, tint: 'bg-[#e6f6fe]', img: photo(retail, (p) => !NOT_INDIVIDUAL.includes(p.category.slug)) },
+    { to: '/institutions', title: t('home.exploreSchool'), desc: t('home.exploreSchoolDesc'), icon: IconSchool, tint: 'bg-[#eaf0f9]', img: photo(school) },
+    { to: '/business-printing', title: t('home.exploreBusiness'), desc: t('home.exploreBusinessDesc'), icon: IconBriefcase, tint: 'bg-[#fff4e0]', img: photo(retail, (p) => BUSINESS_CATEGORIES.includes(p.category.slug)) },
+    { to: '/wedding-cards', title: t('home.exploreWedding'), desc: t('home.exploreWeddingDesc'), icon: IconHeart, tint: 'bg-[#fee7f1]', img: photo(wedding) },
+  ];
 
   return (
     <section className="container-page section-y">
-      <div className="mx-auto mb-10 max-w-2xl text-center">
-        <p className="eyebrow mb-2">{t('home.eyebrowAudience')}</p>
-        <h2 className="text-[1.75rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">{t('home.audienceTitle')}</h2>
-        <p className="mt-3 text-muted-foreground">{t('home.audienceSubtitle')}</p>
+      <div className="mx-auto mb-8 max-w-2xl text-center sm:mb-10">
+        <p className="eyebrow mx-auto mb-3">{t('home.exploreEyebrow')}</p>
+        <h2 className="text-[1.75rem] font-bold text-foreground sm:text-[2.1rem]">{t('home.exploreTitle')}</h2>
+        <p className="mt-2 text-muted-foreground">{t('home.exploreSubtitle')}</p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="relative flex flex-col overflow-hidden rounded-xl shadow-card bg-card p-7 sm:p-9">
-          <div className="absolute -top-16 -right-16 size-48 rounded-full bg-brand-cyan/10 blur-2xl" />
-          <span className="mb-5 grid size-12 place-items-center rounded-2xl bg-brand-cyan/12 text-brand-cyan">
-            <IconUser className="size-6" />
-          </span>
-          <h3 className="text-2xl font-bold">{t('home.individualTitle')}</h3>
-          <p className="mt-2 text-muted-foreground">{t('home.individualDesc')}</p>
-          <ul className="my-6 space-y-3">
-            {individualPoints.map((p) => (
-              <li key={p} className="flex items-center gap-3 text-sm">
-                <IconCheck className="size-4 shrink-0 text-success" /> {p}
-              </li>
-            ))}
-          </ul>
-          <Button className="mt-auto w-fit" asChild>
-            <Link to="/products">
-              {t('home.individualCta')} <IconArrowRight />
-            </Link>
-          </Button>
-        </div>
-
-        <div className="relative flex flex-col overflow-hidden rounded-xl bg-brand-navy p-7 text-white sm:p-9">
-          <div className="absolute -top-20 -right-10 size-56 rounded-full bg-primary/25 blur-3xl" />
-          <div className="absolute inset-x-0 bottom-0 h-1 cmyk-strip" />
-          <span className="relative mb-5 grid size-12 place-items-center rounded-2xl bg-white/10 text-primary">
-            <IconBuildingCommunity className="size-6" />
-          </span>
-          <h3 className="relative text-2xl font-bold">{t('home.institutionTitle')}</h3>
-          <p className="relative mt-2 text-white/70">{t('home.institutionDesc')}</p>
-          <ul className="relative my-6 space-y-3">
-            {institutionPoints.map((p) => (
-              <li key={p} className="flex items-center gap-3 text-sm">
-                <IconCheck className="size-4 shrink-0 text-primary" /> {p}
-              </li>
-            ))}
-          </ul>
-          <Button variant="brand" className="relative mt-auto w-fit" asChild>
-            <Link to="/institutions">
-              {t('home.institutionCta')} <IconArrowRight />
-            </Link>
-          </Button>
-        </div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {tiles.map(({ to, title, desc, icon: Icon, tint, img }) => (
+          <Link key={to} to={to} className={cn('group flex flex-col overflow-hidden rounded-2xl transition-transform duration-200 hover:-translate-y-1', tint)}>
+            <div className="aspect-[4/3] overflow-hidden p-3 sm:p-4">
+              <SafeImage
+                src={img}
+                alt=""
+                loading="lazy"
+                className="size-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                fallback={
+                  <span className="grid size-full place-items-center rounded-xl bg-white/60 text-primary">
+                    <Icon className="size-10" stroke={1.5} />
+                  </span>
+                }
+              />
+            </div>
+            <div className="flex flex-1 flex-col px-3 pb-4 sm:px-5 sm:pb-5">
+              <h3 className="flex items-center gap-1.5 text-[15px] font-bold text-foreground sm:text-lg">
+                {title} <IconArrowRight className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+              </h3>
+              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:text-sm">{desc}</p>
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   );
@@ -361,6 +357,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <ExploreServices />
       {/* Offer slides from the admin panel sit under the brand hero. */}
       {isLoading ? (
         <div className="container-page pt-2">
@@ -372,7 +369,6 @@ export default function HomePage() {
       {banners.promo.length > 0 && <PromoTiles banners={banners.promo} />}
       <TrustStrip />
       <CatalogueRails feature={banners.feature[0]} />
-      <AudienceSplit />
       <HowItWorks />
       <Testimonials />
       <InstitutionCta />

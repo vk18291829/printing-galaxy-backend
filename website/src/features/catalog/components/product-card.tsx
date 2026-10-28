@@ -64,63 +64,59 @@ export function ProductImage({ product, className }: { product: Pick<Product, 'i
   );
 }
 
-/** "from ₹80 / card" and the lead time, for everyday (individual) products. */
-function PriceAndLeadTime({ product }: { product: Product }) {
-  const { t } = useTranslation();
-  const audience = useAudience();
-  const book = offerBook(product, audience);
-  const price = startingPrice(product, audience);
-  return (
-    <div className="min-w-0">
-      {price !== null ? (
-        <p className="text-sm">
-          <span className="text-xs text-muted-foreground">{t('common.from')} </span>
-          <span className="text-lg font-bold text-brand-navy tabular-nums">{formatINR(price)}</span>
-          <span className="text-xs text-muted-foreground"> / {t(`units.${product.unit}`, { count: 1 })}</span>
-        </p>
-      ) : (
-        <p className="text-sm font-semibold text-primary">{t('product.quoteRequired')}</p>
-      )}
-      <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
-        {book.minQty > 1 && <span>{t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })} ·</span>}
-        <IconClock className="size-3" />
-        {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
-      </p>
-    </div>
-  );
-}
-
-/** `section` forces the card style (e.g. the Institutions page); otherwise it follows the product's category. */
+/**
+ * Product card: picture on a soft tile, name, one line about it, "Starting at ₹199 / card" and a
+ * full-width Order now button. School products add their minimum order (they are bought in bulk).
+ */
 export function ProductCard({ product, section }: { product: Product; index?: number; section?: Section }) {
   const { t } = useTranslation();
   const l = useLocalized();
+  const audience = useAudience();
+  const book = offerBook(product, audience);
+  const price = startingPrice(product, audience);
+  const forSchools = (section ?? sectionOf(product)) === 'institution';
+  const unit = t(`units.${product.unit}`, { count: 1 });
 
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group @container flex h-full flex-col overflow-hidden rounded-xl shadow-card bg-card transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card transition-transform duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <div className="relative aspect-4/3 overflow-hidden border-b bg-muted">
-        <div className="size-full transition-transform duration-500 group-hover:scale-[1.03]">
+      <div className="relative aspect-4/3 overflow-hidden bg-muted">
+        <div className="size-full transition-transform duration-500 group-hover:scale-[1.04]">
           <ProductImage product={product} />
         </div>
-      </div>
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
-        <div className="flex items-start gap-2">
-          <DynamicIcon name={product.icon} className="mt-0.5 size-4 shrink-0 text-primary" />
-          <h3 className="text-base leading-snug font-semibold text-brand-navy sm:text-[17px]">{l(product.name)}</h3>
-        </div>
-        {product.rating && product.rating.count > 0 && <RatingChip average={product.rating.average} count={product.rating.count} />}
-        <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{l(product.shortDescription)}</p>
-        <div className="mt-auto flex items-end justify-between gap-2 pt-3">
-          {/* School products: quantity offers only, no price-from or delivery time. */}
-          {(section ?? sectionOf(product)) === 'institution' ? <OfferChips product={product} className="min-w-0" /> : <PriceAndLeadTime product={product} />}
-          {/* Label shows once the card is wide enough; narrow two-column phones get the arrow alone. */}
-          <span className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 text-sm font-semibold text-primary transition-colors duration-150 group-hover:bg-primary group-hover:text-primary-foreground">
-            <span className="hidden @[15rem]:inline">{t('products.order')}</span>
-            <IconArrowRight className="size-4" />
+        {!forSchools && (
+          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground backdrop-blur">
+            <IconClock className="size-3" />
+            {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
           </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+        <h3 className="line-clamp-1 text-[15px] leading-snug font-bold text-foreground sm:text-base">{l(product.name)}</h3>
+        <p className="mt-0.5 line-clamp-1 text-[13px] text-muted-foreground">{l(product.shortDescription)}</p>
+        {product.rating && product.rating.count > 0 && <RatingChip average={product.rating.average} count={product.rating.count} className="mt-1.5" />}
+
+        <div className="mt-3 mb-3.5">
+          {price !== null ? (
+            <p className="flex flex-wrap items-baseline gap-x-1.5">
+              <span className="text-xs text-muted-foreground">{t('products.startingAt')}</span>
+              <span className="text-lg font-extrabold text-foreground tabular-nums">{formatINR(price)}</span>
+              <span className="text-xs text-muted-foreground">/ {unit}</span>
+            </p>
+          ) : (
+            <p className="text-sm font-semibold text-primary">{t('product.quoteRequired')}</p>
+          )}
+          {forSchools && book.minQty > 1 && (
+            <p className="text-xs text-muted-foreground">{t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })}</p>
+          )}
         </div>
+
+        <span className="mt-auto inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-secondary text-sm font-semibold text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground">
+          {t('products.orderNow')} <IconArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+        </span>
       </div>
     </Link>
   );

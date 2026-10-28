@@ -133,8 +133,8 @@
     "reviewsSubtitle": "Real reviews from verified orders",
     "highlightsTitle": "Most-loved by our customers",
     "highlightsSubtitle": "Hand-picked bestsellers across every category",
-    "exploreTitle": "Explore everything",
-    "exploreSubtitle": "Keep scrolling — more products load as you go",
+    "exploreTitle": "Explore our printing services",
+    "exploreSubtitle": "Everyday printing for you, and dedicated ranges for schools, businesses and weddings.",
     "heroEyebrow": "Print • Customize • Create",
     "heroTitleLead": "Ideas to",
     "heroTitleHighlight": "Prints.",
@@ -144,7 +144,16 @@
     "ctaQuote": "Get a Custom Quote",
     "trustQuality": "Quality printing",
     "trustCustom": "Custom designs",
-    "trustSupport": "Friendly support"
+    "trustSupport": "Friendly support",
+    "exploreEyebrow": "Our services",
+    "exploreIndividual": "Everyday printing",
+    "exploreIndividualDesc": "Notes, PVC cards, photos, frames and gifts.",
+    "exploreSchool": "School & College",
+    "exploreSchoolDesc": "ID cards, diaries, report cards, medals, ties and belts.",
+    "exploreBusiness": "Business Works",
+    "exploreBusinessDesc": "Visiting cards, flyers, banners and office stationery.",
+    "exploreWedding": "Wedding & Invitations",
+    "exploreWeddingDesc": "Boxed invitations and save-the-date cards."
   },
   "products": {
     "title": "All products",
@@ -178,7 +187,9 @@
     "trust1": "Same-day notes",
     "trust2": "Live prices",
     "trust3": "Pickup or delivery",
-    "allTitle": "All products"
+    "allTitle": "All products",
+    "startingAt": "Starting at",
+    "orderNow": "Order now"
   },
   "product": {
     "options": "Options",

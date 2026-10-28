@@ -232,7 +232,7 @@
 /* Small uppercase label above section headings. */
 /* Small uppercase section labels, in navy. */
 @utility eyebrow {
-  @apply text-xs font-bold tracking-[0.16em] text-primary uppercase;
+  @apply w-fit rounded-full bg-secondary px-3 py-1 text-[11px] font-bold tracking-[0.14em] text-primary uppercase;
 }
 
 /* Section rhythm: 40–56px on phones, 72–96px on desktop. */

@@ -133,8 +133,8 @@
     "reviewsSubtitle": "असली ऑर्डर से असली रिव्यू",
     "highlightsTitle": "ग्राहकों के सबसे पसंदीदा",
     "highlightsSubtitle": "हर श्रेणी से चुने हुए बेस्टसेलर",
-    "exploreTitle": "सब कुछ देखें",
-    "exploreSubtitle": "स्क्रॉल करते रहें — और प्रोडक्ट अपने आप लोड होंगे",
+    "exploreTitle": "हमारी प्रिंटिंग सेवाएँ देखें",
+    "exploreSubtitle": "आपके लिए रोज़ की प्रिंटिंग, और स्कूल, बिज़नेस और शादी के लिए अलग रेंज।",
     "heroEyebrow": "प्रिंट • कस्टमाइज़ • क्रिएट",
     "heroTitleLead": "आइडिया से",
     "heroTitleHighlight": "प्रिंट तक।",
@@ -144,7 +144,16 @@
     "ctaQuote": "कस्टम कोटेशन लें",
     "trustQuality": "बेहतरीन प्रिंटिंग",
     "trustCustom": "कस्टम डिज़ाइन",
-    "trustSupport": "मददगार सपोर्ट"
+    "trustSupport": "मददगार सपोर्ट",
+    "exploreEyebrow": "हमारी सेवाएँ",
+    "exploreIndividual": "रोज़ की प्रिंटिंग",
+    "exploreIndividualDesc": "नोट्स, पीवीसी कार्ड, फ़ोटो, फ़्रेम और गिफ़्ट।",
+    "exploreSchool": "स्कूल और कॉलेज",
+    "exploreSchoolDesc": "आईडी कार्ड, डायरी, रिपोर्ट कार्ड, मेडल, टाई और बेल्ट।",
+    "exploreBusiness": "बिज़नेस वर्क्स",
+    "exploreBusinessDesc": "विज़िटिंग कार्ड, फ़्लायर, बैनर और ऑफ़िस स्टेशनरी।",
+    "exploreWedding": "शादी और निमंत्रण",
+    "exploreWeddingDesc": "बॉक्स वाले निमंत्रण और सेव-द-डेट कार्ड।"
   },
   "products": {
     "title": "सभी प्रोडक्ट",
@@ -178,7 +187,9 @@
     "trust1": "उसी दिन नोट्स",
     "trust2": "लाइव कीमतें",
     "trust3": "पिकअप या डिलीवरी",
-    "allTitle": "सभी प्रोडक्ट"
+    "allTitle": "सभी प्रोडक्ट",
+    "startingAt": "शुरुआती कीमत",
+    "orderNow": "अभी ऑर्डर करें"
   },
   "product": {
     "options": "विकल्प",
