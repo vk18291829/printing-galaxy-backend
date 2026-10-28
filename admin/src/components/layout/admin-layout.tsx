@@ -30,6 +30,7 @@ import {
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { WEBSITE_URL } from '@/components/common/link-picker';
 import { Badge } from '@/components/ui/badge';
 import {
   Breadcrumb,
@@ -123,7 +124,6 @@ const RIDER_NAV: { section: string; items: NavItem[] }[] = [
   { section: 'Delivery', items: [{ to: '/deliveries', label: 'My deliveries', icon: IconTruckDelivery }] },
 ];
 
-const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL ?? 'http://localhost:5173';
 const COLLAPSE_KEY = 'pg-admin-sidebar';
 
 function readCollapsed() {

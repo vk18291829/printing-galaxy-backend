@@ -2,6 +2,7 @@ import { IconAlertTriangle, IconMail, IconMessage2, IconPlus, IconSend, IconTest
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { LinkPicker } from '@/components/common/link-picker';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -109,9 +110,12 @@ function EmailComposer({ info, busy }: { info: PromoOverview; busy: boolean }) {
         </div>
         <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
           <div className="space-y-1.5">
-            <Label htmlFor="p-link">
-              Button link <span className="font-normal text-muted-foreground">(optional)</span>
-            </Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="p-link">
+                Button link <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <LinkPicker absolute value={link} onPick={setLink} />
+            </div>
             <Input id="p-link" placeholder="https://printinggalaxy.in/products" value={link} onChange={(e) => setLink(e.target.value)} aria-invalid={!linkValid} />
           </div>
           <div className="space-y-1.5">
@@ -443,9 +447,7 @@ export default function PromotionsPage() {
       )}
 
       {byEmail ? (
-        <div className="max-w-3xl">
-          <EmailComposer info={info} busy={busy} />
-        </div>
+        <EmailComposer info={info} busy={busy} />
       ) : (
         <SmsComposer info={info} busy={busy} />
       )}

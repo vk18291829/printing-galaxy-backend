@@ -2,6 +2,7 @@ import { IconArrowRight, IconDiscount2, IconPencil, IconPhoto, IconPlus, IconSpa
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { LinkPicker } from '@/components/common/link-picker';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -193,7 +194,10 @@ function BannerDialog({ banner, kind, onClose }: { banner: AdminBanner | null; k
           )}
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="b-link">Link</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="b-link">Link</Label>
+              <LinkPicker value={form.link} onPick={(link) => set('link', link)} />
+            </div>
             <Input id="b-link" placeholder="/products?category=gifts  or  https://…" value={form.link} onChange={(e) => set('link', e.target.value.trim())} />
             <p className="text-xs text-muted-foreground">Site paths start with “/”. Leave empty for a banner that isn't clickable.</p>
           </div>
