@@ -27,7 +27,7 @@
   --accent: #eaf0f9;
   --accent-foreground: #0b2a65;
   --destructive: #dc2626;
-  --border: #e4e9f2;
+  --border: #dfe5ef;
   --input: #d6deeb;
   --ring: #0b2a65;
 
@@ -244,6 +244,7 @@ input:-webkit-autofill:focus {
    alone (white on #F5F7FB). The class marks a card surface. */
 @utility shadow-card {
   box-shadow: none;
+  border: 1px solid var(--border);
 }
 @keyframes page-in {
   from {

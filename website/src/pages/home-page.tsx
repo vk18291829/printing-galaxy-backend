@@ -29,8 +29,10 @@ import { useBanners } from '@/features/marketing/api';
 import { HeroCarousel } from '@/features/marketing/hero-carousel';
 import { FeatureBanner, PromoTiles } from '@/features/marketing/promo-banners';
 import { useReviewHighlights } from '@/features/reviews/api';
+import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useLocalized } from '@/lib/i18n';
+import { businessLd } from '@/lib/seo';
 import { cn } from '@/lib/utils';
 import type { Banner, Product } from '@/types/api';
 
@@ -179,10 +181,10 @@ function ExploreServices() {
   const photo = (list: Product[] | undefined, pick: (p: Product) => boolean = () => true) =>
     list?.find((p) => pick(p) && p.images.length > 0)?.images[0];
   const tiles = [
-    { to: '/products', title: t('home.exploreIndividual'), desc: t('home.exploreIndividualDesc'), icon: IconFileText, tint: 'bg-[#e6f6fe]', img: photo(retail, (p) => !NOT_INDIVIDUAL.includes(p.category.slug)) },
-    { to: '/institutions', title: t('home.exploreSchool'), desc: t('home.exploreSchoolDesc'), icon: IconSchool, tint: 'bg-[#eaf0f9]', img: photo(school) },
-    { to: '/business-printing', title: t('home.exploreBusiness'), desc: t('home.exploreBusinessDesc'), icon: IconBriefcase, tint: 'bg-[#fff4e0]', img: photo(retail, (p) => BUSINESS_CATEGORIES.includes(p.category.slug)) },
-    { to: '/wedding-cards', title: t('home.exploreWedding'), desc: t('home.exploreWeddingDesc'), icon: IconHeart, tint: 'bg-[#fee7f1]', img: photo(wedding) },
+    { to: '/products', title: t('home.exploreIndividual'), desc: t('home.exploreIndividualDesc'), icon: IconFileText, tint: 'border-[#c4eafc] bg-[#e9f7fe]', img: photo(retail, (p) => !NOT_INDIVIDUAL.includes(p.category.slug)) },
+    { to: '/institutions', title: t('home.exploreSchool'), desc: t('home.exploreSchoolDesc'), icon: IconSchool, tint: 'border-[#d2ddef] bg-[#edf2fa]', img: photo(school) },
+    { to: '/business-printing', title: t('home.exploreBusiness'), desc: t('home.exploreBusinessDesc'), icon: IconBriefcase, tint: 'border-[#fde0ad] bg-[#fff5e4]', img: photo(retail, (p) => BUSINESS_CATEGORIES.includes(p.category.slug)) },
+    { to: '/wedding-cards', title: t('home.exploreWedding'), desc: t('home.exploreWeddingDesc'), icon: IconHeart, tint: 'border-[#fcd0e2] bg-[#feedf4]', img: photo(wedding) },
   ];
 
   return (
@@ -194,7 +196,7 @@ function ExploreServices() {
       </div>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {tiles.map(({ to, title, desc, icon: Icon, tint, img }) => (
-          <Link key={to} to={to} className={cn('group flex flex-col overflow-hidden rounded-2xl transition-transform duration-200 hover:-translate-y-1', tint)}>
+          <Link key={to} to={to} className={cn('group flex flex-col overflow-hidden rounded-2xl border transition-transform duration-200 hover:-translate-y-1', tint)}>
             <div className="aspect-[4/3] overflow-hidden p-3 sm:p-4">
               <SafeImage
                 src={img}
@@ -351,7 +353,9 @@ function InstitutionCta() {
 }
 
 export default function HomePage() {
-  useDocumentTitle();
+  const { t } = useTranslation();
+  const { data: settings } = usePublicSettings();
+  useDocumentTitle(undefined, { description: t('seo.homeDesc'), jsonLd: businessLd(settings?.shop, settings?.social as Record<string, string> | undefined) });
   const { banners, isLoading } = useBanners();
 
   return (

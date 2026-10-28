@@ -75,7 +75,7 @@ function InvitationVisual() {
 
 export default function WeddingCardsPage() {
   const { t } = useTranslation();
-  useDocumentTitle(t('nav.weddingCards'));
+  useDocumentTitle(t('seo.weddingTitle'), { description: t('seo.weddingDesc') });
 
   const details = [
     { icon: IconWritingSign, title: t('wedding.detail1Title'), desc: t('wedding.detail1Desc') },

@@ -15,7 +15,7 @@ export default function LegalPage({ kind }: { kind: LegalKind }) {
   const { data: settings } = usePublicSettings();
   const shop = settings?.shop;
   const name = shop?.name || 'Printing Galaxy';
-  useDocumentTitle(t(`legal.${kind}.title`));
+  useDocumentTitle(t(`legal.${kind}.title`), { description: t('seo.legalDesc') });
   const sections = t(`legal.${kind}.sections`, { returnObjects: true }) as [string, string][];
 
   return (

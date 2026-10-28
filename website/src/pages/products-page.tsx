@@ -21,10 +21,10 @@ const sectionId = (slug: string) => `cat-${slug}`;
 
 /** One print colour per category, in order: cyan, magenta, yellow, orange. */
 const TINTS = [
-  { tile: 'bg-brand-cyan/8 hover:border-brand-cyan/50', icon: 'bg-white text-brand-cyan', badge: 'bg-brand-cyan/10 text-brand-cyan' },
-  { tile: 'bg-brand-magenta/8 hover:border-brand-magenta/50', icon: 'bg-white text-brand-magenta', badge: 'bg-brand-magenta/10 text-brand-magenta' },
-  { tile: 'bg-brand-yellow/12 hover:border-brand-yellow/60', icon: 'bg-white text-amber-600', badge: 'bg-brand-yellow/15 text-amber-600' },
-  { tile: 'bg-primary/8 hover:border-primary/50', icon: 'bg-white text-primary', badge: 'bg-primary/10 text-primary' },
+  { tile: 'border-[#c4eafc] bg-[#e9f7fe] hover:border-brand-cyan', icon: 'bg-white text-brand-cyan', badge: 'bg-brand-cyan/10 text-brand-cyan' },
+  { tile: 'border-[#fcd0e2] bg-[#feedf4] hover:border-brand-magenta', icon: 'bg-white text-brand-magenta', badge: 'bg-brand-magenta/10 text-brand-magenta' },
+  { tile: 'border-[#fde0ad] bg-[#fff5e4] hover:border-brand-amber', icon: 'bg-white text-amber-600', badge: 'bg-brand-yellow/15 text-amber-600' },
+  { tile: 'border-[#d2ddef] bg-[#edf2fa] hover:border-primary', icon: 'bg-white text-primary', badge: 'bg-primary/10 text-primary' },
 ];
 
 function scrollToCategory(slug: string) {
@@ -60,11 +60,11 @@ export default function ProductsPage() {
   const l = useLocalized();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get('q') ?? '');
-  useDocumentTitle(t('products.title'));
+  useDocumentTitle(t('seo.productsTitle'), { description: t('seo.productsDesc') });
 
   const { data: allCategories } = useCategories();
   const { data: products, isLoading, error, refetch } = useProducts({ excludeCategory: EXCLUDE });
-  const categories = useMemo(() => allCategories?.filter((c) => !NOT_INDIVIDUAL.includes(c.slug)) ?? [], [allCategories]);
+  const categories = useMemo(() => allCategories?.filter((c) => ![...NOT_INDIVIDUAL, ...SCHOOL_CATEGORIES].includes(c.slug)) ?? [], [allCategories]);
 
   // Rows in catalogue order, each with every product of that category (search narrows them).
   const needle = search.trim().toLowerCase();
@@ -158,7 +158,7 @@ export default function ProductsPage() {
                     if (needle) setQuery('');
                     requestAnimationFrame(() => scrollToCategory(c.slug));
                   }}
-                  className={cn('group flex flex-col items-start gap-3 rounded-2xl shadow-card bg-card p-4 text-left transition-[border-color,box-shadow] sm:p-5', tint.tile)}
+                  className={cn('group flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-[border-color,transform] hover:-translate-y-0.5 sm:p-5', tint.tile)}
                 >
                   <span className={cn('grid size-11 place-items-center rounded-xl shadow-xs', tint.icon)}>
                     <DynamicIcon name={c.icon} className="size-5.5" />

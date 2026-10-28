@@ -56,7 +56,7 @@ export function ProductImage({ product, className }: { product: Pick<Product, 'i
       loading="lazy"
       className={className ?? 'size-full object-cover'}
       fallback={
-        <div className="grid size-full place-items-center bg-muted text-primary">
+        <div className="grid size-full place-items-center text-primary">
           <DynamicIcon name={product.icon} className="size-10" stroke={1.5} />
         </div>
       }
@@ -80,9 +80,9 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card transition-transform duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-[transform,border-color] hover:border-primary/30 duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <div className="relative aspect-4/3 overflow-hidden bg-muted">
+      <div className="relative aspect-4/3 overflow-hidden border-b border-border bg-linear-to-b from-[#f3f7fd] to-[#e8effa]">
         <div className="size-full transition-transform duration-500 group-hover:scale-[1.04]">
           <ProductImage product={product} />
         </div>

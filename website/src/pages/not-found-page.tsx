@@ -13,7 +13,7 @@ import { categoryHome } from '@/features/catalog/sections';
 export default function NotFoundPage() {
   const { t } = useTranslation();
   const l = useLocalized();
-  useDocumentTitle(t('notFound.title'));
+  useDocumentTitle(t('notFound.title'), { noindex: true });
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const { data: categories } = useCategories();

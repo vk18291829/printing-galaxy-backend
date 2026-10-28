@@ -37,6 +37,7 @@ import { FileUploader } from '@/features/uploads/file-uploader';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { breadcrumbLd, productLd } from '@/lib/seo';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -253,7 +254,24 @@ export default function ProductPage() {
   // Crop tool by default; plain upload for customers with a ready file.
   const [plainUpload, setPlainUpload] = useState(false);
 
-  useDocumentTitle(product ? l(product.name) : undefined);
+  // Search and share tags: the product's own photo, description, price range and breadcrumb.
+  const seoPrices = product ? (product.pricing[sectionOf(product)].enabled ? product.pricing[sectionOf(product)].tiers.map((tier) => tier.unitPrice) : []) : [];
+  const seoHome = product ? categoryHome(product.category.slug) : '/products';
+  useDocumentTitle(product ? l(product.name) : undefined, {
+    description: product ? `${l(product.shortDescription)} ${l(product.description)}`.trim() : undefined,
+    image: product?.images[0],
+    type: 'product',
+    jsonLd: product
+      ? [
+          productLd(product, product.name.en, product.shortDescription?.en ?? '', seoPrices),
+          breadcrumbLd([
+            ...(seoHome.startsWith('/products') ? [{ name: 'Products', path: '/products' }] : []),
+            { name: product.category.name.en, path: seoHome },
+            { name: product.name.en, path: `/products/${product.slug}` },
+          ]),
+        ]
+      : undefined,
+  });
 
   const book = product ? (product.pricing[audience].enabled ? product.pricing[audience] : product.pricing[sectionOf(product)]) : null;
   // School products are for institutions only, everyday products for individuals only.

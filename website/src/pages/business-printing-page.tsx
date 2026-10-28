@@ -82,7 +82,7 @@ type Tile = { icon: Icon; title: string; desc: string; to: string; featured?: bo
 
 export default function BusinessPrintingPage() {
   const { t } = useTranslation();
-  useDocumentTitle(t('nav.businessPrinting'));
+  useDocumentTitle(t('seo.businessTitle'), { description: t('seo.businessDesc') });
 
   const tiles: Tile[] = [
     { icon: IconId, title: t('business.tileCards'), desc: t('business.tileCardsDesc'), to: '/products/visiting-card', featured: true },

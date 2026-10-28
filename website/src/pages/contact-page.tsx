@@ -40,7 +40,7 @@ function Channel({ icon: Icon, title, value, action }: { icon: Icon; title: stri
 
 export default function ContactPage() {
   const { t } = useTranslation();
-  useDocumentTitle(t('nav.contact'));
+  useDocumentTitle(t('seo.contactTitle'), { description: t('seo.contactDesc') });
   const { data, isLoading } = usePublicSettings();
   if (isLoading || !data) return <PageLoader />;
   const { shop } = data;

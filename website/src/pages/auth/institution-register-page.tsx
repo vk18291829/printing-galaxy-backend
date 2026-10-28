@@ -90,7 +90,7 @@ function Field({ label, error, children, hint, htmlFor }: { label: string; error
 
 export default function InstitutionRegisterPage() {
   const { t } = useTranslation();
-  useDocumentTitle(t('auth.registerTitle'));
+  useDocumentTitle(t('auth.registerTitle'), { description: t('seo.registerDesc') });
   const navigate = useNavigate();
   const register = useInstitutionRegister();
   const [step, setStep] = useState(0);

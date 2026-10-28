@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 
 export default function InstitutionsPage() {
   const { t } = useTranslation();
-  useDocumentTitle(t('nav.institutions'));
+  useDocumentTitle(t('seo.institutionsTitle'), { description: t('seo.institutionsDesc') });
   const isInstitution = useAuthStore((s) => s.principal?.kind === 'institution');
 
   const benefits = [

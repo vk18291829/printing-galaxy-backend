@@ -1302,5 +1302,20 @@
     "linkInfo_other": "{{count}} photos · until {{date}}",
     "revoke": "Switch off",
     "revoked": "Link switched off"
+  },
+  "seo": {
+    "homeDesc": "Order notes printing, PVC Aadhaar and PAN cards, school ID cards, visiting cards, wedding invitations, photo frames and gifts online. Live prices, proof approval, pickup or home delivery.",
+    "productsTitle": "Everyday printing: notes, PVC cards, photos & gifts",
+    "productsDesc": "Print notes and PPTs, PVC Aadhaar, PAN and voter ID cards, photo prints, frames and personalised gifts. See the price instantly and pick up or get it delivered.",
+    "institutionsTitle": "School & college printing: ID cards, diaries, report cards",
+    "institutionsDesc": "Student and staff ID cards, diaries, report cards, medals, ties and belts for schools and colleges. Institution prices, online proofs and a student list with photos.",
+    "businessTitle": "Business printing: visiting cards, flyers, banners & stationery",
+    "businessDesc": "Visiting cards, flyers, logo stickers, key chains, flex banners, letterheads and bill books for shops, startups, clinics and offices. Bulk prices and proof before print.",
+    "weddingTitle": "Wedding cards & invitations",
+    "weddingDesc": "Premium boxed wedding cards and save-the-date cards with your names, colours and wording. Approve a proof before printing.",
+    "contactTitle": "Contact us",
+    "contactDesc": "Call, WhatsApp or visit Printing Galaxy for printing, PVC cards, ID cards and custom orders.",
+    "legalDesc": "Printing Galaxy policies: terms of service, privacy, refunds and shipping.",
+    "registerDesc": "Register your school, college or business for institution prices, bulk ordering and online proofs."
   }
 }
