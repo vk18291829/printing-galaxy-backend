@@ -13,9 +13,19 @@ updatesRouter.use(authenticate);
 const WINDOW_MS = 90 * 86_400_000;
 const MAX_ITEMS = 60;
 
+/** What the order is for, so each update says which product it is about. */
+interface OrderInfo {
+  orderId: string;
+  orderNumber: string;
+  product?: { en: string; hi: string };
+  itemCount: number;
+  total: number;
+  method: 'pickup' | 'delivery';
+}
+
 type Update =
-  | { id: string; kind: 'order'; status: string; orderId: string; orderNumber: string; at: Date }
-  | { id: string; kind: 'refund'; amount: number; done: boolean; orderId: string; orderNumber: string; at: Date }
+  | ({ id: string; kind: 'order'; status: string; at: Date } & OrderInfo)
+  | ({ id: string; kind: 'refund'; amount: number; done: boolean; at: Date } & OrderInfo)
   | { id: string; kind: 'offer'; title?: string; text: string; at: Date };
 
 async function account(req: Request) {
@@ -32,25 +42,41 @@ async function account(req: Request) {
 updatesRouter.get('/', async (req, res) => {
   const { owner, me, offers } = await account(req);
   const since = new Date(Date.now() - WINDOW_MS);
-  const orders = await OrderModel.find({ ...owner, updatedAt: { $gte: since } })
-    .select('orderNumber statusHistory')
+  // Unpaid online checkouts are not orders yet, so they never show here (same as My orders).
+  const orders = await OrderModel.find({ ...owner, draft: { $ne: true }, updatedAt: { $gte: since } })
+    .select('orderNumber statusHistory items.productName totals.total fulfilment.method')
     .sort({ updatedAt: -1 })
     .limit(30)
     .lean();
-  const numbers = new Map(orders.map((o) => [String(o._id), o.orderNumber]));
+  const info = new Map<string, OrderInfo>(
+    orders.map((o) => [
+      String(o._id),
+      {
+        orderId: String(o._id),
+        orderNumber: o.orderNumber,
+        product: o.items[0]?.productName ? { en: o.items[0].productName.en ?? '', hi: o.items[0].productName.hi ?? '' } : undefined,
+        itemCount: o.items.length,
+        total: o.totals?.total ?? 0,
+        method: o.fulfilment?.method === 'delivery' ? 'delivery' : 'pickup',
+      },
+    ]),
+  );
 
   const items: Update[] = orders.flatMap((o) =>
     // Status changes only: history notes can hold staff-only details.
     o.statusHistory
-      .filter((h) => h.at && h.at >= since)
-      .map((h) => ({ id: `${o._id}:${h.status}:${h.at!.getTime()}`, kind: 'order' as const, status: h.status, orderId: String(o._id), orderNumber: o.orderNumber, at: h.at! })),
+      // The "awaiting payment" a pay-first checkout starts with is not news once it is paid.
+      .filter((h, i) => h.at && h.at >= since && !(i === 0 && h.status === 'awaiting_payment'))
+      .map((h) => ({ id: `${o._id}:${h.status}:${h.at!.getTime()}`, kind: 'order' as const, status: h.status, at: h.at!, ...info.get(String(o._id))! })),
   );
 
   const refunds = await PaymentModel.find({ order: { $in: orders.map((o) => o._id) }, kind: 'refund', createdAt: { $gte: since } })
     .select('order amount status createdAt')
     .lean();
   for (const r of refunds) {
-    items.push({ id: String(r._id), kind: 'refund', amount: r.amount, done: r.status === 'refunded', orderId: String(r.order), orderNumber: numbers.get(String(r.order)) ?? '', at: r.createdAt });
+    const order = info.get(String(r.order));
+    if (!order) continue;
+    items.push({ id: String(r._id), kind: 'refund', amount: r.amount, done: r.status === 'refunded', at: r.createdAt, ...order });
   }
 
   const userMe = me as { offers?: boolean; createdAt?: Date } | null;

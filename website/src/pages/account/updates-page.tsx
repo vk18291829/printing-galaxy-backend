@@ -1,5 +1,6 @@
 import { IconBell, IconCash, IconChevronRight, IconCircleCheck, IconDiscount2, IconEyeCheck, IconPackage } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { PageBanner } from '@/components/common/page-banner';
@@ -7,7 +8,9 @@ import { EmptyState, ErrorState, PageLoader } from '@/components/common/states';
 import { useMarkUpdatesSeen, useUpdates, type Update } from '@/features/updates/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { formatDate, formatINR } from '@/lib/format';
+import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import type { LocalizedString } from '@/types/api';
 
 type Filter = 'all' | 'order' | 'refund' | 'offer';
 
@@ -25,8 +28,15 @@ function look(u: Update) {
   return { Icon: IconPackage, tone: 'bg-brand-navy text-white' };
 }
 
+/** "Wedding Card" or "Wedding Card + 2 more". */
+function productTitle(u: Extract<Update, { orderId: string }>, l: (v: LocalizedString | undefined) => string, t: TFunction) {
+  const name = l(u.product) || t('updates.yourOrder');
+  return u.itemCount > 1 ? t('updates.andMore', { name, count: u.itemCount - 1 }) : name;
+}
+
 function UpdateText({ u }: { u: Update }) {
   const { t } = useTranslation();
+  const l = useLocalized();
   if (u.kind === 'offer') {
     return (
       <>
@@ -35,17 +45,15 @@ function UpdateText({ u }: { u: Update }) {
       </>
     );
   }
-  if (u.kind === 'refund') {
-    return (
-      <p className="font-medium text-foreground">
-        {t(u.done ? 'updates.refundDone' : 'updates.refundStarted', { amount: formatINR(u.amount), number: u.orderNumber })}
-      </p>
-    );
-  }
+  const message =
+    u.kind === 'refund'
+      ? t(u.done ? 'updates.msg.refundDone' : 'updates.msg.refundStarted', { amount: formatINR(u.amount) })
+      : t(`updates.msg.${u.status === 'ready' ? `ready_${u.method}` : u.status}`, { amount: formatINR(u.total) });
   return (
-    <p className="font-medium text-foreground">
-      <span className="font-mono text-sm">{u.orderNumber}</span> · {t(`status.order.${u.status}`)}
-    </p>
+    <>
+      <p className="truncate font-semibold text-foreground">{productTitle(u, l, t)}</p>
+      <p className="text-sm text-foreground/80">{message}</p>
+    </>
   );
 }
 
@@ -148,7 +156,7 @@ export default function UpdatesPage() {
             {groups.map((group) => (
               <section key={group[0]!.at}>
                 <h2 className="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{dayLabel(group[0]!.at, i18n.language, t)}</h2>
-                <ol className="grid gap-2.5 2xl:grid-cols-2">
+                <ol className="space-y-2.5">
                   {group.map((u) => {
                     const { Icon, tone } = look(u);
                     const action = u.kind === 'order' && NEEDS_CUSTOMER.has(u.status);
@@ -167,6 +175,8 @@ export default function UpdatesPage() {
                         <div className="min-w-0 flex-1 space-y-1">
                           <UpdateText u={u} />
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {u.kind !== 'offer' && <span className="font-mono font-medium text-foreground/70">{u.orderNumber}</span>}
+                            {u.kind !== 'offer' && <span aria-hidden>·</span>}
                             <span>{new Date(u.at).toLocaleTimeString(i18n.language === 'hi' ? 'hi-IN' : 'en-IN', { hour: 'numeric', minute: '2-digit' })}</span>
                             {u.kind === 'offer' && <span className="rounded-full bg-brand-magenta/10 px-2 py-0.5 font-semibold text-brand-magenta">{t('updates.offer')}</span>}
                             {action && <span className="rounded-full bg-brand-amber px-2 py-0.5 font-semibold text-brand-navy">{t('updates.actionNeeded')}</span>}

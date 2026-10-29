@@ -1,27 +1,31 @@
 import {
-  IconX,
-  IconUpload,
-  IconSend,
-  IconEye,
-  IconBrandWhatsapp,
-  IconMail,
-  IconMessage,
-  IconProgressCheck,
-  IconRulerMeasure,
-  IconCamera,
   IconAlertTriangle,
   IconArrowBackUp,
+  IconBrandWhatsapp,
   IconBuildingStore,
+  IconCamera,
   IconCash,
   IconClockHour4,
   IconDownload,
+  IconEye,
+  IconFile,
   IconFileInvoice,
+  IconFileTypePdf,
   IconFileUpload,
   IconHandStop,
   IconKey,
   IconLock,
+  IconMail,
   IconMapPin,
+  IconMessage,
   IconPhone,
+  IconPhoto,
+  IconPhotoCheck,
+  IconProgressCheck,
+  IconSend,
+  IconUpload,
+  IconUser,
+  IconX,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -58,6 +62,7 @@ import {
   useAddItemFiles,
 } from '@/features/orders/api';
 import { deleteUpload, FileUploader, type LineFile } from '@/features/uploads/file-uploader';
+import { OrderTracking } from '@/features/orders/order-tracking';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { ProofViewer } from '@/features/orders/proof-viewer';
 import { getErrorMessage, newIdempotencyKey } from '@/lib/api-client';
@@ -138,18 +143,35 @@ function ProofUpload({ order, item }: { order: AdminOrder; item: OrderItem }) {
   const version = item.proofs.length + 1;
 
   return (
-    <div id={`proof-${item._id}`} className="scroll-mt-20 space-y-3 rounded-xl border border-dashed p-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase">Send proof {version > 1 ? `${version} ` : ''}for approval</p>
+    // Highlighted on purpose: nothing with a design is printed until the customer approves a proof.
+    <div id={`proof-${item._id}`} className="scroll-mt-20 space-y-4 rounded-2xl border-2 border-brand-amber bg-brand-amber/8 p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy">
+          <IconPhotoCheck className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="font-semibold text-brand-navy dark:text-foreground">
+            Send proof {version > 1 ? `${version} ` : ''}for approval
+          </p>
+          <ol className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+            <li>1. Upload the design</li>
+            <li aria-hidden>→</li>
+            <li>2. Customer approves</li>
+            <li aria-hidden>→</li>
+            <li>3. Printing starts</li>
+          </ol>
+        </div>
+      </div>
       <input ref={inputRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => pick(e.target.files?.[0])} />
       {/* Phones: photograph a printed sample straight from the camera. */}
       <input ref={cameraRef} type="file" hidden accept="image/*" capture="environment" onChange={(e) => pick(e.target.files?.[0])} />
 
       {!file || !url ? (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+          <Button onClick={() => inputRef.current?.click()}>
             <IconFileUpload /> Choose image / PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={() => cameraRef.current?.click()} className="sm:hidden">
+          <Button variant="outline" onClick={() => cameraRef.current?.click()} className="bg-card sm:hidden">
             <IconCamera /> Take photo
           </Button>
         </div>
@@ -160,7 +182,7 @@ function ProofUpload({ order, item }: { order: AdminOrder; item: OrderItem }) {
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className="relative grid h-44 place-items-center overflow-hidden rounded-lg shadow-card bg-muted"
+              className="relative grid h-44 place-items-center overflow-hidden rounded-xl bg-card ring-1 ring-brand-amber/40"
               aria-label="Preview proof"
             >
               <LocalPreview file={file} url={url} className="pointer-events-none" />
@@ -177,7 +199,7 @@ function ProofUpload({ order, item }: { order: AdminOrder; item: OrderItem }) {
                   <IconX /> Change
                 </Button>
               </div>
-              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Message to the customer (optional), e.g. Please check the spelling of the school name" className="min-h-16 text-sm" maxLength={500} />
+              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Message to the customer (optional), e.g. Please check the spelling of the school name" className="min-h-16 bg-card text-sm" maxLength={500} />
               <Button className="w-full sm:w-auto" onClick={() => setConfirming(true)}>
                 <IconEye /> Preview & send
               </Button>
@@ -289,15 +311,30 @@ function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; 
   const files = item.files.filter((f): f is UploadedFile => typeof f !== 'string');
   const showProofs = item.workflow === 'design' || item.proofs.length > 0;
 
+  // Everything that decides what gets printed, as one grid: how many first, then each option.
+  const specs: { label: string; value: string; strong?: boolean }[] = [
+    ...(item.unit === 'page'
+      ? [
+          { label: 'Pages per copy', value: formatNumber(item.pageCount ?? 0), strong: true },
+          { label: 'Copies', value: formatNumber(item.copies), strong: true },
+          { label: 'Total pages', value: formatNumber(item.units), strong: true },
+        ]
+      : [
+          { label: 'Quantity', value: `${formatNumber(item.quantity)} ${unitLabel(item.unit, item.quantity)}`, strong: true },
+          ...(item.copies > 1 ? [{ label: 'Copies', value: formatNumber(item.copies), strong: true }] : []),
+        ]),
+    ...(item.customSize ? [{ label: 'Custom size', value: `${item.customSize.width} × ${item.customSize.height} ${item.customSize.unit}` }] : []),
+    ...item.options.map((o) => ({ label: en(o.label), value: en(o.valueLabel) })),
+  ];
+
   return (
-    <div className="space-y-4 rounded-xl shadow-card bg-card p-4 sm:p-5">
+    <div className="space-y-5 p-4 sm:p-6">
       <div className="flex items-start gap-3 sm:gap-4">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">{index + 1}</span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-navy text-sm font-bold text-white">{index + 1}</span>
         <div className="min-w-0 flex-1">
           <p className="text-lg leading-snug font-semibold">{en(item.productName)}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="rounded-md bg-foreground px-2 py-0.5 text-sm font-semibold text-background tabular-nums">{qty}</span>
-            {item.unit === 'page' && <span className="text-xs text-muted-foreground">= {formatNumber(item.units)} pages</span>}
+            <span className="text-sm text-muted-foreground tabular-nums">{qty}</span>
             {item.workflow === 'design' && <Badge variant="info">Design proof</Badge>}
             {item.workflow === 'quote' && <Badge variant="warning">Priced on quote</Badge>}
           </div>
@@ -311,25 +348,17 @@ function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; 
         </div>
       </div>
 
-      {(item.options.length > 0 || item.customSize) && (
-        <div className="flex flex-wrap gap-2">
-          {item.customSize && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg shadow-card border-warning/50 bg-warning/10 px-2.5 py-1 text-sm">
-              <IconRulerMeasure className="size-4 text-amber-600" />
-              <span className="text-muted-foreground">Custom size</span>
-              <span className="font-semibold">
-                {item.customSize.width} × {item.customSize.height} {item.customSize.unit}
-              </span>
-            </span>
-          )}
-          {item.options.map((o) => (
-            <span key={o.key} className="inline-flex items-center gap-1.5 rounded-lg shadow-card bg-muted/50 px-2.5 py-1 text-sm">
-              <span className="text-muted-foreground">{en(o.label)}</span>
-              <span className="font-semibold">{en(o.valueLabel)}</span>
-            </span>
-          ))}
-        </div>
-      )}
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
+        {specs.map((spec) => (
+          <div
+            key={spec.label}
+            className={cn('min-w-0 rounded-xl px-3 py-2.5', spec.strong ? 'bg-secondary ring-1 ring-primary/20' : 'bg-muted/60')}
+          >
+            <dt className="truncate text-xs text-muted-foreground">{spec.label}</dt>
+            <dd className={cn('truncate font-semibold tabular-nums', spec.strong && 'text-brand-navy dark:text-foreground')}>{spec.value}</dd>
+          </div>
+        ))}
+      </dl>
 
       {item.notes && (
         <div className="flex gap-2.5 rounded-lg border-l-4 border-primary bg-primary/5 px-3 py-2.5 text-sm">
@@ -343,24 +372,45 @@ function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; 
 
       {(files.length > 0 || !['cancelled', 'delivered', 'picked_up'].includes(order.status)) && (
         <Section title={files.length ? `Files (${files.length})` : 'Files'}>
-          {files.length === 0 && <p className="text-sm text-muted-foreground">No file yet.</p>}
-          <div className="flex flex-wrap gap-2">
-            {files.map((f) => (
-              <Button
-                key={f._id}
-                variant="outline"
-                size="sm"
-                disabled={f.status === 'deleted'}
-                onClick={() => void openFile(f._id).catch((e) => toast.error(getErrorMessage(e)))}
-              >
-                {f.sensitive ? <IconLock className="text-amber-600" /> : <IconDownload />}
-                <span className="max-w-44 truncate">{f.originalName}</span>
-                <span className="text-xs text-muted-foreground">
-                  {f.status === 'deleted' ? 'deleted' : `${formatFileSize(f.size)}${f.pageCount ? ` · ${f.pageCount}p` : ''}`}
-                </span>
-              </Button>
-            ))}
-          </div>
+          {files.length === 0 && <p className="rounded-xl border border-dashed px-3 py-2.5 text-sm text-muted-foreground">No file yet.</p>}
+          <ul className="grid gap-2 md:grid-cols-2">
+            {files.map((f) => {
+              const deleted = f.status === 'deleted';
+              const pdf = f.mimeType === 'application/pdf';
+              const image = f.mimeType.startsWith('image/');
+              const FileIcon = f.sensitive ? IconLock : pdf ? IconFileTypePdf : image ? IconPhoto : IconFile;
+              return (
+                <li key={f._id} className={cn('flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3', deleted && 'opacity-60')}>
+                  <span
+                    className={cn(
+                      'grid size-10 shrink-0 place-items-center rounded-lg [&_svg]:size-5',
+                      f.sensitive ? 'bg-brand-amber/20 text-amber-700' : 'bg-secondary text-primary',
+                    )}
+                  >
+                    <FileIcon />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold" title={f.originalName}>
+                      {f.originalName}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {deleted
+                        ? 'Deleted after the order was completed'
+                        : [pdf ? 'PDF' : image ? 'Image' : f.originalName.split('.').pop()?.toUpperCase(), formatFileSize(f.size), f.pageCount ? `${f.pageCount} ${f.pageCount === 1 ? 'page' : 'pages'}` : null]
+                            .filter(Boolean)
+                            .join(' · ')}
+                      {f.sensitive && !deleted && ' · ID document'}
+                    </p>
+                  </div>
+                  {!deleted && (
+                    <Button variant="outline" size="sm" className="shrink-0" onClick={() => void openFile(f._id).catch((e) => toast.error(getErrorMessage(e)))}>
+                      <IconDownload /> Open
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
           {!['cancelled', 'delivered', 'picked_up'].includes(order.status) && <AddItemFiles order={order} item={item} />}
         </Section>
       )}
@@ -1219,12 +1269,12 @@ function CustomerCard({ order }: { order: AdminOrder }) {
   return (
     <Card className="gap-0 py-0">
       <div className="flex items-start gap-3 p-4 sm:p-5">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-foreground text-base font-bold text-background">
-          {(order.contact.name || '?').trim().charAt(0).toUpperCase()}
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-navy text-base font-bold text-white">
+          {order.contact.name?.trim() ? order.contact.name.trim().charAt(0).toUpperCase() : <IconUser className="size-5" />}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted-foreground">Customer</p>
-          <p className="truncate text-lg font-semibold">{order.contact.name || '—'}</p>
+          <p className={cn('truncate text-lg font-semibold', !order.contact.name?.trim() && 'text-muted-foreground')}>{order.contact.name?.trim() || 'No name given'}</p>
           {order.institution && (
             <Link to={`/institutions/${order.institution._id}`} className="text-sm font-medium text-primary hover:underline">
               {order.institution.name}
@@ -1313,43 +1363,30 @@ function OrderDetail({ order }: { order: AdminOrder }) {
           {(order.status === 'quote_pending' || order.status === 'quote_sent') && <QuoteCard order={order} />}
           {order.status === 'ready' && order.fulfilment.method === 'pickup' && <HandoverCard order={order} />}
 
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">
-              Items <span className="text-muted-foreground">({order.items.length})</span>
-            </h2>
-            {order.items.map((item, i) => (
-              <ItemCard key={item._id} order={order} item={item} index={i} />
-            ))}
+          <section className="overflow-hidden rounded-2xl bg-card shadow-card">
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-6">
+              <h2 className="text-base font-semibold">Items</h2>
+              <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+            <div className="divide-y">
+              {order.items.map((item, i) => (
+                <ItemCard key={item._id} order={order} item={item} index={i} />
+              ))}
+            </div>
           </section>
 
           <CustomerCard order={order} />
 
-          <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="relative space-y-4 border-l pl-5">
-                  {[...(order.statusHistory ?? [])].reverse().map((h, i) => (
-                    <li key={i} className="relative text-sm">
-                      <span className={cn('absolute top-1 -left-6.25 size-2.5 rounded-full ring-4 ring-card', i === 0 ? 'bg-primary' : 'bg-muted-foreground/40')} />
-                      <p className="font-medium">{ORDER_STATUS_LABEL[h.status]}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(h.at, 'en', true)}</p>
-                      {h.note && <p className="mt-0.5 text-xs text-muted-foreground">“{h.note}”</p>}
-                    </li>
-                  ))}
-                </ol>
-              </CardContent>
-            </Card>
-            <NoteCard order={order} />
-          </div>
+          <OrderTracking order={order} />
         </div>
 
         <div className="space-y-6">
           <DueCard key={order.dueDate ?? 'none'} order={order} />
           <PaymentCard order={order} />
           <AssignCard order={order} />
+          <NoteCard order={order} />
         </div>
       </div>
       {/* Keeps the last card clear of the pinned action bar (phones only; tablets have the rail, not the tab bar). */}

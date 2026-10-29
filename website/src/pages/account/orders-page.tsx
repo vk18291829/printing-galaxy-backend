@@ -8,7 +8,7 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   useDocumentTitle(t('orders.title'));
   return (
-    <div className="container-page max-w-5xl space-y-6 py-8 sm:py-10">
+    <div className="container-page space-y-6 py-8 sm:py-10">
       <PageBanner icon={<IconPackage />} title={t('orders.title')} description={t('orders.subtitle')} />
       <OrderList />
     </div>

@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useReorderStore } from '@/features/cart/reorder-store';
 import { orderKeys, useAcceptQuote, useCancelOrder, useOrder } from '@/features/orders/api';
-import { OrderProgress } from '@/features/orders/components/order-progress';
+import { OrderTracking } from '@/features/orders/components/order-progress';
 import { DataSheetCard } from '@/features/orders/components/data-sheet-card';
 import { ProofReview } from '@/features/orders/components/proof-review';
 import { payWithRazorpay } from '@/features/orders/razorpay';
@@ -377,7 +377,7 @@ export default function OrderDetailPage() {
                 )}
               </CardHeader>
               <CardContent>
-                <OrderProgress order={order} />
+                <OrderTracking order={order} />
               </CardContent>
             </Card>
           )}

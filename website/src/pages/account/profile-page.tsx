@@ -2,6 +2,7 @@ import { IconBell, IconBuilding, IconChevronRight, IconLanguage, IconMail, IconM
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PrefixedInput } from '@/components/common/prefixed-input';
 import { Spinner } from '@/components/common/states';
@@ -20,10 +21,40 @@ import type { Address, Institution, User } from '@/types/api';
 
 const EMPTY: Address = { line1: '', line2: '', city: '', state: '', pincode: '' };
 
-/** One part of the form: an icon heading, a line on what it is for, then the fields. */
-function Section({ icon, title, description, children, className }: { icon: ReactNode; title: string; description?: string; children: ReactNode; className?: string }) {
+/**
+ * One part of the profile: an icon heading, a line on what it is for, the fields, and its own Save.
+ * Save is off until something here changes; Cancel puts the saved values back.
+ */
+function Section({
+  icon,
+  title,
+  description,
+  children,
+  className,
+  dirty,
+  saving,
+  onSave,
+  onCancel,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+  dirty?: boolean;
+  saving?: boolean;
+  onSave?: () => void;
+  onCancel?: () => void;
+}) {
+  const { t } = useTranslation();
   return (
-    <section className={cn('rounded-2xl border bg-card p-5 sm:p-6', className)}>
+    <form
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault();
+        if (dirty && !saving) onSave?.();
+      }}
+      className={cn('rounded-2xl border bg-card p-5 transition-colors sm:p-6', dirty && 'border-brand-amber/70', className)}
+    >
       <div className="mb-5 flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary [&_svg]:size-5">{icon}</span>
         <div className="min-w-0">
@@ -32,7 +63,25 @@ function Section({ icon, title, description, children, className }: { icon: Reac
         </div>
       </div>
       {children}
-    </section>
+      {onSave && (
+        <div className="mt-6 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className={cn('flex items-center gap-2 text-sm', dirty ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+            <span className={cn('size-2 shrink-0 rounded-full', dirty ? 'bg-brand-amber' : 'bg-success')} />
+            {dirty ? t('account.unsaved') : t('account.upToDate')}
+          </p>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            {dirty && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+                {t('common.cancel')}
+              </Button>
+            )}
+            <Button type="submit" variant="brand" disabled={!dirty || saving}>
+              {saving && <Spinner className="size-4 text-current" />} {t('common.save')}
+            </Button>
+          </div>
+        </div>
+      )}
+    </form>
   );
 }
 
@@ -97,22 +146,6 @@ function AddressFields({ value, onChange, id }: { value: Address; onChange: (a: 
   );
 }
 
-/** Shown once something changed, and kept in reach (above the phone tab bar) until saved. */
-function SaveBar({ pending, dirty }: { pending: boolean; dirty: boolean }) {
-  const { t } = useTranslation();
-  if (!dirty) return null;
-  return (
-    <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-10 flex items-center justify-between gap-3 rounded-2xl border border-brand-amber/60 bg-card/95 p-3 pl-5 backdrop-blur lg:bottom-4 lg:col-span-full">
-      <p className="flex items-center gap-2 text-sm font-medium">
-        <span className="size-2 shrink-0 rounded-full bg-brand-amber" /> {t('account.unsaved')}
-      </p>
-      <Button type="submit" variant="brand" disabled={pending}>
-        {pending && <Spinner className="size-4 text-current" />} {t('common.save')}
-      </Button>
-    </div>
-  );
-}
-
 function UserProfile({ user }: { user: User }) {
   const { t, i18n } = useTranslation();
   const update = useUpdateAccount();
@@ -125,35 +158,47 @@ function UserProfile({ user }: { user: User }) {
   const [offers, setOffers] = useState(user.offers !== false);
   const [address, setAddress] = useState<Address>(user.addresses[0] ?? EMPTY);
 
+  // Which section is being saved, for its spinner.
+  const [saving, setSaving] = useState<'details' | 'address' | 'prefs' | null>(null);
   const saved = user.addresses[0] ?? EMPTY;
-  const dirty =
-    name !== user.name ||
-    email !== (user.email ?? '') ||
-    phone !== (user.phone ?? '') ||
-    language !== user.language ||
-    offers !== (user.offers !== false) ||
-    (Object.keys(EMPTY) as (keyof Address)[]).some((k) => (address[k] ?? '') !== (saved[k] ?? ''));
+  const detailsDirty = name !== user.name || email !== (user.email ?? '') || phone !== (user.phone ?? '');
+  const addressDirty = (Object.keys(EMPTY) as (keyof Address)[]).some((k) => (address[k] ?? '') !== (saved[k] ?? ''));
+  const prefsDirty = language !== user.language || offers !== (user.offers !== false);
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const hasAddress = address.line1.trim() && address.city.trim() && /^\d{6}$/.test(address.pincode);
+  const saveSection = (section: 'details' | 'address' | 'prefs', input: Record<string, unknown>, after?: () => void) =>
     void confirmAction({
       title: t('confirm.profileTitle'),
       description: t('confirm.profileDesc'),
       confirmLabel: t('confirm.saveChanges'),
-      action: () =>
-        update.mutateAsync({
-          name: name.trim(),
-          ...(byEmail ? { phone: phone.replace(/\D/g, '').slice(-10) } : { email: email.trim() }),
-          language,
-          offers,
-          addresses: hasAddress ? [address] : [],
-        }),
+      action: async () => {
+        setSaving(section);
+        try {
+          await update.mutateAsync(input);
+        } finally {
+          setSaving(null);
+        }
+      },
       successTitle: t('account.saved'),
     }).then((ok) => {
-      if (ok && language !== i18n.language) void chooseLanguage(language);
+      if (ok) after?.();
     });
+
+  const saveDetails = () =>
+    saveSection('details', { name: name.trim(), ...(byEmail ? { phone: phone.replace(/\D/g, '').slice(-10) } : { email: email.trim() }) });
+  const saveAddress = () => {
+    const blank = (Object.keys(EMPTY) as (keyof Address)[]).every((k) => k === 'state' || !(address[k] ?? '').trim());
+    const complete = address.line1.trim() && address.city.trim() && /^\d{6}$/.test(address.pincode);
+    // A half-filled address is not quietly dropped: say what is missing instead.
+    if (!blank && !complete) {
+      toast.error(t('checkout.needAddress'));
+      return;
+    }
+    saveSection('address', { addresses: blank ? [] : [address] });
   };
+  const savePrefs = () =>
+    saveSection('prefs', { language, offers }, () => {
+      if (language !== i18n.language) void chooseLanguage(language);
+    });
 
   const contact = [
     user.email && { icon: <IconMail />, text: user.email },
@@ -164,9 +209,21 @@ function UserProfile({ user }: { user: User }) {
     <div className="space-y-6">
       <ProfileHeader picture={<AvatarPicker name={user.name} src={user.avatarUrl} />} name={user.name} lines={contact} />
 
-      <form onSubmit={submit} className="grid items-start gap-6 *:min-w-0 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-6">
-          <Section icon={<IconUser />} title={t('account.details')} description={t('account.detailsDesc')}>
+          <Section
+            icon={<IconUser />}
+            title={t('account.details')}
+            description={t('account.detailsDesc')}
+            dirty={detailsDirty}
+            saving={saving === 'details'}
+            onSave={saveDetails}
+            onCancel={() => {
+              setName(user.name);
+              setEmail(user.email ?? '');
+              setPhone(user.phone ?? '');
+            }}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="name">{t('account.name')}</Label>
@@ -188,12 +245,31 @@ function UserProfile({ user }: { user: User }) {
             </div>
           </Section>
 
-          <Section icon={<IconMapPin />} title={t('account.addresses')} description={t('account.addressDesc')}>
+          <Section
+            icon={<IconMapPin />}
+            title={t('account.addresses')}
+            description={t('account.addressDesc')}
+            dirty={addressDirty}
+            saving={saving === 'address'}
+            onSave={saveAddress}
+            onCancel={() => setAddress(saved)}
+          >
             <AddressFields id="addr" value={address} onChange={setAddress} />
           </Section>
         </div>
 
-        <Section icon={<IconLanguage />} title={t('account.preferences')} className="lg:sticky lg:top-28">
+        <Section
+          icon={<IconLanguage />}
+          title={t('account.preferences')}
+          className="lg:sticky lg:top-28"
+          dirty={prefsDirty}
+          saving={saving === 'prefs'}
+          onSave={savePrefs}
+          onCancel={() => {
+            setLanguage(user.language);
+            setOffers(user.offers !== false);
+          }}
+        >
           <div className="space-y-5">
             <div className="space-y-2">
               <p className="text-sm font-medium">{t('account.language')}</p>
@@ -233,8 +309,7 @@ function UserProfile({ user }: { user: User }) {
           </div>
         </Section>
 
-        <SaveBar pending={update.isPending} dirty={dirty} />
-      </form>
+      </div>
     </div>
   );
 }
@@ -247,22 +322,25 @@ function InstitutionProfile({ institution }: { institution: Institution }) {
   const [phone, setPhone] = useState(institution.phone);
   const [address, setAddress] = useState<Address>(institution.address);
 
-  const dirty =
-    contactName !== institution.contactName ||
-    designation !== (institution.designation ?? '') ||
-    phone !== institution.phone ||
-    (Object.keys(EMPTY) as (keyof Address)[]).some((k) => (address[k] ?? '') !== (institution.address[k] ?? ''));
+  const [saving, setSaving] = useState<'contact' | 'address' | null>(null);
+  const contactDirty = contactName !== institution.contactName || designation !== (institution.designation ?? '') || phone !== institution.phone;
+  const addressDirty = (Object.keys(EMPTY) as (keyof Address)[]).some((k) => (address[k] ?? '') !== (institution.address[k] ?? ''));
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const saveSection = (section: 'contact' | 'address', input: Record<string, unknown>) =>
     void confirmAction({
       title: t('confirm.profileTitle'),
       description: t('confirm.profileDesc'),
       confirmLabel: t('confirm.saveChanges'),
-      action: () => update.mutateAsync({ contactName, designation, phone, address }),
+      action: async () => {
+        setSaving(section);
+        try {
+          await update.mutateAsync(input);
+        } finally {
+          setSaving(null);
+        }
+      },
       successTitle: t('account.saved'),
     });
-  };
 
   return (
     <div className="space-y-6">
@@ -274,8 +352,20 @@ function InstitutionProfile({ institution }: { institution: Institution }) {
           { icon: <IconMail />, text: institution.email },
         ]}
       />
-      <form onSubmit={submit} className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
-        <Section icon={<IconUser />} title={t('account.contact')} description={t('account.detailsDesc')}>
+      <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-2">
+        <Section
+          icon={<IconUser />}
+          title={t('account.contact')}
+          description={t('account.detailsDesc')}
+          dirty={contactDirty}
+          saving={saving === 'contact'}
+          onSave={() => saveSection('contact', { contactName, designation, phone })}
+          onCancel={() => {
+            setContactName(institution.contactName);
+            setDesignation(institution.designation ?? '');
+            setPhone(institution.phone);
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="contact">{t('auth.contactName')}</Label>
@@ -295,11 +385,17 @@ function InstitutionProfile({ institution }: { institution: Institution }) {
             </div>
           </div>
         </Section>
-        <Section icon={<IconMapPin />} title={t('auth.sectionAddress')}>
+        <Section
+          icon={<IconMapPin />}
+          title={t('auth.sectionAddress')}
+          dirty={addressDirty}
+          saving={saving === 'address'}
+          onSave={() => saveSection('address', { address })}
+          onCancel={() => setAddress(institution.address)}
+        >
           <AddressFields id="iaddr" value={address} onChange={setAddress} />
         </Section>
-        <SaveBar pending={update.isPending} dirty={dirty} />
-      </form>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { IconCheck, IconChevronDown, IconPencil } from '@tabler/icons-react';
+import { IconCheck, IconChevronDown, IconPencil, IconPhotoCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { confirmAction } from '@/components/common/confirm-dialog';
@@ -68,13 +68,20 @@ export function ProofReview({ orderId, item }: { orderId: string; item: OrderIte
     });
 
   return (
-    <div className="space-y-3 rounded-xl shadow-card border-warning/50 bg-warning/8 p-4">
-      <div>
-        <p className="font-semibold">
-          {t('orders.proofTitle')}
-          {item.proofs.length > 1 && <span className="ml-2 text-sm font-normal text-muted-foreground">{t('orders.proofN', { n: item.proofs.length })}</span>}
-        </p>
-        <p className="text-sm text-muted-foreground">{proof.message || t('orders.proofMessage')}</p>
+    // Highlighted: printing waits for this answer.
+    <div className="space-y-4 rounded-2xl border-2 border-brand-amber bg-brand-amber/8 p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy">
+          <IconPhotoCheck className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 font-semibold text-brand-navy">
+            {t('orders.proofTitle')}
+            <span className="rounded-full bg-brand-amber px-2 py-0.5 text-xs font-semibold text-brand-navy">{t('updates.actionNeeded')}</span>
+            {item.proofs.length > 1 && <span className="text-sm font-normal text-muted-foreground">{t('orders.proofN', { n: item.proofs.length })}</span>}
+          </p>
+          <p className="mt-0.5 text-sm text-foreground/80">{proof.message || t('orders.proofMessage')}</p>
+        </div>
       </div>
       {file && <ProofViewer file={file} />}
       {changes && (

@@ -1,11 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { api } from '@/lib/api-client';
-import type { OrderStatus } from '@/types/api';
+import type { LocalizedString, OrderStatus } from '@/types/api';
+
+/** The order an update is about. */
+export interface UpdateOrder {
+  orderId: string;
+  orderNumber: string;
+  product?: LocalizedString;
+  itemCount: number;
+  total: number;
+  method: 'pickup' | 'delivery';
+}
 
 export type Update =
-  | { id: string; kind: 'order'; status: OrderStatus; orderId: string; orderNumber: string; at: string }
-  | { id: string; kind: 'refund'; amount: number; done: boolean; orderId: string; orderNumber: string; at: string }
+  | ({ id: string; kind: 'order'; status: OrderStatus; at: string } & UpdateOrder)
+  | ({ id: string; kind: 'refund'; amount: number; done: boolean; at: string } & UpdateOrder)
   | { id: string; kind: 'offer'; title?: string; text: string; at: string };
 
 export interface UpdatesResponse {

@@ -126,6 +126,16 @@ describe('online payment flow', () => {
     expect(order?.payment).toMatchObject({ amountPaid: 80, status: 'paid' });
   });
 
+  it('shows a paid order on the Updates page with its product, and never an unpaid checkout', async () => {
+    const unpaid = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online', 3)).expect(201);
+    const res = await api().get('/api/v1/account/updates').set(bearer(customer)).expect(200);
+    const mine = res.body.items.filter((u: { orderId?: string }) => u.orderId === orderId);
+    expect(mine.map((u: { status: string }) => u.status)).toEqual(['received']);
+    expect(mine[0]).toMatchObject({ kind: 'order', itemCount: 1, method: 'pickup', product: { en: expect.any(String) } });
+    expect(mine[0].product.en.length).toBeGreaterThan(0);
+    expect(res.body.items.some((u: { orderId?: string }) => u.orderId === unpaid.body._id)).toBe(false);
+  });
+
   it('records a webhook once even when Razorpay delivers it twice', async () => {
     const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online', 2)).expect(201);
     const rzp = await api().post('/api/v1/payments/razorpay/order').set(bearer(customer)).send({ orderId: res.body._id }).expect(200);

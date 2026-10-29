@@ -1,7 +1,5 @@
 import {
-  IconAlertTriangle,
   IconArrowRight,
-  IconBoxSeam,
   IconBuildingCommunity,
   IconCash,
   IconCalendarMonth,
@@ -20,6 +18,7 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NextSteps } from '@/features/dashboard/next-steps';
 import { ProductionPipeline } from '@/features/dashboard/production-pipeline';
 import { RevenueChart } from '@/features/dashboard/revenue-chart';
 import { TrafficCard } from '@/features/dashboard/traffic-card';
@@ -120,30 +119,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {(data.pendingInstitutions > 0 || data.lowStock.length > 0) && (
-        <div className="grid gap-3 *:min-w-0 lg:grid-cols-2">
-          {data.pendingInstitutions > 0 && (
-            <Link to="/institutions?status=pending" className="flex items-center gap-3 rounded-2xl border border-brand-amber/50 bg-brand-amber/8 px-4 py-3.5 text-sm font-medium hover:bg-brand-amber/12">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy">
-                <IconAlertTriangle className="size-4.5" />
-              </span>
-              {data.pendingInstitutions} institution{data.pendingInstitutions > 1 ? 's are' : ' is'} waiting for approval
-              <IconArrowRight className="ml-auto size-4 shrink-0" />
-            </Link>
-          )}
-          {data.lowStock.length > 0 && (
-            <Link to="/inventory" className="flex items-center gap-3 rounded-2xl border border-brand-amber/50 bg-brand-amber/8 px-4 py-3.5 text-sm font-medium hover:bg-brand-amber/12">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy">
-                <IconBoxSeam className="size-4.5" />
-              </span>
-              <span className="min-w-0 truncate">
-                Low stock: <span className="font-normal">{data.lowStock.map((m) => `${m.name} (${m.quantity} ${m.unit})`).join(', ')}</span>
-              </span>
-              <IconArrowRight className="ml-auto size-4 shrink-0" />
-            </Link>
-          )}
-        </div>
-      )}
+      <NextSteps data={data} />
 
       <ProductionPipeline counts={data.openByStatus} />
 

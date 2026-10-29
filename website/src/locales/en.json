@@ -729,7 +729,9 @@
     "earlierProofs": "Earlier proofs",
     "orderAgain": "Order again",
     "addedAgain_one": "{{count}} item added to your cart. Upload your files again if needed.",
-    "addedAgain_other": "{{count}} items added to your cart. Upload your files again if needed."
+    "addedAgain_other": "{{count}} items added to your cart. Upload your files again if needed.",
+    "now": "Now",
+    "viewTracking": "View full tracking"
   },
   "account": {
     "details": "Your details",
@@ -758,7 +760,8 @@
     "saved": "Saved",
     "addresses": "Saved address",
     "institution": "Institution",
-    "contact": "Contact person"
+    "contact": "Contact person",
+    "upToDate": "All saved"
   },
   "institutionDashboard": {
     "welcome": "Welcome, {{name}}",
@@ -1122,7 +1125,12 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "actionNeeded": "Action needed",
-    "filter": {"all": "All", "order": "Orders", "refund": "Refunds", "offer": "Offers"},
+    "filter": {
+      "all": "All",
+      "order": "Orders",
+      "refund": "Refunds",
+      "offer": "Offers"
+    },
     "title": "Updates",
     "subtitle": "Order progress, refunds and offers from the last 90 days.",
     "empty": "No updates yet",
@@ -1133,7 +1141,26 @@
     "offer": "Offer",
     "new": "New",
     "unread_one": "{{count}} new update",
-    "unread_other": "{{count}} new updates"
+    "unread_other": "{{count}} new updates",
+    "yourOrder": "Your order",
+    "andMore": "{{name}} + {{count}} more",
+    "msg": {
+      "quote_pending": "We received your request and are working out the price.",
+      "quote_sent": "Your price is ready. Open the order to accept or decline it.",
+      "awaiting_payment": "Waiting for your payment of {{amount}}. Pay to start printing.",
+      "received": "Order confirmed. We will start on it soon.",
+      "proof_sent": "Your design proof is ready. Please check it and approve it, or ask for changes.",
+      "approved": "You approved the design. It goes to print next.",
+      "printing": "Your order is being printed.",
+      "ready_pickup": "Ready! Collect it from the shop.",
+      "ready_delivery": "Packed and ready. It goes out for delivery soon.",
+      "out_for_delivery": "On the way to you today.",
+      "delivered": "Delivered. Thank you for ordering!",
+      "picked_up": "Collected from the shop. Thank you!",
+      "cancelled": "This order was cancelled.",
+      "refundStarted": "Refund of {{amount}} started. It reaches your account in 5–7 working days.",
+      "refundDone": "Refund of {{amount}} completed."
+    }
   },
   "unsubscribe": {
     "title": "Offer emails",
