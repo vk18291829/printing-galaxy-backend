@@ -48,10 +48,10 @@ export function OptionPicker({
                   <span
                     className={cn(
                       'grid size-4 shrink-0 place-items-center rounded-full border-2',
-                      selected ? 'border-primary' : 'border-muted-foreground/40',
+                      selected ? 'border-brand-amber' : 'border-muted-foreground/40',
                     )}
                   >
-                    {selected && <span className="size-1.5 rounded-full bg-primary" />}
+                    {selected && <span className="size-1.5 rounded-full bg-brand-amber" />}
                   </span>
                   <span>{l(v.label)}</span>
                   {effect && (

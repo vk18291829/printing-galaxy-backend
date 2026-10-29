@@ -65,8 +65,9 @@ export function ProductImage({ product, className }: { product: Pick<Product, 'i
 }
 
 /**
- * Product card: picture on a soft tile, name, one line about it, "Starting at ₹199 / card" and a
- * full-width Order now button. School products add their minimum order (they are bought in bulk).
+ * Product card: the picture leads, then the name, one line about it and "from ₹199 / card". The
+ * whole card is the link (no repeated button on every card); a small arrow shows it opens.
+ * School products add their minimum order (they are bought in bulk).
  */
 export function ProductCard({ product, section }: { product: Product; index?: number; section?: Section }) {
   const { t } = useTranslation();
@@ -101,30 +102,35 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
         <p className="mt-0.5 line-clamp-1 text-[13px] text-muted-foreground">{l(product.shortDescription)}</p>
         {product.rating && product.rating.count > 0 && <RatingChip average={product.rating.average} count={product.rating.count} className="mt-1.5" />}
 
-        {showcase ? (
-          <p className="mt-3 mb-3.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-primary">
-            <IconSchool className="size-3.5" /> {t('products.forSchools')}
-          </p>
-        ) : (
-        <div className="mt-3 mb-3.5">
-          {price !== null ? (
-            <p className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-xs text-muted-foreground">{t('products.startingAt')}</span>
-              <span className="text-lg font-extrabold text-foreground tabular-nums">{formatINR(price)}</span>
-              <span className="text-xs text-muted-foreground">/ {unit}</span>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+          {showcase ? (
+            <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-primary">
+              <IconSchool className="size-3.5" /> {t('products.forSchools')}
             </p>
           ) : (
-            <p className="text-sm font-semibold text-primary">{t('product.quoteRequired')}</p>
+            <div className="min-w-0">
+              {price !== null ? (
+                <p className="flex flex-wrap items-baseline gap-x-1">
+                  <span className="text-xs text-muted-foreground">{t('products.startingAt')}</span>
+                  <span className="text-lg font-extrabold text-foreground tabular-nums">{formatINR(price)}</span>
+                  <span className="text-xs text-muted-foreground">/ {unit}</span>
+                </p>
+              ) : (
+                <p className="text-sm font-semibold text-primary">{t('product.quoteRequired')}</p>
+              )}
+              {forSchools && book.minQty > 1 && (
+                <p className="text-xs text-muted-foreground">{t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })}</p>
+              )}
+            </div>
           )}
-          {forSchools && book.minQty > 1 && (
-            <p className="text-xs text-muted-foreground">{t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })}</p>
-          )}
+          {/* The whole card opens the product; this only shows that it does. */}
+          <span
+            aria-hidden
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground"
+          >
+            <IconArrowRight className="size-4" />
+          </span>
         </div>
-        )}
-
-        <span className="mt-auto inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-secondary text-sm font-semibold text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground">
-          {showcase ? t('products.viewDetails') : t('products.orderNow')} <IconArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-        </span>
       </div>
     </Link>
   );

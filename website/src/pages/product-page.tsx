@@ -381,7 +381,7 @@ export default function ProductPage() {
     <Card>
       <CardHeader>
         <CardTitle>
-          {useCropper ? t('crop.title') : t('product.upload')}{' '}
+          {useCropper ? t('crop.title') : t('product.uploadHeading')}{' '}
           {!needsUpload && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
         </CardTitle>
         {!useCropper && l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>}
@@ -484,7 +484,7 @@ export default function ProductPage() {
           {product.options.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>{t('product.options')}</CardTitle>
+                <CardTitle>{t('product.optionsHeading')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <OptionPicker options={product.options} value={options} onChange={(k, v) => setOptions((o) => ({ ...o, [k]: v }))} />
@@ -494,7 +494,7 @@ export default function ProductPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t('product.quantity')}</CardTitle>
+              <CardTitle>{t('product.quantityHeading')}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
               {isPageBased ? (

@@ -1,4 +1,4 @@
-import { IconArrowRight, IconBolt, IconMoodEmpty, IconReceipt2, IconSearch, IconTruckDelivery, IconX } from '@tabler/icons-react';
+import { IconBolt, IconMoodEmpty, IconReceipt2, IconSearch, IconTruckDelivery, IconX } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useSearchParams } from 'react-router';
@@ -8,6 +8,7 @@ import { EmptyState, ErrorState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCategories, useProducts } from '@/features/catalog/api';
+import { RangeRails } from '@/features/catalog/components/range-rails';
 import { PRODUCT_GRID } from '@/features/catalog/components/infinite-product-grid';
 import { ProductCard } from '@/features/catalog/components/product-card';
 import { categoryHome, NOT_INDIVIDUAL, SCHOOL_CATEGORIES } from '@/features/catalog/sections';
@@ -104,40 +105,17 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b bg-muted">
-        <div className="pointer-events-none absolute inset-0 bg-grid opacity-50" />
-        <div className="pointer-events-none absolute -top-32 -right-24 size-[28rem] rounded-full bg-primary/12 blur-3xl" />
-        <div className="container-page relative grid gap-8 py-8 sm:py-12 lg:grid-cols-[1fr_1.05fr] lg:items-center lg:gap-12">
+      {/* One compact band: what this page is, and a search. The category chips below jump to each row. */}
+      <section className="border-b bg-muted">
+        <div className="container-page grid gap-6 py-7 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
           <div>
-            <PageNav className="mb-5" items={[{ label: t('nav.home'), to: '/' }, { label: t('nav.products') }]} />
+            <PageNav className="mb-4" items={[{ label: t('nav.home'), to: '/' }, { label: t('nav.products') }]} />
             <p className="eyebrow mb-3">{t('products.heroEyebrow')}</p>
-            <h1 className="text-[2.1rem] leading-[1.1] font-extrabold tracking-tight text-brand-navy sm:text-5xl">
+            <h1 className="text-[1.9rem] leading-tight font-extrabold tracking-tight text-brand-navy sm:text-4xl lg:text-[2.6rem]">
               {t('products.heroLead')} <span className="text-logo-gradient">{t('products.heroHighlight')}</span>
             </h1>
-            <p className="mt-4 max-w-lg text-muted-foreground sm:text-lg">{t('products.subtitle')}</p>
-
-            <div className="relative mt-6 max-w-lg">
-              <IconSearch className="absolute top-1/2 left-5 size-5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('products.searchPlaceholder')}
-                aria-label={t('common.search')}
-                className="h-14 w-full rounded-full bg-background pr-12 pl-13 text-base border outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="absolute top-1/2 right-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
-                  aria-label={t('common.clear')}
-                >
-                  <IconX className="size-4" />
-                </button>
-              )}
-            </div>
-
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-brand-navy/80">
+            <p className="mt-3 max-w-xl text-muted-foreground sm:text-lg">{t('products.subtitle')}</p>
+            <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-brand-navy/80">
               {trust.map(({ icon: Icon, label }) => (
                 <li key={label} className="flex items-center gap-1.5">
                   <Icon className="size-4 text-primary" /> {label}
@@ -146,34 +124,28 @@ export default function ProductsPage() {
             </ul>
           </div>
 
-          {/* Category tiles jump to their row below. */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {categories.map((c, i) => {
-              const tint = TINTS[i % TINTS.length]!;
-              return (
-                <button
-                  key={c._id}
-                  type="button"
-                  onClick={() => {
-                    if (needle) setQuery('');
-                    requestAnimationFrame(() => scrollToCategory(c.slug));
-                  }}
-                  className={cn('group flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-[border-color] hover:border-primary/30 sm:p-5', tint.tile)}
-                >
-                  <span className={cn('grid size-11 place-items-center rounded-xl shadow-xs', tint.icon)}>
-                    <DynamicIcon name={c.icon} className="size-5.5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block leading-snug font-bold text-brand-navy">{l(c.name)}</span>
-                    <span className="mt-1 line-clamp-2 hidden text-xs text-muted-foreground sm:block">{l(c.description)}</span>
-                  </span>
-                  <span className="mt-auto flex w-full items-center justify-between text-xs font-semibold text-muted-foreground">
-                    {t('products.count', { count: c.productCount ?? 0 })}
-                    <IconArrowRight className="size-4 text-brand-navy/40 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </button>
-              );
-            })}
+          <div className="relative">
+            <IconSearch className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="product-search"
+              // The header search icon opens this page at #search with the cursor here.
+              autoFocus={location.hash === '#search'}
+              value={search}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('products.searchPlaceholder')}
+              aria-label={t('common.search')}
+              className="h-13 w-full rounded-xl border bg-card pr-12 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute top-1/2 right-2.5 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label={t('common.clear')}
+              >
+                <IconX className="size-4" />
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -195,6 +167,7 @@ export default function ProductsPage() {
               >
                 <DynamicIcon name={c.icon} className="size-4" />
                 {l(c.name)}
+                <span className={cn('rounded-full px-1.5 text-xs tabular-nums', active === c.slug ? 'bg-white/20' : 'bg-muted')}>{c.productCount ?? 0}</span>
               </button>
             ))}
           </nav>
@@ -237,6 +210,13 @@ export default function ProductsPage() {
           rows.map(({ category, tint, items }) => <CategoryRow key={category._id} category={category} badge={tint.badge} items={items} />)
         )}
       </div>
+
+      {/* After all products: the shop's other ranges. Hidden while searching, so results stay in focus. */}
+      {!needle && !isLoading && !error && (
+        <div className="container-page">
+          <RangeRails />
+        </div>
+      )}
     </div>
   );
 }

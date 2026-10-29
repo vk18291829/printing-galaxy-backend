@@ -213,9 +213,10 @@
   color: transparent;
 }
 
-/* Content column used by every admin page. */
+/* Content column used by every admin page: the full width of the screen (capped only on very
+   wide monitors, where lines and tables would otherwise stretch too far to read). */
 @utility page-container {
-  @apply mx-auto w-full max-w-7xl;
+  @apply mx-auto w-full max-w-[1920px];
 }
 
 /* Browser autofill paints inputs light blue; keep them on the theme background instead. */

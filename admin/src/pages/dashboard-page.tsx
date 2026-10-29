@@ -12,17 +12,18 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { ErrorState, PageHeader, PageLoader } from '@/components/common/states';
-import { ORDER_STATUS_LABEL, OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
+import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ProductionPipeline } from '@/features/dashboard/production-pipeline';
 import { RevenueChart } from '@/features/dashboard/revenue-chart';
 import { TrafficCard } from '@/features/dashboard/traffic-card';
 import { useCan } from '@/features/auth/auth-store';
 import { useDashboard } from '@/features/management/api';
 import { formatDate, formatINR } from '@/lib/format';
 import { en } from '@/lib/l10n';
-import type { OrderSegment, OrderStatus } from '@/types/api';
+import type { OrderSegment } from '@/types/api';
 
 function StatTile({ icon, label, value, sub, to }: { icon: ReactNode; label: string; value: string; sub?: string; to?: string }) {
   const body = (
@@ -46,8 +47,6 @@ const SEGMENTS: { key: OrderSegment; label: string }[] = [
   { key: 'business', label: 'Business' },
   { key: 'wedding', label: 'Wedding' },
 ];
-
-const PIPELINE: OrderStatus[] = ['quote_pending', 'quote_sent', 'received', 'proof_sent', 'approved', 'printing', 'ready', 'out_for_delivery'];
 
 export default function DashboardPage() {
   const canSeeReports = useCan('reports');
@@ -118,43 +117,20 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 *:min-w-0 xl:grid-cols-[1.6fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue · last 14 days</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RevenueChart data={data.daily} />
-          </CardContent>
-        </Card>
+      <ProductionPipeline counts={data.openByStatus} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Production pipeline</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {PIPELINE.map((s) => (
-              <Link
-                key={s}
-                to={`/orders?status=${s}`}
-                className="flex items-center justify-between rounded-lg px-2 py-2 text-sm hover:bg-accent"
-              >
-                <span>{ORDER_STATUS_LABEL[s]}</span>
-                <span className="font-semibold tabular-nums">{data.openByStatus[s] ?? 0}</span>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue · last 14 days</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RevenueChart data={data.daily} />
+        </CardContent>
+      </Card>
 
-      {canSeeReports && (
-        <div className="mt-6">
-          <TrafficCard />
-        </div>
-      )}
+      {canSeeReports && <TrafficCard />}
 
-      <div className="grid gap-6 *:min-w-0 xl:grid-cols-[1.6fr_1fr]">
-        <Card className="gap-0 pb-0">
+      <Card className="gap-0 pb-0">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle>Recent orders</CardTitle>
             <Button variant="outline" size="sm" asChild>
@@ -217,7 +193,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <div className="space-y-6">
+        <div className="grid gap-6 *:min-w-0 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>This month by line of business</CardTitle>
@@ -262,7 +238,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
     </div>
   );
 }

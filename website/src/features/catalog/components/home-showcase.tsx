@@ -46,6 +46,8 @@ export function Highlights({ products }: { products: Product[] }) {
               className={cn(
                 'group relative isolate flex flex-col overflow-hidden rounded-2xl shadow-card bg-card transition-[border-color] hover:border-primary/30 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                 big && 'col-span-2 lg:row-span-2',
+                // Phones: the featured product and four more keep the page short; "View all" has the rest.
+                i >= 5 && 'max-sm:hidden',
               )}
             >
               <div className={cn('relative overflow-hidden', big ? 'aspect-[4/3] lg:aspect-auto lg:flex-1' : 'aspect-[4/3]')}>

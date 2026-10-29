@@ -219,13 +219,12 @@ export default function BusinessPrintingPage() {
       </section>
 
       <section className="container-page">
-        <div className="relative overflow-hidden rounded-2xl bg-brand-navy px-6 py-12 text-white sm:px-12">
-          <div className="absolute inset-0 bg-grid opacity-15" />
-          <div className="absolute -right-16 -bottom-24 size-72 rounded-full bg-primary/30 blur-3xl" />
-          <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+        {/* Light, so the page does not stack two navy blocks on the footer. */}
+        <div className="rounded-2xl border bg-secondary px-6 py-10 sm:px-12">
+          <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div className="max-w-xl">
-              <h2 className="text-2xl font-bold sm:text-3xl">{t('business.ctaTitle')}</h2>
-              <p className="mt-2 text-white/75">{t('business.ctaSubtitle')}</p>
+              <h2 className="text-2xl font-bold text-brand-navy sm:text-3xl">{t('business.ctaTitle')}</h2>
+              <p className="mt-2 text-muted-foreground">{t('business.ctaSubtitle')}</p>
             </div>
             <Button size="lg" variant="brand" asChild>
               <Link to="/contact">

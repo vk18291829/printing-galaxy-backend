@@ -45,13 +45,13 @@ function RangeRail({ title, subtitle, to, items }: { title: string; subtitle: st
 }
 
 /**
- * The shop's other ranges at the end of a product page: business printing, wedding & invitations,
- * and school & college solutions. The range of the product being viewed is left out (its own
- * products are already listed above as related products).
+ * The shop's other ranges: business printing, wedding & invitations, and school & college
+ * solutions. Shown after all products on the Products page, and at the end of a product page,
+ * where the range of the product being viewed is left out (its products are listed above it).
  */
-export function RangeRails({ product }: { product: Product }) {
+export function RangeRails({ product }: { product?: Product }) {
   const { t } = useTranslation();
-  const current = rangeOf(product);
+  const current = product ? rangeOf(product) : null;
   const [works, banners, stationery] = [
     useProducts({ category: BUSINESS_CATEGORIES[0] }),
     useProducts({ category: BUSINESS_CATEGORIES[1] }),
@@ -59,7 +59,7 @@ export function RangeRails({ product }: { product: Product }) {
   ];
   const wedding = useProducts({ category: WEDDING_CATEGORIES[0] });
   const school = useProducts({ section: 'institution', category: SCHOOL_CATEGORIES[0] });
-  const other = (list: Product[] | undefined) => (list ?? []).filter((p) => p._id !== product._id);
+  const other = (list: Product[] | undefined) => (list ?? []).filter((p) => p._id !== product?._id);
 
   return (
     <>

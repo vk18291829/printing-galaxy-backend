@@ -11,7 +11,7 @@ export function StarRating({ value, className, size = 'size-4' }: { value: numbe
           <IconStarFilled key={i} className={size} />
         ))}
       </span>
-      <span className="absolute inset-y-0 left-0 flex overflow-hidden text-amber-500" style={{ width: `${(Math.max(0, Math.min(5, value)) / 5) * 100}%` }}>
+      <span className="absolute inset-y-0 left-0 flex overflow-hidden text-brand-amber" style={{ width: `${(Math.max(0, Math.min(5, value)) / 5) * 100}%` }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <IconStarFilled key={i} className={cn(size, 'shrink-0')} />
         ))}
@@ -50,7 +50,7 @@ export function StarInput({ value, onChange, labels }: { value: number; onChange
             onClick={() => onChange(n)}
             className="rounded-md p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <IconStarFilled className={cn('size-8 transition-colors', n <= shown ? 'text-amber-500' : 'text-muted-foreground/25')} />
+            <IconStarFilled className={cn('size-8 transition-colors', n <= shown ? 'text-brand-amber' : 'text-muted-foreground/25')} />
           </button>
         ))}
       </div>

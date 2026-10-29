@@ -3,6 +3,7 @@ import {
   IconLayoutDashboard,
   IconLogout,
   IconPackage,
+  IconSearch,
   IconShoppingBag,
   IconUser,
   IconUsers,
@@ -50,6 +51,18 @@ function useIsNavActive() {
   const { data: product } = useProduct(slug);
   const section = slug && product ? categoryHome(product.category.slug).split('?')[0]! : pathname;
   return (item: NavItem) => section === item.to || section.startsWith(`${item.to}/`);
+}
+
+/** Search from any page (tablet and up; phones search from the Products tab). */
+function SearchButton() {
+  const { t } = useTranslation();
+  return (
+    <Button variant="ghost" size="icon" className="hidden size-9 sm:inline-flex" asChild>
+      <Link to="/products#search" aria-label={t('common.search')}>
+        <IconSearch className="size-[19px]" />
+      </Link>
+    </Button>
+  );
 }
 
 function CartButton() {
@@ -209,6 +222,7 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-1">
           <InstallAppButton variant="pill" className="mr-1 lg:hidden" />
           <UpdatesButton />
+          {principal?.kind !== 'institution' && <SearchButton />}
           {principal?.kind !== 'institution' && <CartButton />}
           {principal?.kind === 'institution' && (
             <Button size="sm" className="ml-1 hidden md:inline-flex" asChild>

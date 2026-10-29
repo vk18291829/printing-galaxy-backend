@@ -22,7 +22,7 @@ const SERIF = "font-['Playfair_Display_Variable',serif]";
 /** A small ornament: two hairlines around a diamond. */
 function Flourish({ className = '' }: { className?: string }) {
   return (
-    <span className={cn('flex items-center justify-center gap-2 text-[#b8875b]', className)} aria-hidden>
+    <span className={cn('flex items-center justify-center gap-2 text-brand-amber', className)} aria-hidden>
       <span className="h-px w-10 bg-current opacity-60" />
       <span className="size-1.5 rotate-45 bg-current" />
       <span className="h-px w-10 bg-current opacity-60" />
@@ -35,7 +35,7 @@ function InvitationVisual() {
   const { t } = useTranslation();
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[480px] select-none" aria-hidden>
-      <div className="absolute inset-[8%] rounded-full bg-[#f3e3d3] blur-3xl" />
+      <div className="absolute inset-[8%] rounded-full bg-brand-amber/15 blur-3xl" />
 
       {/* Envelope */}
       <div className="absolute top-[14%] left-[2%] aspect-[4/3] w-[62%] rotate-[-8deg] overflow-hidden rounded-md bg-[#e9d6c1] shadow-xl shadow-[#7a5233]/15">
@@ -91,16 +91,16 @@ export default function WeddingCardsPage() {
   ];
 
   return (
-    <div className="-mb-20 bg-[#fbf7f2] pb-20 lg:-mb-24 lg:pb-24">
-      <section className="relative overflow-hidden border-b border-[#ecdfd0]">
-        <div className="absolute -top-40 -left-40 size-[480px] rounded-full bg-[#f6e6d6] blur-3xl" />
+    <div className="-mb-20 pb-20 lg:-mb-24 lg:pb-24">
+      <section className="relative overflow-hidden border-b">
+        <div className="absolute -top-40 -left-40 size-[480px] rounded-full bg-brand-amber/10 blur-3xl" />
         <div className="container-page relative grid items-center gap-10 py-12 lg:grid-cols-[1fr_1fr] lg:py-20">
           <div className="text-center lg:text-left">
-            <p className="mb-5 inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] text-[#9a6b43] uppercase">
+            <p className="mb-5 inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] text-primary uppercase">
               <IconSparkles className="size-4" /> {t('wedding.eyebrow')}
             </p>
             <h1 className={`${SERIF} text-[2.5rem] leading-[1.1] font-semibold text-brand-navy sm:text-5xl lg:text-[3.6rem]`}>
-              {t('wedding.titleLead')} <span className="text-[#f91570] italic">{t('wedding.titleHighlight')}</span>
+              {t('wedding.titleLead')} <span className="text-brand-magenta italic">{t('wedding.titleHighlight')}</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-brand-navy/70 sm:text-lg lg:mx-0">{t('wedding.subtitle')}</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
@@ -109,7 +109,7 @@ export default function WeddingCardsPage() {
                   {t('wedding.ctaBrowse')} <IconArrowRight />
                 </a>
               </Button>
-              <Button size="lg" variant="outline" className="border-[#d9c3ab] bg-transparent hover:bg-white/60" asChild>
+              <Button size="lg" variant="outline" asChild>
                 <Link to="/contact">{t('wedding.ctaCustom')}</Link>
               </Button>
             </div>
@@ -127,7 +127,7 @@ export default function WeddingCardsPage() {
         <InfiniteProductGrid category={CATEGORY} />
       </section>
 
-      <section className="border-y border-[#ecdfd0] bg-white section-y">
+      <section className="border-y bg-card section-y">
         <div className="container-page">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className={`${SERIF} text-3xl font-semibold text-brand-navy sm:text-4xl`}>{t('wedding.detailsTitle')}</h2>
@@ -135,8 +135,8 @@ export default function WeddingCardsPage() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {details.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-xl shadow-card border-[#ecdfd0] bg-[#fbf7f2] p-6 text-center">
-                <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-muted border-[#d9b48f] text-[#9a6b43]">
+              <div key={title} className="rounded-xl shadow-card p-6 text-center">
+                <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full border border-brand-amber/40 bg-brand-amber/12 text-brand-navy">
                   <Icon className="size-5" />
                 </span>
                 <h3 className="font-bold text-brand-navy">{title}</h3>
@@ -151,10 +151,10 @@ export default function WeddingCardsPage() {
         <h2 className={`${SERIF} mb-12 text-center text-3xl font-semibold text-brand-navy sm:text-4xl`}>{t('wedding.stepsTitle')}</h2>
         <ol className="relative grid gap-8 md:grid-cols-4 md:gap-6">
           {/* Thread connecting the steps on wide screens. */}
-          <span className="absolute top-5 right-[12.5%] left-[12.5%] hidden h-px bg-[#d9b48f] md:block" aria-hidden />
+          <span className="absolute top-5 right-[12.5%] left-[12.5%] hidden h-px bg-brand-amber/50 md:block" aria-hidden />
           {steps.map(({ title, desc }, i) => (
             <li key={title} className="relative flex gap-4 md:flex-col md:items-center md:text-center">
-              <span className={`${SERIF} relative grid size-10 shrink-0 place-items-center rounded-full bg-brand-navy text-lg text-white italic ring-4 ring-[#fbf7f2]`}>
+              <span className={`${SERIF} relative grid size-10 shrink-0 place-items-center rounded-full bg-brand-navy text-lg text-white italic ring-4 ring-background`}>
                 {i + 1}
               </span>
               <div>
@@ -167,12 +167,12 @@ export default function WeddingCardsPage() {
       </section>
 
       <section className="container-page">
-        <div className="relative overflow-hidden rounded-2xl bg-brand-navy px-6 py-14 text-center text-white sm:px-12">
-          <div className="absolute -top-24 left-1/2 size-80 -translate-x-1/2 rounded-full bg-[#b8875b]/30 blur-3xl" />
-          <div className="relative mx-auto max-w-xl">
-            <Flourish className="mb-5 text-[#d9b48f]" />
-            <h2 className={`${SERIF} text-3xl font-semibold sm:text-4xl`}>{t('wedding.ctaTitle')}</h2>
-            <p className="mt-3 text-white/75">{t('wedding.ctaSubtitle')}</p>
+        {/* Light, so the page does not stack two navy blocks on the footer. */}
+        <div className="rounded-2xl border bg-secondary px-6 py-12 text-center sm:px-12">
+          <div className="mx-auto max-w-xl">
+            <Flourish className="mb-5" />
+            <h2 className={`${SERIF} text-3xl font-semibold text-brand-navy sm:text-4xl`}>{t('wedding.ctaTitle')}</h2>
+            <p className="mt-3 text-muted-foreground">{t('wedding.ctaSubtitle')}</p>
             <Button size="lg" variant="brand" className="mt-7" asChild>
               <Link to="/contact">
                 {t('wedding.ctaCustom')} <IconArrowRight />

@@ -1,172 +1,120 @@
 import {
   IconArrowRight,
   IconBriefcase,
-  IconFileText,
-  IconHeart,
-  IconSchool,
   IconCheck,
+  IconChevronDown,
   IconCreditCard,
+  IconEyeCheck,
+  IconFileText,
   IconHandFinger,
-  IconHeadset,
+  IconHeart,
   IconPackage,
-  IconPalette,
-  IconReceipt2,
   IconRosetteDiscountCheck,
-  IconShieldLock,
+  IconSchool,
+  IconSearch,
   IconUpload,
 } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link, useNavigate } from 'react-router';
 import { SafeImage } from '@/components/common/safe-image';
-import { Link } from 'react-router';
 import { Rail, Section } from '@/components/common/section';
 import { StarRating } from '@/components/common/star-rating';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProducts } from '@/features/catalog/api';
 import { Highlights, HOME_HIDDEN_CATEGORY } from '@/features/catalog/components/home-showcase';
 import { BUSINESS_CATEGORIES, NOT_INDIVIDUAL, WEDDING_CATEGORIES } from '@/features/catalog/sections';
 import { useBanners } from '@/features/marketing/api';
 import { HeroCarousel } from '@/features/marketing/hero-carousel';
-import { FeatureBanner, PromoTiles } from '@/features/marketing/promo-banners';
 import { useReviewHighlights } from '@/features/reviews/api';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { formatINR } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import { businessLd } from '@/lib/seo';
 import { cn } from '@/lib/utils';
-import type { Banner, Product } from '@/types/api';
+import type { Product } from '@/types/api';
 
-/** Print mockups: a bound document, a visiting card and a student ID, in brand colours. */
-function HeroVisual() {
+/**
+ * Real products in a 2×2 mosaic (their own photos or samples), so the first screen shows what the
+ * shop makes. Tablets and up; on phones the same products follow a little further down.
+ */
+function ProductMosaic() {
+  const l = useLocalized();
+  const { data } = useProducts({ excludeCategory: HOME_HIDDEN_CATEGORY });
+  const picks = (data ?? []).filter((p) => p.isFeatured && p.images.length > 0).slice(0, 4);
+  if (picks.length < 4) return null;
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[500px] select-none" aria-hidden>
-      <div className="absolute inset-4 rounded-[2rem] shadow-card bg-muted" />
-      <div className="absolute inset-4 rounded-[2rem] bg-grid opacity-70" />
-      <div className="absolute top-[12%] right-[10%] size-40 rounded-full bg-primary/15 blur-3xl" />
-
-      {/* Bound document */}
-      <div className="absolute top-[9%] left-[9%] w-[46%] rotate-[-6deg] rounded-xl shadow-card bg-card p-4 shadow-lg shadow-brand-navy/10">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">PDF</span>
-          <span className="h-2 w-20 rounded bg-brand-navy/15" />
-        </div>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <span key={i} className="mb-2 block h-1.5 rounded bg-brand-navy/10" style={{ width: `${92 - i * 9}%` }} />
-        ))}
-        <div className="mt-3 flex items-center justify-between rounded-lg bg-muted px-2 py-1.5 text-[11px] font-semibold text-brand-navy">
-          120 pages <span className="text-muted-foreground">A4 · B/W</span>
-        </div>
-      </div>
-
-      {/* Visiting card */}
-      <div className="absolute top-[34%] right-[7%] w-[60%] rotate-[4deg] overflow-hidden rounded-xl bg-brand-navy p-4 text-white shadow-2xl shadow-brand-navy/30">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1.5">
-            <span className="block h-2.5 w-24 rounded bg-white/90" />
-            <span className="block h-1.5 w-16 rounded bg-white/45" />
-          </div>
-          <img src="/logo-mark-dark.png?v=3" alt="" className="size-8 object-contain" />
-        </div>
-        <div className="mt-6 space-y-1.5">
-          <span className="block h-1.5 w-3/5 rounded bg-white/40" />
-          <span className="block h-1.5 w-2/5 rounded bg-white/40" />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-1.5 bg-primary" />
-        <p className="mt-3 text-right text-[9px] font-medium text-white/55">9 × 5.5 cm · Matt</p>
-      </div>
-
-      {/* Student ID */}
-      <div className="absolute bottom-[8%] left-[12%] w-[38%] rotate-[-3deg] overflow-hidden rounded-xl shadow-card bg-card shadow-xl shadow-brand-navy/15">
-        <div className="flex items-center justify-between bg-primary px-3 py-2 text-primary-foreground">
-          <span className="text-[9px] font-bold tracking-widest uppercase">Student ID</span>
-          <span className="size-2 rounded-full bg-white/70" />
-        </div>
-        <div className="flex gap-2.5 p-3">
-          <div className="size-11 shrink-0 rounded-md bg-linear-to-br from-brand-navy/80 to-brand-navy" />
-          <div className="flex-1 space-y-1.5 pt-1">
-            <span className="block h-1.5 w-4/5 rounded bg-brand-navy/70" />
-            <span className="block h-1.5 w-3/5 rounded bg-brand-navy/25" />
-            <span className="block h-1.5 w-2/5 rounded bg-brand-navy/25" />
-          </div>
-        </div>
-      </div>
-
-      {/* Proof chip */}
-      <div className="absolute right-[12%] bottom-[14%] flex items-center gap-2 rounded-full bg-card py-1.5 pr-3.5 pl-1.5 shadow-lg shadow-brand-navy/10">
-        <span className="grid size-6 place-items-center rounded-full bg-success text-white">
-          <IconCheck className="size-3.5" stroke={3} />
-        </span>
-        <span className="text-xs font-semibold text-brand-navy">Proof approved</span>
-      </div>
-
-      <span className="absolute top-[6%] right-[22%] size-3 rounded-full bg-brand-cyan" />
-      <span className="absolute top-[30%] left-[4%] size-2.5 rounded-full bg-brand-magenta" />
-      <span className="absolute right-[4%] bottom-[34%] size-2.5 rounded-full bg-brand-yellow" />
+    <div className="hidden grid-cols-2 gap-3 md:grid lg:gap-4" aria-hidden>
+      {picks.map((p, i) => (
+        <Link
+          key={p._id}
+          to={`/products/${p.slug}`}
+          tabIndex={-1}
+          className={cn('group relative overflow-hidden rounded-2xl border bg-card', i % 2 === 1 && 'translate-y-6')}
+        >
+          <SafeImage src={p.images[0]} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" fallback={<span className="block aspect-[4/3] w-full bg-secondary" />} />
+          <span className="absolute bottom-2.5 left-2.5 rounded-full bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground">{l(p.name)}</span>
+        </Link>
+      ))}
     </div>
   );
 }
 
 function Hero() {
   const { t } = useTranslation();
-  const trust = [
-    { icon: IconRosetteDiscountCheck, text: t('home.trustQuality') },
-    { icon: IconPalette, text: t('home.trustCustom') },
-    { icon: IconHeadset, text: t('home.trustSupport') },
-  ];
+  const navigate = useNavigate();
+  const [q, setQ] = useState('');
 
   return (
-    <section className="relative overflow-hidden border-b">
-      <div className="container-page relative grid items-center gap-10 py-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:py-20">
+    <section className="border-b">
+      <div className="container-page grid items-center gap-10 py-10 sm:py-14 md:grid-cols-[1.05fr_1fr] lg:gap-16 lg:py-20">
         <div>
-          <p className="eyebrow mb-5">{t('home.heroEyebrow')}</p>
-          <h1 className="text-[2.25rem] leading-[1.08] font-extrabold text-brand-navy sm:text-5xl lg:text-[3.5rem]">
+          <p className="eyebrow mb-4">{t('home.heroEyebrow')}</p>
+          <h1 className="text-[2.1rem] leading-[1.08] font-extrabold text-brand-navy sm:text-5xl lg:text-[3.25rem]">
             {t('home.heroTitleLead')} <span className="text-logo-gradient">{t('home.heroTitleHighlight')}</span>
             <br />
             {t('home.heroTitleTail')}
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">{t('home.heroSubtitle')}</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" variant="brand" asChild>
-              <Link to="/products">
-                {t('home.ctaExplore')} <IconArrowRight />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/contact">{t('home.ctaQuote')}</Link>
-            </Button>
-          </div>
-          <ul className="mt-9 grid gap-3 border-t pt-6 sm:grid-cols-3">
-            {trust.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-2.5 text-sm font-semibold text-brand-navy">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-[18px]" />
-                </span>
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <HeroVisual />
-      </div>
-    </section>
-  );
-}
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">{t('home.heroSubtitle')}</p>
 
-function TrustStrip() {
-  const { t } = useTranslation();
-  const items = [
-    { icon: IconShieldLock, text: t('home.trustSecure') },
-    { icon: IconHandFinger, text: t('home.trustProof') },
-    { icon: IconReceipt2, text: t('home.trustPrice') },
-  ];
-  return (
-    <section className="border-y bg-muted">
-      <div className="container-page grid gap-4 py-5 sm:grid-cols-3">
-        {items.map(({ icon: Icon, text }) => (
-          <p key={text} className="flex items-center gap-3 text-sm font-medium">
-            <Icon className="size-5 shrink-0 text-primary" /> {text}
-          </p>
-        ))}
+          {/* Straight to a product: the search opens the full catalogue filtered by what was typed. */}
+          <form
+            role="search"
+            className="mt-7 flex max-w-xl gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate(q.trim() ? `/products?q=${encodeURIComponent(q.trim())}` : '/products');
+            }}
+          >
+            <div className="relative flex-1">
+              <IconSearch className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t('home.searchPlaceholder')}
+                aria-label={t('home.searchPlaceholder')}
+                className="h-12 rounded-xl bg-card pl-11 text-base"
+              />
+            </div>
+            <Button type="submit" size="lg" variant="brand" className="h-12 px-5">
+              <span className="max-sm:sr-only">{t('home.searchButton')}</span>
+              <IconArrowRight className="sm:hidden" />
+            </Button>
+          </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <Link to="/products" className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline">
+              {t('home.ctaExplore')} <IconArrowRight className="size-4" />
+            </Link>
+            <Link to="/contact" className="font-medium text-muted-foreground hover:text-foreground">
+              {t('home.ctaQuote')}
+            </Link>
+          </div>
+        </div>
+        <ProductMosaic />
       </div>
     </section>
   );
@@ -244,16 +192,11 @@ function RailSkeleton() {
  * The home page shows a short, hand-picked selection; full ranges live on Products, School &
  * College, Business Works and Wedding & Invitations, so they are not repeated here.
  */
-function CatalogueRails({ feature }: { feature?: Banner }) {
+function CatalogueRails() {
   const { data: products, isLoading } = useProducts({ excludeCategory: HOME_HIDDEN_CATEGORY });
   if (isLoading) return <RailSkeleton />;
   const highlights = (products ?? []).filter((p) => p.isFeatured || p.tags?.includes('highlight'));
-  return (
-    <>
-      <Highlights products={highlights} />
-      {feature && <FeatureBanner banner={feature} />}
-    </>
-  );
+  return <Highlights products={highlights} />;
 }
 
 function Testimonials() {
@@ -297,53 +240,134 @@ function Testimonials() {
   );
 }
 
+/** Four numbered steps in one row (a compact list on phones), no cards. */
 function HowItWorks() {
   const { t } = useTranslation();
+  const { data: settings } = usePublicSettings();
+  const counter = settings?.payments.counterEnabled;
   const steps = [
-    { icon: IconHandFinger, title: t('home.how1Title'), desc: t('home.how1Desc'), color: 'text-brand-cyan bg-brand-cyan/12' },
-    { icon: IconUpload, title: t('home.how2Title'), desc: t('home.how2Desc'), color: 'text-brand-magenta bg-brand-magenta/12' },
-    { icon: IconCreditCard, title: t('home.how3Title'), desc: t('home.how3Desc'), color: 'text-amber-600 bg-brand-yellow/20 dark:text-brand-yellow' },
-    { icon: IconPackage, title: t('home.how4Title'), desc: t('home.how4Desc'), color: 'text-brand-navy bg-brand-navy/10' },
+    { icon: IconHandFinger, title: t('home.how1Title'), desc: t('home.how1Desc') },
+    { icon: IconUpload, title: t('home.how2Title'), desc: t('home.how2Desc') },
+    { icon: IconCreditCard, title: t('home.how3Title'), desc: counter === false ? t('home.how3DescOnline') : t('home.how3Desc') },
+    // The proof: personalised items are printed only after the customer approves a preview.
+    { icon: IconEyeCheck, title: t('home.howProofTitle'), desc: t('home.howProofDesc'), tag: t('home.howProofTag'), proof: true },
+    { icon: IconPackage, title: t('home.how4Title'), desc: t('home.how4Desc') },
   ];
   return (
-    <section className="bg-muted section-y">
-      <div className="container-page">
-        <div className="mb-12 text-center">
-          <p className="eyebrow mb-2">{t('home.eyebrowHow')}</p>
-          <h2 className="text-[1.75rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">{t('home.howTitle')}</h2>
+    <section className="container-page section-y">
+      <div className="mb-8 max-w-2xl sm:mb-12">
+        <h2 className="text-[1.6rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">{t('home.howTitle')}</h2>
+        <p className="mt-2 text-muted-foreground">{t('home.howSubtitle')}</p>
+      </div>
+      {/* A timeline: across on wide screens, down on phones, the circles joined by a line. */}
+      <ol className="relative grid gap-7 lg:grid-cols-5 lg:gap-6">
+        <span aria-hidden className="absolute top-6 right-[10%] left-[10%] hidden h-0.5 bg-border lg:block" />
+        <span aria-hidden className="absolute top-2 bottom-2 left-6 w-0.5 bg-border lg:hidden" />
+        {steps.map(({ icon: Icon, title, desc, tag, proof }, i) => (
+          <li key={title} className="relative flex gap-4 lg:flex-col lg:items-center lg:text-center">
+            <span
+              className={cn(
+                'relative z-10 grid size-12 shrink-0 place-items-center rounded-full ring-8 ring-background',
+                proof ? 'bg-brand-amber text-brand-navy' : 'bg-brand-navy text-white',
+              )}
+            >
+              <Icon className="size-5" />
+            </span>
+            <div className="min-w-0 pt-1 lg:pt-0">
+              <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t('home.howStep', { n: i + 1 })}</p>
+              <h3 className="mt-0.5 font-semibold text-foreground">{title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{desc}</p>
+              {tag && (
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-brand-amber/40 bg-brand-amber/12 px-2.5 py-0.5 text-xs font-semibold text-brand-navy">
+                  <IconCheck className="size-3.5" /> {tag}
+                </span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/**
+ * Short answers to what customers ask before ordering. Every answer comes from the shop's own
+ * policies and settings (the delivery fee is live), and links to the full policy.
+ */
+function Faq() {
+  const { t } = useTranslation();
+  const { data: settings } = usePublicSettings();
+  const delivery = settings?.delivery;
+  const items: [string, string, string?][] = [
+    [t('home.faqOrderQ'), settings?.payments.counterEnabled === false ? t('home.faqOrderAOnline') : t('home.faqOrderA')],
+    [t('home.faqFilesQ'), t('home.faqFilesA')],
+    [t('home.faqTimeQ'), t('home.faqTimeA'), '/shipping-policy'],
+    [
+      t('home.faqDeliveryQ'),
+      delivery?.enabled
+        ? t('home.faqDeliveryA', { fee: formatINR(delivery.fee), free: formatINR(delivery.freeAbove) })
+        : t('home.faqDeliveryPickupOnly'),
+      '/shipping-policy',
+    ],
+    [t('home.faqProofQ'), t('home.faqProofA')],
+    [t('home.faqCancelQ'), t('home.faqCancelA'), '/refund-policy'],
+    [t('home.faqIdQ'), t('home.faqIdA'), '/privacy'],
+  ];
+  return (
+    <section className="border-t bg-muted section-y">
+      <div className="container-page grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-16">
+        <div>
+          <h2 className="text-[1.6rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">{t('home.faqTitle')}</h2>
+          <p className="mt-2 text-muted-foreground">{t('home.faqSubtitle')}</p>
+          <Link to="/contact" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+            {t('home.faqContact')} <IconArrowRight className="size-4" />
+          </Link>
         </div>
-        <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map(({ icon: Icon, title, desc, color }, i) => (
-            <li key={title} className="relative rounded-xl shadow-card bg-card p-6">
-              <span className="absolute top-5 right-5 text-4xl font-extrabold text-brand-navy/8">0{i + 1}</span>
-              <span className={`mb-4 grid size-12 place-items-center rounded-xl ${color}`}>
-                <Icon className="size-6" />
-              </span>
-              <h3 className="text-lg font-semibold">{title}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">{desc}</p>
-            </li>
+        <div className="divide-y rounded-2xl border bg-card">
+          {items.map(([q, a, link]) => (
+            <details key={q} className="group px-5 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-semibold text-foreground">
+                {q}
+                <IconChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="-mt-1 pb-4 text-sm leading-relaxed text-muted-foreground">
+                {a}
+                {link && (
+                  <>
+                    {' '}
+                    <Link to={link} className="font-medium text-primary hover:underline">
+                      {t('home.faqMore')}
+                    </Link>
+                  </>
+                )}
+              </p>
+            </details>
           ))}
-        </ol>
+        </div>
       </div>
     </section>
   );
 }
 
+/** One band for bulk buyers (schools, colleges and businesses), light so it does not stack navy on the footer. */
 function InstitutionCta() {
   const { t } = useTranslation();
   return (
-    <section className="container-page pt-16">
-      <div className="relative overflow-hidden rounded-2xl bg-brand-navy px-6 py-12 text-white sm:px-12">
-        <div className="absolute inset-0 bg-grid opacity-15" />
-        <div className="absolute -right-16 -bottom-24 size-72 rounded-full bg-primary/30 blur-3xl" />
-        <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-          <div className="max-w-xl">
-            <h2 className="text-2xl font-bold sm:text-3xl">{t('home.ctaTitle')}</h2>
-            <p className="mt-2 text-white/75">{t('home.ctaSubtitle')}</p>
-          </div>
-          <Button size="lg" variant="brand" asChild>
+    <section className="container-page section-y">
+      <div className="flex flex-col items-start justify-between gap-6 rounded-2xl border bg-secondary px-6 py-8 sm:px-10 md:flex-row md:items-center">
+        <div className="max-w-xl">
+          <h2 className="text-xl font-bold text-brand-navy sm:text-2xl">{t('home.ctaBulkTitle')}</h2>
+          <p className="mt-1.5 text-muted-foreground">{t('home.ctaBulkSubtitle')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="brand" asChild>
             <Link to="/institutions">
-              {t('home.ctaButton')} <IconArrowRight />
+              <IconSchool /> {t('home.ctaButton')}
+            </Link>
+          </Button>
+          <Button variant="outline" className="bg-card" asChild>
+            <Link to="/business-printing">
+              <IconBriefcase /> {t('home.ctaBusiness')}
             </Link>
           </Button>
         </div>
@@ -362,7 +386,7 @@ export default function HomePage() {
     <>
       <Hero />
       <ExploreServices />
-      {/* Offer slides from the admin panel sit under the brand hero. */}
+      {/* One banner slot: the offer slides managed in the admin panel. */}
       {isLoading ? (
         <div className="container-page pt-2">
           <Skeleton className="h-[240px] rounded-2xl sm:h-[300px] lg:h-[340px]" />
@@ -370,11 +394,10 @@ export default function HomePage() {
       ) : (
         banners.hero.length > 0 && <HeroCarousel slides={banners.hero} />
       )}
-      {banners.promo.length > 0 && <PromoTiles banners={banners.promo} />}
-      <TrustStrip />
-      <CatalogueRails feature={banners.feature[0]} />
+      <CatalogueRails />
       <HowItWorks />
       <Testimonials />
+      <Faq />
       <InstitutionCta />
     </>
   );
