@@ -13,7 +13,8 @@ export function cachedShop(): Partial<PublicSettings['shop']> | null {
   }
 }
 
-export function usePublicSettings() {
+/** `fresh` for checkout: payment methods must match what the shop offers right now, not 10 minutes ago. */
+export function usePublicSettings({ fresh = false }: { fresh?: boolean } = {}) {
   return useQuery({
     queryKey: ['settings', 'public'],
     queryFn: async () => {
@@ -27,5 +28,6 @@ export function usePublicSettings() {
       return data;
     },
     staleTime: 10 * 60_000,
+    ...(fresh ? { refetchOnMount: 'always' as const } : {}),
   });
 }

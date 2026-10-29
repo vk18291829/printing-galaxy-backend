@@ -246,20 +246,25 @@ input:-webkit-autofill:focus {
   box-shadow: none;
   border: 1px solid var(--border);
 }
+/* A quick fade only. Sliding the page in made it jump on every load and sidebar click. */
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
-/* `backwards`, not `both`: a transform left on the page after the fade would pin fixed bars
-   (bottom action bars) to the page instead of the screen. */
 @utility page-enter {
-  animation: page-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation: page-in 150ms ease-out backwards;
+}
+
+/* Inside the admin shell only the content column scrolls. The page itself never does, so a popup
+   (tooltip, dialog, select) cannot add or remove a page scrollbar and shift the whole layout. */
+html.app-shell,
+html.app-shell body {
+  height: 100%;
+  overflow: hidden;
 }
 html {
   -webkit-tap-highlight-color: transparent;

@@ -16,7 +16,7 @@ import {
   renderInvoicePdf,
 } from '@/modules/invoices/invoice.service';
 import { PaymentModel } from '@/modules/payments/payment.model';
-import { refundOrder } from '@/modules/payments/payment.service';
+import { DRAFT_REPLACED_REASON, reconcileRazorpayOrder, refundOrder } from '@/modules/payments/payment.service';
 import { notifyStaff } from '@/modules/push/push.service';
 import { getSettings } from '@/modules/settings/settings.model';
 import { FileModel } from '@/modules/uploads/file.model';
@@ -26,6 +26,7 @@ import {
   buildItems,
   changeStatus,
   computeTotals,
+  discardDraft,
   findByIdempotencyKey,
   netPaid,
   notifyStatus,
@@ -44,6 +45,32 @@ function ownerFilter(auth: AuthContext): FilterQuery<Order> {
 
 const CUSTOMER_HIDDEN = '-internalNote -assignedTo -deliveryPerson';
 
+/**
+ * A customer who closed the payment window and checks out again reuses the same uploads. Their
+ * earlier unpaid checkout still holds those files, so it is closed first (after one last check
+ * with Razorpay, in case the money did arrive).
+ */
+async function discardStaleDrafts(auth: AuthContext, fileIds: unknown[]) {
+  if (!fileIds.length) return;
+  const drafts = await OrderModel.find({
+    ...ownerFilter(auth),
+    draft: true,
+    status: { $in: ['awaiting_payment', 'cancelled'] },
+    'payment.amountPaid': { $lte: 0 },
+    'items.files': { $in: fileIds },
+  });
+  for (const draft of drafts) {
+    if (draft.status === 'awaiting_payment' && draft.payment.razorpayOrderId && (await reconcileRazorpayOrder(draft.payment.razorpayOrderId))) continue;
+    const fresh = await OrderModel.findById(draft._id);
+    if (fresh?.status === 'awaiting_payment') await discardDraft(fresh, DRAFT_REPLACED_REASON);
+    // Timed out earlier: a late payment for it is now refunded instead of bringing it back.
+    else if (fresh?.status === 'cancelled') {
+      await OrderModel.updateOne({ _id: fresh._id }, { $set: { cancelReason: DRAFT_REPLACED_REASON } });
+      await FileModel.updateMany({ order: fresh._id }, { $unset: { order: 1, deleteAfter: 1 } });
+    }
+  }
+}
+
 ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) => {
   const auth = req.auth!;
   const input = req.body as z.infer<typeof createOrderSchema>;
@@ -51,10 +78,12 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
   // A retried checkout (double tap, flaky network) gets the first order back, not a copy.
   const key = idempotencyHeader(req);
   const previous = await findByIdempotencyKey(key);
-  if (previous) {
+  // A checkout that was closed unpaid starts over; anything else is the same order again.
+  if (previous && !(previous.draft && previous.status === 'cancelled')) {
     res.setHeader('Idempotent-Replayed', 'true').status(200).json(previous.toJSON());
     return;
   }
+  if (previous) await OrderModel.updateOne({ _id: previous._id }, { $unset: { idempotencyKey: 1 } });
 
   const settings = await getSettings();
   const ctx = await resolvePricingContext(auth);
@@ -69,6 +98,7 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
     throw ApiError.badRequest('Pay at counter is not available right now');
   }
 
+  await discardStaleDrafts(auth, input.items.flatMap((i) => i.fileIds));
   const items = await buildItems(input.items, ctx, auth);
   // Custom sizes have no list price, so they always go through a quote the customer accepts.
   const quoteRequested = input.requestQuote || items.some((i) => i.customSize);
@@ -85,6 +115,7 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
     audience: ctx.audience,
     ...who,
     source: 'online',
+    draft: status === 'awaiting_payment' || undefined,
     items,
     status,
     statusHistory: [{ status, by: auth.id, byKind: auth.kind, at: new Date() }],
@@ -100,7 +131,8 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
     reference: input.reference,
     quote: { requested: quoteRequested },
   }, key);
-  if (!replayed) {
+  // An unpaid checkout is announced to the shop when the payment arrives (payment.service).
+  if (!replayed && !order.draft) {
     await notifyStatus(order);
     const segment = { individual: 'Individual', institution: 'School & College', business: 'Business', wedding: 'Wedding' }[order.segment ?? 'individual'];
     void notifyStaff({
@@ -118,7 +150,8 @@ ordersRouter.post('/', validate({ body: createOrderSchema }), async (req, res) =
 
 ordersRouter.get('/', validate({ query: pagination }), async (req, res) => {
   const { page, limit } = res.locals.query as z.infer<typeof pagination>;
-  const filter = ownerFilter(req.auth!);
+  // Unpaid checkouts are not orders yet.
+  const filter = { ...ownerFilter(req.auth!), draft: { $ne: true } };
   const [items, total] = await Promise.all([
     OrderModel.find(filter)
       .select(`${CUSTOMER_HIDDEN} -statusHistory`)
@@ -132,7 +165,8 @@ ordersRouter.get('/', validate({ query: pagination }), async (req, res) => {
 });
 
 ordersRouter.get('/:id', validate({ params: z.object({ id: objectId }) }), async (req, res) => {
-  const order = await OrderModel.findOne({ _id: req.params.id, ...ownerFilter(req.auth!) })
+  // An unpaid checkout is not an order, here as in the list.
+  const order = await OrderModel.findOne({ _id: req.params.id, ...ownerFilter(req.auth!), draft: { $ne: true } })
     .select(`${CUSTOMER_HIDDEN} +handover.code`)
     .populate(ORDER_POPULATE)
     .lean();

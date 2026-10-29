@@ -34,9 +34,17 @@ type ItemInput = z.infer<typeof orderItemInput>;
 
 const orderSuffix = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 4);
 
-export function generateOrderNumber() {
-  const d = new Date();
-  const ymd = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+/**
+ * The shop works on Indian time whatever the server's clock is set to. India has no daylight
+ * saving, so a fixed +5:30 is exact: shifting by it and reading the UTC fields gives the IST date.
+ */
+const IST_OFFSET_MS = 330 * 60_000;
+const toIst = (d: Date) => new Date(d.getTime() + IST_OFFSET_MS);
+const fromIst = (d: Date) => new Date(d.getTime() - IST_OFFSET_MS);
+
+export function generateOrderNumber(now = new Date()) {
+  const d = toIst(now);
+  const ymd = `${String(d.getUTCFullYear()).slice(2)}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
   return `PG${ymd}-${orderSuffix()}`;
 }
 
@@ -193,15 +201,15 @@ export async function findByIdempotencyKey(key?: string) {
   return key ? OrderModel.findOne({ idempotencyKey: key }) : null;
 }
 
-/** Adds working days to a date; Sundays are skipped (the shop is closed). */
+/** Adds working days to a date; Sundays (in India) are skipped, the shop is closed. */
 export function addWorkingDays(from: Date, days: number) {
-  const d = new Date(from);
+  const d = toIst(from);
   let left = Math.max(0, Math.ceil(days));
   while (left > 0) {
-    d.setDate(d.getDate() + 1);
-    if (d.getDay() !== 0) left -= 1;
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (d.getUTCDay() !== 0) left -= 1;
   }
-  return d;
+  return fromIst(d);
 }
 
 /**
@@ -390,6 +398,17 @@ export async function changeStatus(
   });
   if (options.notify !== false) await notifyStatus(order, options.note);
   return order;
+}
+
+/**
+ * Closes an unpaid checkout without telling the customer (it never became an order for them) and
+ * frees its uploads and checkout key, so paying again from the same cart works.
+ */
+export async function discardDraft(order: OrderDoc, reason: string) {
+  order.cancelReason = reason;
+  await changeStatus(null, order, 'cancelled', { note: reason, byKind: 'system', notify: false });
+  await OrderModel.updateOne({ _id: order._id }, { $unset: { idempotencyKey: 1 } });
+  await FileModel.updateMany({ order: order._id }, { $unset: { order: 1, deleteAfter: 1 } });
 }
 
 export async function resolveContact(auth: AuthContext, contactName?: string, contactPhone?: string) {

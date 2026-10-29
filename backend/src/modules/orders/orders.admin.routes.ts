@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import type { FilterQuery } from 'mongoose';
+import { Types, type FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
 import { idempotencyHeader } from '@/common/idempotency';
 import { escapeRegex, objectId, paginate } from '@/common/validation';
-import { requireAdmin, requirePermission } from '@/middleware/auth';
+import { assertPermission, requireAdmin, requirePermission } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { audit } from '@/modules/audit/audit.model';
 import {
@@ -15,8 +15,10 @@ import {
 } from '@/modules/invoices/invoice.service';
 import { PaymentModel } from '@/modules/payments/payment.model';
 import { recordPayment, refundOrder } from '@/modules/payments/payment.service';
-import { categoryIdsFor, restrictToCategoryAudience } from '@/modules/catalog/audience';
+import { restrictToCategoryAudience } from '@/modules/catalog/audience';
+import { CategoryModel } from '@/modules/catalog/category.model';
 import { ProductModel } from '@/modules/catalog/product.model';
+import { SCHOOL_CATEGORY_SLUGS } from '@/modules/catalog/segments';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
 import { resolvePricingContext } from '@/modules/institutions/institution.service';
 import { quoteProduct, round2 } from '@/modules/pricing/pricing.service';
@@ -26,6 +28,7 @@ import { UserModel } from '@/modules/users/user.model';
 import { completeHandover } from './handover.service';
 import { OrderModel, PRE_PRODUCTION_STATUSES, QUOTE_VALID_DAYS, TERMINAL_STATUSES, type Order, type OrderStatus } from './order.model';
 import {
+  addItemFilesSchema,
   adminOrderListQuery,
   assignSchema,
   handoverSchema,
@@ -75,12 +78,23 @@ async function institutionContext(institutionId: string) {
   return ctx;
 }
 
+/** The school & college range (medals, ID cards, ties…): the only products staff order for an institution. */
+async function schoolCategoryIds() {
+  return CategoryModel.find({ isActive: true, slug: { $in: SCHOOL_CATEGORY_SLUGS }, audiences: 'institution' }).distinct('_id');
+}
+
+async function assertSchoolProducts(productIds: string[]) {
+  const ids = await schoolCategoryIds();
+  const count = await ProductModel.countDocuments({ _id: { $in: [...new Set(productIds)] }, category: { $in: ids } });
+  if (count !== new Set(productIds).size) throw ApiError.unprocessable('Only school & college products can be ordered for an institution');
+}
+
 /** Products offered to schools, with their school price books (staff tokens would see retail ones). */
 adminOrdersRouter.get('/institution-order/products', requirePermission('walkin'), async (_req, res) => {
   const products = await ProductModel.find({
     isActive: true,
     'pricing.institution.enabled': true,
-    category: { $in: await categoryIdsFor('institution') },
+    category: { $in: await schoolCategoryIds() },
   })
     .sort({ sortOrder: 1, createdAt: 1 })
     .populate('category', 'name slug icon audiences')
@@ -88,10 +102,35 @@ adminOrdersRouter.get('/institution-order/products', requirePermission('walkin')
   res.json(products);
 });
 
+/** Everything sold at the counter: every individual product except the school & college range. */
+adminOrdersRouter.get('/walk-in/products', requirePermission('walkin'), async (_req, res) => {
+  const school = (await schoolCategoryIds()).map(String);
+  const categories = await CategoryModel.find({ isActive: true, audiences: 'retail' }).select('_id').sort({ sortOrder: 1, createdAt: 1 }).lean();
+  const order = new Map(categories.filter((c) => !school.includes(String(c._id))).map((c, i) => [String(c._id), i]));
+  const products = await ProductModel.find({ isActive: true, 'pricing.retail.enabled': true, category: { $in: [...order.keys()] } })
+    .sort({ sortOrder: 1, createdAt: 1 })
+    .populate('category', 'name slug icon')
+    .lean();
+  // Grouped in the catalogue's category order.
+  products.sort((a, b) => (order.get(String(a.category?._id)) ?? 0) - (order.get(String(b.category?._id)) ?? 0));
+  res.json(products);
+});
+
+/** Delivery and GST for a walk-in bill, worked out exactly as the order will be. */
+adminOrdersRouter.post(
+  '/walk-in/totals',
+  requirePermission('walkin'),
+  validate({ body: z.object({ subtotal: z.number().min(0).max(10_000_000), method: z.enum(['pickup', 'delivery']).default('pickup') }) }),
+  async (req, res) => {
+    res.json(await computeTotals(req.body.subtotal, req.body.method));
+  },
+);
+
 /** Live price for one line at the institution's prices, with delivery and tax for the review step. */
 adminOrdersRouter.post('/institution-order/quote', requirePermission('walkin'), validate({ body: institutionQuoteSchema }), async (req, res) => {
   const { institutionId, productId, method, ...input } = req.body as z.infer<typeof institutionQuoteSchema>;
   const ctx = await institutionContext(institutionId);
+  await assertSchoolProducts([productId]);
   const product = await ProductModel.findOne({ _id: productId, isActive: true }).lean();
   if (!product) throw ApiError.notFound('Product');
   const [allowed] = await restrictToCategoryAudience([product], ctx.audience);
@@ -117,6 +156,7 @@ adminOrdersRouter.post('/institution-order', requirePermission('walkin'), valida
     if (!institution?.address?.line1) throw ApiError.badRequest('This institution has no address on file for delivery');
   }
 
+  await assertSchoolProducts(input.items.map((i) => i.productId));
   // Schools hand files over in person or by email, so uploads are optional here.
   const items = await buildItems(input.items, ctx, req.auth, { requireUploads: false });
   // Custom sizes have no list price, so they always go through a quote the school accepts.
@@ -155,7 +195,8 @@ adminOrdersRouter.post('/institution-order', requirePermission('walkin'), valida
 
 adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req, res) => {
   const q = res.locals.query as z.infer<typeof adminOrderListQuery>;
-  const filter: FilterQuery<Order> = {};
+  // Online checkouts that were never paid are not orders yet.
+  const filter: FilterQuery<Order> = { draft: { $ne: true } };
   if (q.status) filter.status = q.status;
   // "Active" is the production queue: unpaid online orders and unpriced quotes are left out.
   else if (q.active) filter.status = { $nin: [...TERMINAL_STATUSES, ...PRE_PRODUCTION_STATUSES.filter((st) => st !== 'quote_pending')] };
@@ -184,11 +225,12 @@ adminOrdersRouter.get('/', validate({ query: adminOrderListQuery }), async (_req
       .lean(),
     OrderModel.countDocuments(filter),
     OrderModel.aggregate<{ _id: string; count: number }>([
+      { $match: { draft: { $ne: true } } },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
     // Open orders per segment, for the tab badges.
     OrderModel.aggregate<{ _id: string; count: number }>([
-      { $match: { status: { $nin: TERMINAL_STATUSES } } },
+      { $match: { status: { $nin: TERMINAL_STATUSES }, draft: { $ne: true } } },
       { $group: { _id: '$segment', count: { $sum: 1 } } },
     ]),
   ]);
@@ -247,6 +289,8 @@ adminOrdersRouter.patch(
   validate({ params: idParams, body: statusChangeSchema }),
   async (req, res) => {
     const { status, note, notify, override, refund } = req.body as z.infer<typeof statusChangeSchema>;
+    // Sending money back needs the same permission as the refund button; checked before anything changes.
+    if (status === 'cancelled' && refund) await assertPermission(req.auth, 'refunds');
     const order = await loadOrder(req.params.id as string);
     if (order.status === status) {
       res.json(order.toJSON());
@@ -409,6 +453,34 @@ adminOrdersRouter.post(
     if (last?.status === 'pending') last.status = 'changes_requested';
     item.proofs.push({ file: file._id, message, status: 'pending', createdBy: req.auth!.id });
     await changeStatus(req, order, 'proof_sent', { note: message });
+    res.json(order.toJSON());
+  },
+);
+
+/** The customer's file brought in after the order was entered (email, WhatsApp, pen drive). */
+adminOrdersRouter.post(
+  '/:id/items/:itemId/files',
+  requirePermission('orders'),
+  validate({ params: z.object({ id: objectId, itemId: objectId }), body: addItemFilesSchema }),
+  async (req, res) => {
+    const order = await loadOrder(req.params.id as string);
+    if (TERMINAL_STATUSES.includes(order.status as OrderStatus)) throw ApiError.conflict('This order is already closed');
+    const item = order.items.id(req.params.itemId as string);
+    if (!item) throw ApiError.notFound('Item');
+    const ids = [...new Set((req.body as z.infer<typeof addItemFilesSchema>).fileIds)];
+    if (item.files.length + ids.length > 30) throw ApiError.badRequest('An item can have at most 30 files');
+
+    const claimed = await FileModel.updateMany(
+      { _id: { $in: ids }, purpose: 'order', status: 'uploaded', order: null },
+      { $set: { order: order._id } },
+    );
+    if (claimed.modifiedCount !== ids.length) {
+      await FileModel.updateMany({ _id: { $in: ids }, order: order._id }, { $unset: { order: 1 } });
+      throw ApiError.conflict('A file is missing or already used in another order. Please upload it again.');
+    }
+    item.files.push(...ids.map((id) => new Types.ObjectId(id)));
+    await order.save();
+    audit(req, { action: 'order.files', entity: 'Order', entityId: order._id, summary: `${order.orderNumber}: ${ids.length} file(s) added to ${item.productName?.en}` });
     res.json(order.toJSON());
   },
 );

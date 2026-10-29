@@ -84,7 +84,7 @@ export function InstallAppButton({ className, pill = false }: { className?: stri
       </Button>
 
       <Dialog open={help} onOpenChange={setHelp}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Install the admin app</DialogTitle>
             <DialogDescription>Open orders, proofs and deliveries from your home screen, like any other app.</DialogDescription>

@@ -9,25 +9,26 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Solid navy (logo colour). Disabled solid buttons turn neutral so their label stays readable.
-        default: 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
-        destructive: 'bg-destructive text-white shadow-sm hover:bg-destructive/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
+        default: 'bg-primary text-primary-foreground hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
+        destructive: 'bg-destructive text-white hover:bg-destructive/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
         // Secondary action: a soft navy-tinted fill (no border, no shadow).
         outline: 'bg-secondary text-secondary-foreground hover:bg-[#dfe7f5]',
         // Destructive action for rows and dialogs (Delete, Remove, Archive).
         danger: 'bg-destructive/8 text-destructive hover:bg-destructive/14',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/70',
         ghost: 'hover:bg-secondary hover:text-secondary-foreground',
-        navy: 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
+        navy: 'bg-primary text-primary-foreground hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
         link: 'text-primary underline-offset-4 hover:underline',
         // The page's main call to action.
-        brand: 'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-brand-navy-deep hover:shadow-lg hover:shadow-primary/30 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
+        brand: 'bg-primary text-primary-foreground hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
       },
       size: {
         default: 'h-11 rounded-xl px-5 has-[>svg]:px-4',
-        sm: 'h-9 gap-1.5 rounded-lg px-3.5 text-[13px] has-[>svg]:px-3',
+        // Touch screens get at least 40px (44px for icons) so small buttons stay easy to tap.
+        sm: 'h-9 gap-1.5 rounded-lg px-3.5 text-[13px] pointer-coarse:h-10 has-[>svg]:px-3',
         lg: 'h-12 rounded-xl px-6 text-[15px] has-[>svg]:px-5',
         icon: 'size-11 rounded-xl',
-        'icon-sm': 'size-9 rounded-lg',
+        'icon-sm': 'size-9 rounded-lg pointer-coarse:size-11',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },

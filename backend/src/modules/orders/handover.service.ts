@@ -51,7 +51,21 @@ async function verifyCode(order: OrderDoc, code: string | undefined) {
 export async function completeHandover(req: Request, orderId: string, to: 'picked_up' | 'delivered', input: HandoverInput, scope: Record<string, unknown> = {}) {
   const order = await OrderModel.findOne({ _id: orderId, ...scope });
   if (!order) throw ApiError.notFound(to === 'delivered' ? 'Delivery' : 'Order');
-  if (order.status === to) return order;
+  if (order.status === to) {
+    // A repeat of the same handover (same key). If the status was saved but recording the cash
+    // failed last time, record it now; if it was recorded, the key makes this a no-op.
+    const collected = Math.max(0, input.collected ?? 0);
+    const due = amountDue(order);
+    if (collected > 0 && input.idempotencyKey && due > 0.009) {
+      return recordPayment(req, order._id, {
+        amount: Math.min(collected, due),
+        provider: input.provider ?? 'cash',
+        note: to === 'delivered' ? 'Collected on delivery' : 'Collected at pickup',
+        idempotencyKey: input.idempotencyKey,
+      });
+    }
+    return order;
+  }
 
   const method = order.fulfilment?.method ?? 'pickup';
   if (to === 'picked_up' && (method !== 'pickup' || order.status !== 'ready')) {

@@ -213,6 +213,11 @@ const orderSchema = new Schema(
       email: { type: String, trim: true },
     },
     source: { type: String, enum: ['online', 'walk_in'], default: 'online' },
+    /**
+     * An online checkout still waiting for its first payment. It only becomes an order once the money
+     * arrives: until then the customer's order list, the staff queue and staff alerts leave it out.
+     */
+    draft: { type: Boolean, default: undefined, index: true },
     items: { type: [orderItemSchema], required: true },
     status: { type: String, enum: ORDER_STATUSES, default: 'received', index: true },
     statusHistory: { type: [statusEventSchema], default: [] },

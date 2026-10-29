@@ -50,7 +50,7 @@ export function BottomTabs() {
   return (
     <nav
       aria-label={t('nav.menu')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_-12px_rgb(20_43_74/0.3)] backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
     >
       <div className="mx-auto flex h-16 max-w-lg items-stretch">
         <Tab to="/" end icon={<IconHome />} label={t('nav.home')} />

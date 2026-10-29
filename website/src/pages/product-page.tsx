@@ -60,6 +60,7 @@ function PriceSummary({
   onAdd,
   canAdd,
   orderLink,
+  inCart,
 }: {
   product: Product;
   quote?: Quote;
@@ -69,6 +70,8 @@ function PriceSummary({
   canAdd: boolean;
   /** Institutions configure and place orders in the order builder instead of a cart. */
   orderLink?: string;
+  /** How many of this product are already in the cart (each with its own photos and choices). */
+  inCart: number;
 }) {
   const { t } = useTranslation();
   const unitLabel = (count: number) => t(`units.${product.unit}`, { count });
@@ -151,7 +154,7 @@ function PriceSummary({
           </Button>
         ) : (
           <Button size="lg" variant="brand" className="w-full" onClick={onAdd} disabled={!canAdd}>
-            <IconShoppingBagPlus /> {t('product.addToCart')}
+            <IconShoppingBagPlus /> {inCart > 0 ? t('product.addAnother') : t('product.addToCart')}
           </Button>
         )}
       </CardContent>
@@ -240,7 +243,7 @@ function LockedCard({ forInstitutions, className }: { forInstitutions: boolean; 
 function LockedOverlay({ forInstitutions }: { forInstitutions: boolean }) {
   return (
     <div className="absolute inset-0 z-10 flex justify-center px-2">
-      <LockedCard forInstitutions={forInstitutions} className="sticky top-40 mt-16 h-fit w-full max-w-md shadow-2xl" />
+      <LockedCard forInstitutions={forInstitutions} className="sticky top-40 mt-16 h-fit w-full max-w-md border" />
     </div>
   );
 }
@@ -254,6 +257,7 @@ export default function ProductPage() {
   const audience = useAudience();
   const principal = useAuthStore((s) => s.principal);
   const addToCart = useCartStore((s) => s.add);
+  const cartItems = useCartStore((s) => s.items);
   const { data: product, isLoading, error, refetch } = useProduct(slug);
 
   const [options, setOptions] = useState<Record<string, string>>({});
@@ -330,6 +334,8 @@ export default function ProductPage() {
 
   const useCropper = product.workflow === 'identity' && !plainUpload;
   const needsUpload = product.requiresUpload && product.workflow !== 'quote';
+  const inCart = cartItems.filter((i) => i.productId === product._id).length;
+  const photosOnly = product.acceptedFileTypes.length > 0 && product.acceptedFileTypes.every((x) => ['jpg', 'jpeg', 'png', 'webp'].includes(x));
   const extraErrors = needsUpload && files.length === 0 ? [t('product.errors.UPLOAD_REQUIRED')] : [];
   const stale = debouncedInput !== quoteInput;
   // Guests may browse everything; only a signed-in account of the wrong kind gets the blurred lock.
@@ -378,6 +384,7 @@ export default function ProductPage() {
           {!needsUpload && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
         </CardTitle>
         {!useCropper && l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>}
+        {!useCropper && photosOnly && <p className="text-sm text-muted-foreground">{t('product.photosHint')}</p>}
       </CardHeader>
       <CardContent className="space-y-4">
         {!principal ? (
@@ -464,6 +471,15 @@ export default function ProductPage() {
 
           {!audienceBlocked && (
           <>
+          {inCart > 0 && !orderLink && (
+            <Alert variant="success">
+              <IconShoppingBagPlus />
+              <AlertDescription className="text-foreground">
+                <span className="font-semibold">{t('product.inCartCount', { count: inCart })}</span> {t('product.makeAnother')}{' '}
+                <Link to="/cart" className="font-medium text-primary underline-offset-4 hover:underline">{t('product.goToCart')}</Link>
+              </AlertDescription>
+            </Alert>
+          )}
           {product.options.length > 0 && (
             <Card>
               <CardHeader>
@@ -546,6 +562,7 @@ export default function ProductPage() {
               onAdd={handleAdd}
               canAdd={canAdd}
               orderLink={orderLink}
+              inCart={inCart}
             />
           )}
           {!audienceBlocked && book.tiers.length > 0 && (
@@ -564,7 +581,7 @@ export default function ProductPage() {
       )}
 
       {/* Phones & tablets: keep the price and the add button in reach while choosing options. */}
-      <div className={cn('sticky bottom-0 z-30 -mx-4 mt-6 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] backdrop-blur-xl sm:-mx-6 lg:hidden', audienceBlocked && 'hidden')}>
+      <div className={cn('sticky bottom-0 z-30 -mx-4 mt-6 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:-mx-6 lg:hidden', audienceBlocked && 'hidden')}>
         <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
             {quote?.requiresQuote ? (
@@ -597,7 +614,7 @@ export default function ProductPage() {
             </Button>
           ) : (
             <Button size="lg" variant="brand" className="shrink-0 px-4 sm:px-6" onClick={handleAdd} disabled={!canAdd}>
-              <IconShoppingBagPlus /> <span className="max-[359px]:sr-only">{t('product.addToCart')}</span>
+              <IconShoppingBagPlus /> <span className="max-[359px]:sr-only">{inCart > 0 ? t('product.addAnother') : t('product.addToCart')}</span>
             </Button>
           )}
         </div>

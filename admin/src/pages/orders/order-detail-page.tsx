@@ -1,5 +1,6 @@
 import {
   IconX,
+  IconUpload,
   IconSend,
   IconEye,
   IconBrandWhatsapp,
@@ -54,7 +55,9 @@ import {
   useSaveNote,
   useSendProof,
   useSetDueDate,
+  useAddItemFiles,
 } from '@/features/orders/api';
+import { deleteUpload, FileUploader, type LineFile } from '@/features/uploads/file-uploader';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
 import { ProofViewer } from '@/features/orders/proof-viewer';
 import { getErrorMessage, newIdempotencyKey } from '@/lib/api-client';
@@ -226,6 +229,58 @@ function Section({ title, children, aside }: { title: string; children: ReactNod
   );
 }
 
+/** The customer's file arriving after the order was entered: upload it, then attach it to the item. */
+function AddItemFiles({ order, item }: { order: AdminOrder; item: OrderItem }) {
+  const [open, setOpen] = useState(false);
+  const [files, setFiles] = useState<LineFile[]>([]);
+  const add = useAddItemFiles(order._id);
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" className="mt-2" onClick={() => setOpen(true)}>
+        <IconUpload /> Add customer files
+      </Button>
+    );
+  }
+  return (
+    <div className="mt-3 space-y-2">
+      <FileUploader productId={item.product} accepted={['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx', 'ppt', 'pptx', 'zip']} files={files} onChange={setFiles} />
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          disabled={files.length === 0 || add.isPending}
+          onClick={() =>
+            add.mutate(
+              { itemId: item._id, fileIds: files.map((f) => f.id) },
+              {
+                onSuccess: () => {
+                  toast.success(`${files.length} file${files.length > 1 ? 's' : ''} added`);
+                  setFiles([]);
+                  setOpen(false);
+                },
+                onError: (e) => toast.error(getErrorMessage(e)),
+              },
+            )
+          }
+        >
+          {add.isPending && <Spinner className="size-4 text-current" />} Attach to this item
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            files.forEach((f) => void deleteUpload(f.id));
+            setFiles([]);
+            setOpen(false);
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; index: number }) {
   const qty =
     item.unit === 'page'
@@ -286,8 +341,9 @@ function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; 
         </div>
       )}
 
-      {files.length > 0 && (
-        <Section title={`Files (${files.length})`}>
+      {(files.length > 0 || !['cancelled', 'delivered', 'picked_up'].includes(order.status)) && (
+        <Section title={files.length ? `Files (${files.length})` : 'Files'}>
+          {files.length === 0 && <p className="text-sm text-muted-foreground">No file yet.</p>}
           <div className="flex flex-wrap gap-2">
             {files.map((f) => (
               <Button
@@ -305,6 +361,7 @@ function ItemCard({ order, item, index }: { order: AdminOrder; item: OrderItem; 
               </Button>
             ))}
           </div>
+          {!['cancelled', 'delivered', 'picked_up'].includes(order.status) && <AddItemFiles order={order} item={item} />}
         </Section>
       )}
 
@@ -1031,9 +1088,9 @@ function NextActionBar({ order, onUpdate }: { order: AdminOrder; onUpdate: () =>
   // wrapper does; the spacer keeps the last card on the page clear of it.
   return (
     <>
-      <div className="h-16 lg:hidden" aria-hidden />
+      <div className="h-16 md:hidden" aria-hidden />
       {createPortal(
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t bg-card/95 px-4 py-2.5 backdrop-blur-xl lg:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t bg-card/95 px-4 py-2.5 backdrop-blur-xl md:hidden">
           <div className="mx-auto flex max-w-lg items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="font-mono text-xs font-semibold">{order.orderNumber}</p>
@@ -1294,8 +1351,8 @@ function OrderDetail({ order }: { order: AdminOrder }) {
           <AssignCard order={order} />
         </div>
       </div>
-      {/* Keeps the last card clear of the pinned action bar on phones. */}
-      <div className="h-14 lg:hidden" />
+      {/* Keeps the last card clear of the pinned action bar (phones only; tablets have the rail, not the tab bar). */}
+      <div className="h-14 md:hidden" />
       <NextActionBar order={order} onUpdate={() => setStatusOpen(true)} />
       <StatusDialog order={order} open={statusOpen} onOpenChange={setStatusOpen} />
     </div>

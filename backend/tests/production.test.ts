@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import type { Transporter } from 'nodemailer';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cancelUnpaidOrders } from '@/jobs/order-maintenance';
+import { backfillDrafts, cancelUnpaidOrders } from '@/jobs/order-maintenance';
 import { resetMailer } from '@/modules/notifications/mailer';
 import { NotificationLogModel } from '@/modules/notifications/notification.model';
 import { OrderModel } from '@/modules/orders/order.model';
@@ -152,6 +152,79 @@ describe('online payment flow', () => {
     expect(back?.payment.status).toBe('paid');
   });
 
+  it('is not an order until it is paid', async () => {
+    const res = await api().post('/api/v1/orders').set(bearer(customer)).set('Idempotency-Key', 'draft-chk-0001').send(pickupOrder('online')).expect(201);
+    const id = res.body._id;
+    const mine = async () => (await api().get('/api/v1/orders').set(bearer(customer)).expect(200)).body.items.map((o: { _id: string }) => o._id);
+    const staffList = async () => (await api().get('/api/v1/admin/orders').query({ active: 'false' }).set(bearer(staff)).expect(200)).body.items.map((o: { _id: string }) => o._id);
+    expect(await mine()).not.toContain(id);
+    expect(await staffList()).not.toContain(id);
+
+    // Closing the payment window and paying again uses the same checkout.
+    const retry = await api().post('/api/v1/orders').set(bearer(customer)).set('Idempotency-Key', 'draft-chk-0001').send(pickupOrder('online')).expect(200);
+    expect(retry.body._id).toBe(id);
+
+    await payOnline(id);
+    expect(await mine()).toContain(id);
+    expect(await staffList()).toContain(id);
+    expect((await OrderModel.findById(id).lean())?.draft).toBeUndefined();
+  });
+
+  it('frees the files of an unpaid checkout so the customer can check out again', async () => {
+    const file = await upload(customer, { name: 'id.jpg', mimeType: 'image/jpeg', bytes: new Uint8Array([0xff, 0xd8, 0xff]), productId: String(seed.products.studentId._id) });
+    const body = { ...pickupOrder('online'), items: [{ productId: String(seed.products.studentId._id), quantity: 1, fileIds: [file._id] }] };
+    const first = await api().post('/api/v1/orders').set(bearer(customer)).set('Idempotency-Key', 'draft-file-0001').send(body).expect(201);
+    const second = await api().post('/api/v1/orders').set(bearer(customer)).set('Idempotency-Key', 'draft-file-0002').send(body).expect(201);
+    expect((await OrderModel.findById(first.body._id).lean())?.status).toBe('cancelled');
+
+    // Timed out: closed quietly, and the same checkout key starts a fresh one.
+    await OrderModel.updateOne({ _id: second.body._id }, { $set: { 'payment.dueBy': new Date(Date.now() - 1000) } });
+    await cancelUnpaidOrders();
+    expect((await OrderModel.findById(second.body._id).lean())?.status).toBe('cancelled');
+    const third = await api().post('/api/v1/orders').set(bearer(customer)).set('Idempotency-Key', 'draft-file-0002').send(body).expect(201);
+    expect(third.body._id).not.toBe(second.body._id);
+  });
+
+  it('turns old unpaid checkouts into drafts the customer no longer sees', async () => {
+    const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online')).expect(201);
+    // As created before drafts existed.
+    await OrderModel.updateOne({ _id: res.body._id }, { $unset: { draft: 1 } });
+    await api().get(`/api/v1/orders/${res.body._id}`).set(bearer(customer)).expect(200);
+
+    expect(await backfillDrafts()).toBeGreaterThanOrEqual(1);
+    expect((await OrderModel.findById(res.body._id).lean())?.draft).toBe(true);
+    await api().get(`/api/v1/orders/${res.body._id}`).set(bearer(customer)).expect(404);
+  });
+
+  it('checks with Razorpay when the payment window closes, so a payment that went through is never paid twice', async () => {
+    const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online')).expect(201);
+    const rzp = await api().post('/api/v1/payments/razorpay/order').set(bearer(customer)).send({ orderId: res.body._id }).expect(200);
+    // Nothing yet: not paid.
+    const before = await api().post('/api/v1/payments/razorpay/check').set(bearer(customer)).send({ orderId: res.body._id }).expect(200);
+    expect(before.body.paid).toBe(false);
+
+    // The UPI payment was approved after the window closed; no webhook yet.
+    rzpPayments.set(rzp.body.razorpayOrderId, [{ id: 'pay_after_close_1', status: 'captured', amount: 8000, currency: 'INR' }]);
+    const after = await api().post('/api/v1/payments/razorpay/check').set(bearer(customer)).send({ orderId: res.body._id }).expect(200);
+    expect(after.body.paid).toBe(true);
+    expect(after.body.order.status).toBe('received');
+
+    // Only the order's owner can ask.
+    const other = await customerToken('9876500011');
+    await api().post('/api/v1/payments/razorpay/check').set(bearer(other)).send({ orderId: res.body._id }).expect(404);
+  });
+
+  it('tells the customer when a late payment brings the order back', async () => {
+    const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online')).expect(201);
+    const rzp = await api().post('/api/v1/payments/razorpay/order').set(bearer(customer)).send({ orderId: res.body._id }).expect(200);
+    await OrderModel.updateOne({ _id: res.body._id }, { $set: { 'payment.dueBy': new Date(Date.now() - 1000) } });
+    await cancelUnpaidOrders();
+    await webhook({ event: 'payment.captured', payload: { payment: { entity: { id: 'pay_late_tell_1', order_id: rzp.body.razorpayOrderId, amount: 8000 } } } }, 'evt_late_tell').expect(200);
+    await new Promise((r) => setTimeout(r, 50));
+    expect((await OrderModel.findById(res.body._id).lean())?.status).toBe('received');
+    expect(await NotificationLogModel.countDocuments({ relatedOrder: res.body._id, template: 'order_received' })).toBe(1);
+  });
+
   it('finds a payment the webhook missed before cancelling', async () => {
     const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online')).expect(201);
     const rzp = await api().post('/api/v1/payments/razorpay/order').set(bearer(customer)).send({ orderId: res.body._id }).expect(200);
@@ -163,6 +236,35 @@ describe('online payment flow', () => {
 });
 
 describe('refunds', () => {
+  it('needs the refund permission to send money back while cancelling', async () => {
+    const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('counter', 2)).expect(201);
+    await api().post(`/api/v1/admin/orders/${res.body._id}/payments`).set(bearer(admin)).send({ amount: 160, provider: 'cash' }).expect(200);
+    const url = `/api/v1/admin/orders/${res.body._id}/status`;
+    await api().patch(url).set(bearer(staff)).send({ status: 'cancelled', refund: true, note: 'Customer changed mind' }).expect(403);
+    // Refused before anything changed: not cancelled, no money moved.
+    const untouched = await OrderModel.findById(res.body._id).lean();
+    expect(untouched?.status).toBe('received');
+    expect(untouched?.payment.amountRefunded ?? 0).toBe(0);
+
+    const done = await api().patch(url).set(bearer(admin)).send({ status: 'cancelled', refund: true, note: 'Customer changed mind' }).expect(200);
+    expect(done.body.status).toBe('cancelled');
+    expect(done.body.payment.amountRefunded).toBe(160);
+  });
+
+  it('records the cash when a pickup handover is repeated after the payment was not saved', async () => {
+    const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('counter', 2)).expect(201);
+    // As left by a handover whose status was saved but whose cash recording failed.
+    await OrderModel.updateOne({ _id: res.body._id }, { $set: { status: 'picked_up' } });
+    const send = () =>
+      api().post(`/api/v1/admin/orders/${res.body._id}/handover`).set(bearer(admin)).set('Idempotency-Key', 'pickup-retry-0001').send({ code: '0000', amountCollected: 160, provider: 'cash' });
+    const first = await send().expect(200);
+    expect(first.body.payment).toMatchObject({ amountPaid: 160, status: 'paid' });
+    // The same retry again never counts the cash twice.
+    const again = await send().expect(200);
+    expect(again.body.payment.amountPaid).toBe(160);
+  });
+
+
   it('refunds automatically when a customer cancels a paid online order', async () => {
     const res = await api().post('/api/v1/orders').set(bearer(customer)).send(pickupOrder('online')).expect(201);
     await payOnline(res.body._id);

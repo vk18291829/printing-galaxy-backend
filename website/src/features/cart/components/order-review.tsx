@@ -7,7 +7,7 @@ import { formatFileSize, formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import type { Address, PublicSettings, Quote } from '@/types/api';
 import type { CartItem } from '../cart-store';
-import { CartThumb } from './cart-line';
+import { CartThumb, DesignBadge } from './cart-line';
 
 function Section({ title, onEdit, children }: { title: string; onEdit?: () => void; children: ReactNode }) {
   const { t } = useTranslation();
@@ -69,7 +69,10 @@ export function OrderReview({
               <CartThumb item={item} className="size-20" />
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="leading-snug font-semibold">{l(item.name)}</p>
+                  <p className="leading-snug font-semibold">
+                    {l(item.name)}
+                    <DesignBadge item={item} />
+                  </p>
                   <p className="shrink-0 font-semibold tabular-nums">
                     {item.workflow === 'quote' ? <span className="text-sm text-primary">{t('product.quoteRequired')}</span> : formatINR(amount)}
                   </p>

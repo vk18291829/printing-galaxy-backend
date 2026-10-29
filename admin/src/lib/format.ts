@@ -11,6 +11,12 @@ export function formatINR(value: number) {
   return inr.format(value);
 }
 
+export const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** GST already inside the prices (the total is not raised by it). */
+export const taxIncluded = (t: { subtotal: number; deliveryFee: number; tax: number; total: number }) =>
+  t.tax > 0 && Math.abs(t.total - (t.subtotal + t.deliveryFee)) < 0.01;
+
 export function formatNumber(value: number) {
   return new Intl.NumberFormat('en-IN').format(value);
 }

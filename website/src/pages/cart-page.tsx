@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { useCategories, useProducts } from '@/features/catalog/api';
 import { ProductCard } from '@/features/catalog/components/product-card';
 import { useCartStore, type CartItem } from '@/features/cart/cart-store';
-import { CartThumb } from '@/features/cart/components/cart-line';
+import { CartThumb, DesignBadge } from '@/features/cart/components/cart-line';
 import { useCartQuotes } from '@/features/cart/use-cart-quotes';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
@@ -81,6 +81,7 @@ function Line({ item, quote, amount }: { item: CartItem; quote?: Quote; amount: 
             <Link to={`/products/${item.slug}`} className="leading-snug font-semibold hover:text-primary">
               {l(item.name)}
             </Link>
+            <DesignBadge item={item} />
             <p className="mt-0.5 text-sm text-muted-foreground">
               {qty}
               {unitPrice && <span className="text-muted-foreground/80"> · {unitPrice}</span>}

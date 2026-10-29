@@ -95,8 +95,8 @@ export default function OrdersPage() {
         title="Orders"
         description="Every online and counter order in one place."
         actions={
-          // Phones use the + in the tab bar.
-          <Button className="hidden lg:inline-flex" asChild>
+          // Phones use the + in the tab bar; tablets and up get this button (and the rail).
+          <Button className="hidden md:inline-flex" asChild>
             <Link to="/orders/new">
               <IconReceipt /> Walk-in order
             </Link>

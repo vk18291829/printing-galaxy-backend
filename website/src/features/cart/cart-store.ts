@@ -32,6 +32,12 @@ export interface CartItem {
 
 interface CartState {
   items: CartItem[];
+  /**
+   * One checkout per cart content: paying again for the same cart (after closing the payment window
+   * or leaving the page) reuses the same order instead of creating and charging a second one.
+   * Any change to the items starts a new checkout.
+   */
+  checkoutKey: string;
   add: (item: Omit<CartItem, 'id'>) => void;
   update: (id: string, patch: Partial<CartItem>) => void;
   remove: (id: string) => void;
@@ -42,10 +48,12 @@ export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
-      add: (item) => set((s) => ({ items: [...s.items, { ...item, id: crypto.randomUUID() }] })),
-      update: (id, patch) => set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
-      remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
-      clear: () => set({ items: [] }),
+      checkoutKey: crypto.randomUUID(),
+      add: (item) => set((s) => ({ items: [...s.items, { ...item, id: crypto.randomUUID() }], checkoutKey: crypto.randomUUID() })),
+      update: (id, patch) =>
+        set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, ...patch } : i)), checkoutKey: crypto.randomUUID() })),
+      remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id), checkoutKey: crypto.randomUUID() })),
+      clear: () => set({ items: [], checkoutKey: crypto.randomUUID() }),
     }),
     {
       name: 'pg-cart',

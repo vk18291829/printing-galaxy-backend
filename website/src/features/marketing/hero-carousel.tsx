@@ -69,7 +69,7 @@ export function HeroCarousel({ slides }: { slides: Banner[] }) {
                   <SmartLink
                     href={s.link}
                     tabIndex={i === active ? 0 : -1}
-                    className="mt-2 inline-flex h-11 w-fit items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-brand-orange-hover focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none"
+                    className="mt-2 inline-flex h-11 w-fit items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-orange-hover focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none"
                   >
                     {(s.ctaLabel && l(s.ctaLabel)) || t('home.shopNow')} <IconArrowRight className="size-4" />
                   </SmartLink>

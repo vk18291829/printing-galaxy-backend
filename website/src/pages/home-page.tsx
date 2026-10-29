@@ -196,7 +196,7 @@ function ExploreServices() {
       </div>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {tiles.map(({ to, title, desc, icon: Icon, tint, img }) => (
-          <Link key={to} to={to} className={cn('group flex flex-col overflow-hidden rounded-2xl border transition-transform duration-200 hover:-translate-y-1', tint)}>
+          <Link key={to} to={to} className={cn('group flex flex-col overflow-hidden rounded-2xl border transition-[border-color] duration-200 hover:border-primary/30', tint)}>
             <div className="aspect-[4/3] overflow-hidden p-3 sm:p-4">
               <SafeImage
                 src={img}

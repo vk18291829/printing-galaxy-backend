@@ -33,7 +33,7 @@ import { useInstitution, useInstitutions } from '@/features/management/api';
 import { useCreateInstitutionOrder, useInstitutionProducts, useInstitutionQuote, type InstitutionQuoteInput } from '@/features/orders/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { newIdempotencyKey } from '@/lib/api-client';
-import { formatINR, formatNumber } from '@/lib/format';
+import { formatINR, formatNumber, round2, taxIncluded } from '@/lib/format';
 import { en, unitLabel } from '@/lib/l10n';
 import { cn } from '@/lib/utils';
 import type { Institution, Product, Quote, SizeUnit } from '@/types/api';
@@ -389,6 +389,12 @@ export default function InstitutionOrderPage() {
                 <dt className="text-muted-foreground">Price per {unit(1)}</dt>
                 <dd className="font-semibold tabular-nums">{formatINR(quote.unitPrice)}</dd>
               </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">
+                  {formatINR(quote.unitPrice)} × {formatNumber(quote.units)} {unit(quote.units)}
+                </dt>
+                <dd className="tabular-nums">{formatINR(round2(quote.unitPrice * quote.units))}</dd>
+              </div>
               {quote.fixedFees > 0 && (
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Extras</dt>
@@ -401,22 +407,29 @@ export default function InstitutionOrderPage() {
                   <dd className="tabular-nums">−{formatINR(quote.discount)}</dd>
                 </div>
               )}
-              {step === 'review' && totals && totals.deliveryFee > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Delivery</dt>
-                  <dd className="tabular-nums">{formatINR(totals.deliveryFee)}</dd>
-                </div>
-              )}
-              {step === 'review' && totals && totals.tax > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">GST ({totals.taxRate}%)</dt>
-                  <dd className="tabular-nums">{formatINR(totals.tax)}</dd>
-                </div>
+              {totals && (
+                <>
+                  <div className="flex justify-between border-t pt-1.5">
+                    <dt className="text-muted-foreground">Subtotal</dt>
+                    <dd className="tabular-nums">{formatINR(totals.subtotal)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">{method === 'delivery' ? 'Delivery' : 'Pickup at shop'}</dt>
+                    <dd className="tabular-nums">{totals.deliveryFee > 0 ? formatINR(totals.deliveryFee) : 'Free'}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {totals.taxRate > 0 ? `GST (${totals.taxRate}%)` : 'GST'}
+                      {taxIncluded(totals) && <span className="ml-1 text-xs">(included)</span>}
+                    </dt>
+                    <dd className="tabular-nums">{totals.tax > 0 ? formatINR(totals.tax) : '—'}</dd>
+                  </div>
+                </>
               )}
               <div className="flex items-end justify-between pt-2">
                 <dt className="font-semibold">{isCustom ? 'Estimate' : 'Total'}</dt>
                 <dd className="text-2xl font-bold tracking-tight text-brand-navy tabular-nums">
-                  {formatINR(step === 'review' ? (totals?.total ?? quote.subtotal) : quote.subtotal)}
+                  {formatINR(totals?.total ?? quote.subtotal)}
                 </dd>
               </div>
               {isCustom && <p className="text-xs text-muted-foreground">Custom sizes are priced by the shop; this is the listed-size estimate.</p>}

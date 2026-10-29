@@ -1,5 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { CategoryModel } from '@/modules/catalog/category.model';
+import { ProductModel } from '@/modules/catalog/product.model';
 import { OrderModel } from '@/modules/orders/order.model';
 import { FileModel } from '@/modules/uploads/file.model';
 import { api, bearer, binary, connectTestDb, customerToken, disconnectTestDb, pdfWithPages, seedBasics, staffToken, upload } from './helpers';
@@ -203,10 +205,55 @@ describe('institution quote requests', () => {
   });
 });
 
+describe('walk-in orders with the customer files', () => {
+  it('takes files uploaded at the counter, counts their pages, and accepts a file brought later', async () => {
+    const notes = String(seed.products.notes._id);
+    const file = await upload(admin, { name: 'notes.pdf', mimeType: 'application/pdf', bytes: await pdfWithPages(120), productId: notes });
+    const created = await api()
+      .post('/api/v1/admin/orders/walk-in')
+      .set(bearer(admin))
+      .send({
+        customer: { name: 'Ravi', phone: '9812300001' },
+        items: [
+          { productId: notes, pageCount: 1, copies: 1, fileIds: [file._id] },
+          { productId: notes, pageCount: 100, copies: 1, fileIds: [] },
+        ],
+        fulfilment: { method: 'pickup' },
+        amountPaid: 0,
+        paymentProvider: 'cash',
+      })
+      .expect(201);
+    // The page count comes from the PDF, not the number typed in.
+    expect(created.body.items[0].pageCount).toBe(120);
+    expect(created.body.items[0].files).toEqual([file._id]);
+
+    const later = await upload(admin, { name: 'more.pdf', mimeType: 'application/pdf', bytes: await pdfWithPages(10), productId: notes });
+    const itemId = created.body.items[1]._id;
+    const added = await api().post(`/api/v1/admin/orders/${created.body._id}/items/${itemId}/files`).set(bearer(admin)).send({ fileIds: [later._id] }).expect(200);
+    expect(added.body.items[1].files).toEqual([later._id]);
+    // The same file cannot be attached twice.
+    await api().post(`/api/v1/admin/orders/${created.body._id}/items/${itemId}/files`).set(bearer(admin)).send({ fileIds: [later._id] }).expect(409);
+  });
+});
+
 describe('orders for an institution entered by staff', () => {
   it('lists school products, quotes at school prices and places the order on the institution', async () => {
     const schoolId = String(seed.institutions.school._id);
+    const schoolWorks = await CategoryModel.create({ name: { en: 'School Works', hi: 'स्कूल' }, slug: 'school-works', audiences: ['institution'] });
+    await ProductModel.updateOne({ _id: seed.products.medal._id }, { $set: { category: schoolWorks._id } });
+
     const products = await api().get('/api/v1/admin/orders/institution-order/products').set(bearer(admin)).expect(200);
+    // Only the school & college range, not general products that schools may also buy.
+    expect(products.body.map((p: { slug: string }) => p.slug)).toEqual(['school-medal']);
+    await api()
+      .post('/api/v1/admin/orders/institution-order/quote')
+      .set(bearer(admin))
+      .send({ institutionId: schoolId, productId: seed.products.notes._id, pageCount: 500 })
+      .expect(422);
+    const walkIn = await api().get('/api/v1/admin/orders/walk-in/products').set(bearer(admin)).expect(200);
+    expect(walkIn.body.map((p: { slug: string }) => p.slug)).not.toContain('school-medal');
+    expect(walkIn.body.map((p: { slug: string }) => p.slug)).toContain('notes-print-bw');
+
     const medal = products.body.find((p: { slug: string }) => p.slug === 'school-medal');
     // Staff see the school price book, not the retail one.
     expect(medal.pricing.institution.tiers).toEqual([{ minQty: 20, unitPrice: 45 }]);

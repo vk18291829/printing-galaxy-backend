@@ -87,7 +87,7 @@ export function InstallAppButton({ className, variant = 'button' }: { className?
       )}
 
       <Dialog open={help} onOpenChange={setHelp}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{t('pwa.howTitle')}</DialogTitle>
             <DialogDescription>{t('pwa.installDesc')}</DialogDescription>

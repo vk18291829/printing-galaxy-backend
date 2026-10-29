@@ -106,4 +106,6 @@ export const paymentsApi = {
     api.post<RazorpayOrderResponse>('/payments/razorpay/order', { orderId }).then((r) => r.data),
   verify: (payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
     api.post('/payments/razorpay/verify', payload).then((r) => r.data),
+  /** Asks the server to check with Razorpay whether this order's payment went through. */
+  check: (orderId: string) => api.post<{ paid: boolean }>('/payments/razorpay/check', { orderId }).then((r) => r.data),
 };

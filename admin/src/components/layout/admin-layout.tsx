@@ -60,6 +60,7 @@ import { InstallAppButton } from '@/lib/pwa';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useDashboard } from '@/features/management/api';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useBreadcrumbs } from './breadcrumbs';
 
 interface NavItem {
@@ -329,7 +330,7 @@ function BottomTabs({ onMore }: { onMore: () => void }) {
   const on = 'text-primary';
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_-12px_rgb(20_43_74/0.35)] backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       aria-label="Main"
     >
       <div className="mx-auto flex h-16 max-w-lg items-stretch px-2">
@@ -348,7 +349,7 @@ function BottomTabs({ onMore }: { onMore: () => void }) {
             <Link
               to="/orders/new"
               aria-label="New walk-in order"
-              className="-mt-5 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-background active:scale-95"
+              className="-mt-5 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground ring-4 ring-background active:scale-95"
             >
               <IconPlus className="size-7" stroke={2.5} />
             </Link>
@@ -375,7 +376,7 @@ function HeaderNav() {
 
   return (
     <>
-      <div className="flex min-w-0 items-center gap-1 lg:hidden">
+      <div className="flex min-w-0 items-center gap-1 md:hidden">
         {parent && crumbs.length > 2 ? (
           <>
             <Button variant="ghost" size="icon-sm" asChild aria-label={`Back to ${parent.label}`}>
@@ -395,7 +396,7 @@ function HeaderNav() {
           </Link>
         )}
       </div>
-      <Breadcrumb className="hidden min-w-0 lg:block">
+      <Breadcrumb className="hidden min-w-0 md:block">
         <BreadcrumbList>
           {crumbs.map((c, i) => (
             <Fragment key={c.to}>
@@ -420,9 +421,17 @@ function HeaderNav() {
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  // Tablets (768–1023px): the sidebar is an icon rail; its expand button opens the full menu sheet.
+  const rail = useMediaQuery('(min-width: 768px) and (max-width: 1023.98px)');
   const user = useAuthStore((s) => s.user);
   const { pathname } = useLocation();
   const scroller = useRef<HTMLDivElement>(null);
+
+  // The page itself never scrolls while the shell is shown (see .app-shell in globals.css).
+  useEffect(() => {
+    document.documentElement.classList.add('app-shell');
+    return () => document.documentElement.classList.remove('app-shell');
+  }, []);
 
   // The content column is the scroll container, so reset it (not the window) on navigation.
   useEffect(() => {
@@ -448,11 +457,11 @@ export function AdminLayout() {
       <div className="fixed inset-0 flex overflow-hidden">
         <aside
           className={cn(
-            'hidden h-full shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:block',
-            collapsed ? 'w-16' : 'w-64',
+            'hidden h-full shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:block',
+            collapsed || rail ? 'w-16' : 'w-64',
           )}
         >
-          <SidebarBody collapsed={collapsed} onToggle={toggle} />
+          <SidebarBody collapsed={collapsed || rail} onToggle={rail ? () => setMobileOpen(true) : toggle} />
         </aside>
 
         {/* `relative` keeps absolutely placed bits (hidden native selects, sr-only labels) inside this
@@ -481,7 +490,7 @@ export function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:pb-6">
+          <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 md:pb-6 lg:px-8">
             <div key={pathname} className="page-container page-enter">
               <Outlet />
             </div>

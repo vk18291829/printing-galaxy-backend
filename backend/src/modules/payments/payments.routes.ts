@@ -9,7 +9,7 @@ import { authenticate, requireKind } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { OrderModel } from '@/modules/orders/order.model';
 import { PaymentModel } from './payment.model';
-import { applyCapture, applyRefundEvent, razorpay, razorpayOrderFor } from './payment.service';
+import { applyCapture, applyRefundEvent, razorpay, razorpayOrderFor, reconcileRazorpayOrder } from './payment.service';
 import { WebhookEventModel } from './webhook-event.model';
 
 export const paymentsRouter = Router();
@@ -55,6 +55,34 @@ paymentsRouter.post(
       orderNumber: order.orderNumber,
       prefill: { name: order.contact?.name, contact: order.contact?.phone, email: order.contact?.email },
     });
+  },
+);
+
+/**
+ * "Did my payment go through?": asked when the payment window closes without a confirmation (UPI
+ * still pending, verify call lost). Checks with Razorpay now, so a payment that did succeed is
+ * recorded before the customer is told otherwise, and they never pay twice.
+ */
+paymentsRouter.post(
+  '/razorpay/check',
+  authenticate,
+  requireKind('user', 'institution'),
+  validate({ body: z.object({ orderId: objectId }) }),
+  async (req, res) => {
+    const auth = req.auth!;
+    const owner = auth.kind === 'institution' ? { institution: auth.id } : { customer: auth.id };
+    const order = await OrderModel.findOne({ _id: req.body.orderId, ...owner }).select('payment.razorpayOrderId').lean();
+    if (!order) throw ApiError.notFound('Order');
+    if (razorpayEnabled() && order.payment?.razorpayOrderId) {
+      try {
+        await reconcileRazorpayOrder(order.payment.razorpayOrderId);
+      } catch (err) {
+        // Razorpay unreachable: answer with what we know; the background check runs again later.
+        logEvent('payment.check_failed', { orderId: req.body.orderId, message: (err as Error).message }, 'warn');
+      }
+    }
+    const fresh = await OrderModel.findById(order._id).select('orderNumber status payment totals').lean();
+    res.json({ paid: fresh?.payment.status === 'paid', order: fresh });
   },
 );
 

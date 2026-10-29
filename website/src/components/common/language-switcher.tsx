@@ -25,7 +25,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
               onClick={() => !active && setLanguage(l.code)}
               className={cn(
                 'h-6 min-w-9 rounded-full px-2.5 text-[11px] leading-none font-bold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none',
-                active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-white/70 hover:text-white',
+                active ? 'bg-primary text-primary-foreground' : 'text-white/70 hover:text-white',
               )}
             >
               {l.short}

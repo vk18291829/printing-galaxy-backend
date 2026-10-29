@@ -89,6 +89,12 @@ export const useRecordPayment = (id: string) =>
     api.post(`/admin/orders/${id}/payments`, input, idempotent(key)),
   );
 
+/** Attaches the customer's files (already uploaded by staff) to an item after the order was entered. */
+export const useAddItemFiles = (orderId: string) =>
+  useOrderMutation(({ itemId, fileIds }: { itemId: string; fileIds: string[] }) =>
+    api.post(`/admin/orders/${orderId}/items/${itemId}/files`, { fileIds }),
+  );
+
 export const useDeleteOrder = (id: string) => useOrderMutation(() => api.delete(`/admin/orders/${id}`));
 
 /** Uploads the proof file to storage, then attaches it to the order item. */
@@ -110,6 +116,23 @@ export interface WalkInInput {
   amountPaid: number;
   paymentProvider: 'cash' | 'upi_counter';
   internalNote?: string;
+}
+
+/** Products sold at the counter: every individual product except the school & college range. */
+export function useWalkInProducts() {
+  return useQuery({
+    queryKey: ['walk-in-products'],
+    queryFn: async () => (await api.get<Product[]>('/admin/orders/walk-in/products')).data,
+  });
+}
+
+/** Delivery and GST on a walk-in bill, from the server's settings. */
+export function useWalkInTotals(subtotal: number, method: 'pickup' | 'delivery' = 'pickup') {
+  return useQuery({
+    queryKey: ['walk-in-totals', subtotal, method],
+    queryFn: async () => (await api.post<OrderTotals>('/admin/orders/walk-in/totals', { subtotal, method })).data,
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useCreateWalkIn() {

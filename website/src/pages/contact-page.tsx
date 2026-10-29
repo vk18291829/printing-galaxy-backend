@@ -117,7 +117,7 @@ export default function ContactPage() {
               <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-70" aria-hidden />
               <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4">
-                  <span className="relative grid size-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+                  <span className="relative grid size-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
                     <IconMapPin className="size-6" />
                     <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" aria-hidden />
                   </span>

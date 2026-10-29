@@ -294,14 +294,11 @@ input:-webkit-autofill:focus {
   box-shadow: none;
   border: 1px solid var(--border);
 }
-/* Tappable cards rise slightly on hover and press in on tap. */
+/* Tappable cards: the border darkens on hover. Nothing moves, so the page never jiggles under the cursor. */
 @utility lift {
-  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms ease;
+  transition: border-color 200ms ease;
   &:hover {
-    transform: translateY(-2px);
-  }
-  &:active {
-    transform: translateY(0) scale(0.99);
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
   }
 }
 /* Headline highlight in the logo's print colours. */
@@ -312,21 +309,17 @@ input:-webkit-autofill:focus {
   color: transparent;
 }
 
-/* Screens fade up gently when they open. */
+/* Screens fade in quickly when they open; no slide, so the page does not jump. */
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
-/* `backwards`, not `both`: a transform left on the page after the fade would pin fixed bars
-   (bottom action bars) to the page instead of the screen. */
 @utility page-enter {
-  animation: page-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation: page-in 150ms ease-out backwards;
 }
 
 html {

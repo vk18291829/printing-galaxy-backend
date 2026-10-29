@@ -5,6 +5,7 @@ import { parseCsv } from '@/modules/bulk/spreadsheet';
 import { numberToWordsIndian, rupeesInWords, winAnsi } from '@/modules/invoices/pdf-text';
 import { quoteProduct } from '@/modules/pricing/pricing.service';
 import { toCsv } from '@/modules/reports/csv';
+import { addWorkingDays, generateOrderNumber } from '@/modules/orders/order.service';
 
 const L = (en: string) => ({ en, hi: '' });
 const notes = {
@@ -107,5 +108,19 @@ describe('print sheet layout', () => {
     // Everything stays inside the sheet with a printable margin.
     expect(layout.originX).toBeGreaterThanOrEqual(5);
     expect(layout.originY).toBeGreaterThanOrEqual(5);
+  });
+});
+
+describe('shop dates use Indian time, whatever the server clock', () => {
+  it('dates the order number by the IST day', () => {
+    // 00:30 on 29 Oct in India is still 28 Oct in UTC.
+    expect(generateOrderNumber(new Date('2026-10-28T19:00:00Z'))).toMatch(/^PG261029-/);
+  });
+
+  it('skips Sundays as they fall in India', () => {
+    // Saturday 31 Oct, 10:00 IST + 1 working day: Sunday is skipped, so Monday 2 Nov, same time.
+    expect(addWorkingDays(new Date('2026-10-31T04:30:00Z'), 1).toISOString()).toBe('2026-11-02T04:30:00.000Z');
+    // 01:30 on Sunday 1 Nov in India (still Saturday in UTC) + 1: Monday 2 Nov.
+    expect(addWorkingDays(new Date('2026-10-31T20:00:00Z'), 1).toISOString()).toBe('2026-11-01T20:00:00.000Z');
   });
 });

@@ -1,6 +1,7 @@
 import { IconBuildingOff, IconSearch } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { Pagination } from '@/components/common/pagination';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { InstitutionStatusBadge } from '@/components/common/status-badge';
@@ -64,6 +65,24 @@ export default function InstitutionsPage() {
             </div>
           ) : data?.items.length ? (
             <>
+              <MobileList>
+                {data.items.map((i) => (
+                  <MobileRow
+                    key={i._id}
+                    to={`/institutions/${i._id}`}
+                    title={i.name}
+                    subtitle={[i.contactName, i.phone, i.address?.city].filter(Boolean).join(' · ')}
+                    trailing={<InstitutionStatusBadge status={i.status} />}
+                    meta={
+                      <span className="capitalize">
+                        {i.type}
+                        {i.size ? ` · ${i.size} people` : ''} · registered {formatDate(i.createdAt)}
+                      </span>
+                    }
+                  />
+                ))}
+              </MobileList>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -99,6 +118,7 @@ export default function InstitutionsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               <Pagination page={data.page} pages={data.pages} total={data.total} onPage={(p) => setParams({ ...(status !== 'all' ? { status } : {}), page: String(p) })} />
             </>
           ) : (

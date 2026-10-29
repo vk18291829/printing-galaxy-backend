@@ -8,13 +8,35 @@ import { logEvent, logger } from '@/config/logger';
 import { audit } from '@/modules/audit/audit.model';
 import { notifications } from '@/modules/notifications/notification.service';
 import { OrderModel, type OrderDoc } from '@/modules/orders/order.model';
-import { amountDue, changeStatus, netPaid } from '@/modules/orders/order.service';
+import { amountDue, changeStatus, netPaid, notifyStatus } from '@/modules/orders/order.service';
 import { round2 } from '@/modules/pricing/pricing.service';
 import { notifyStaff } from '@/modules/push/push.service';
+import { FileModel } from '@/modules/uploads/file.model';
 import { PaymentModel } from './payment.model';
 
 /** Set as the cancel reason by the unpaid-order sweeper; such orders come back if payment arrives late. */
 export const AUTO_CANCEL_REASON = 'Online payment was not received in time';
+/** An unpaid checkout closed because the customer checked out again with the same files. */
+export const DRAFT_REPLACED_REASON = 'Checkout replaced by a newer one';
+
+/** The first payment on an online checkout: from now on it is an order the shop works on. */
+async function confirmDraft(order: OrderDoc) {
+  if (!order.draft) return;
+  // Saved by the caller together with the status change.
+  order.draft = undefined;
+  // Files released while the checkout was closed are taken back if nothing else has them.
+  const fileIds = order.items.flatMap((i) => i.files);
+  if (fileIds.length) await FileModel.updateMany({ _id: { $in: fileIds }, order: null }, { $set: { order: order._id } });
+  const segment = { individual: 'Individual', institution: 'School & College', business: 'Business', wedding: 'Wedding' }[order.segment ?? 'individual'];
+  void notifyStaff({
+    kind: 'order',
+    title: `New order ${order.orderNumber}`,
+    body: `${segment} · ${order.contact?.name || 'Customer'} · ₹${order.totals.total} paid · ${order.items.map((i) => i.productName?.en).join(', ')}`,
+    path: `/orders/${order.id}`,
+    permission: 'orders',
+    tag: `order-${order.id}`,
+  });
+}
 
 let client: Razorpay | null = null;
 export function razorpay() {
@@ -85,8 +107,10 @@ async function afterPayment(req: Request | null, orderId: Types.ObjectId | strin
   const order = await OrderModel.findById(orderId);
   if (!order) return null;
   if (order.status === 'awaiting_payment' && order.payment.status === 'paid') {
+    await confirmDraft(order);
     await changeStatus(req, order, 'received', { note: 'Payment received', byKind: req ? undefined : 'system' });
   } else if (order.status === 'cancelled' && order.cancelReason === AUTO_CANCEL_REASON) {
+    await confirmDraft(order);
     // Paid after the timeout: bring the order back instead of refunding.
     order.status = 'received';
     order.cancelReason = undefined;
@@ -94,6 +118,8 @@ async function afterPayment(req: Request | null, orderId: Types.ObjectId | strin
     order.statusHistory.push({ status: 'received', note: 'Payment received after the time limit', byKind: 'system', at: new Date() });
     await order.save();
     logEvent('order.reinstated', { orderNumber: order.orderNumber });
+    // The customer was told the payment did not go through (or never saw the order): confirm it now.
+    await notifyStatus(order, 'Payment received');
   }
   return order;
 }
@@ -203,12 +229,27 @@ export async function razorpayOrderFor(order: OrderDoc) {
 
   let razorpayOrderId = reusable?.razorpayOrderId;
   if (!razorpayOrderId) {
-    const rzpOrder = await razorpay().orders.create({
-      amount: Math.round(due * 100),
-      currency: 'INR',
-      receipt: order.orderNumber,
-      notes: { orderId: order.id, orderNumber: order.orderNumber },
-    });
+    let rzpOrder;
+    try {
+      rzpOrder = await razorpay().orders.create({
+        amount: Math.round(due * 100),
+        currency: 'INR',
+        receipt: order.orderNumber,
+        notes: { orderId: order.id, orderNumber: order.orderNumber },
+      });
+    } catch (err) {
+      // Razorpay's own errors (bad keys, outage) are the shop's problem, not the customer's: one clear
+      // log line for the owner, a plain message for the customer, and the checkout stays retryable.
+      const status = (err as { statusCode?: number }).statusCode;
+      const description = (err as { error?: { description?: string } }).error?.description;
+      logger.error(
+        { orderNumber: order.orderNumber, status, description },
+        status === 401
+          ? 'Razorpay rejected the API keys: check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET (same key pair, same test/live mode)'
+          : 'Could not open a Razorpay payment',
+      );
+      throw new ApiError(503, 'Online payment is not working right now. Please try again in a few minutes or call the shop.', 'PAYMENT_UNAVAILABLE');
+    }
     razorpayOrderId = rzpOrder.id;
     await PaymentModel.create({ order: order._id, provider: 'razorpay', amount: due, status: 'created', razorpayOrderId });
     logEvent('payment.razorpay_order', { orderNumber: order.orderNumber, amount: due, razorpayOrderId });

@@ -44,7 +44,7 @@ export function Highlights({ products }: { products: Product[] }) {
               key={p._id}
               to={`/products/${p.slug}`}
               className={cn(
-                'group relative isolate flex flex-col overflow-hidden rounded-2xl shadow-card bg-card transition-all hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                'group relative isolate flex flex-col overflow-hidden rounded-2xl shadow-card bg-card transition-[border-color] hover:border-primary/30 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                 big && 'col-span-2 lg:row-span-2',
               )}
             >

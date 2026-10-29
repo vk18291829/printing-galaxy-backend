@@ -25,7 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useCartStore } from '@/features/cart/cart-store';
+import { useReorderStore } from '@/features/cart/reorder-store';
 import { orderKeys, useAcceptQuote, useCancelOrder, useOrder } from '@/features/orders/api';
 import { OrderProgress } from '@/features/orders/components/order-progress';
 import { DataSheetCard } from '@/features/orders/components/data-sheet-card';
@@ -49,7 +49,7 @@ export default function OrderDetailPage() {
   const { data: settings } = usePublicSettings();
   const cancel = useCancelOrder(id);
   const navigate = useNavigate();
-  const addToCart = useCartStore((s) => s.add);
+  const startReorder = useReorderStore((s) => s.start);
   const acceptQuote = useAcceptQuote(id);
   const [paying, setPaying] = useState(false);
   useDocumentTitle(order ? `${t('orders.order')} ${order.orderNumber}` : t('orders.title'));
@@ -74,14 +74,16 @@ export default function OrderDetailPage() {
   const awaitingPayment = order.status === 'awaiting_payment';
   const isDelivery = order.fulfilment.method === 'delivery';
 
-  // Same items, options and quantities. Files are not copied: the customer chooses them again.
+  // Same items, options and quantities, straight to checkout: the cart is left as it is. Files are
+  // not copied (each file belongs to one order); checkout asks for them again where they were used.
   const orderAgain = () => {
     if (order.audience === 'institution') {
       navigate(`/institution/orders/new?product=${order.items[0]?.productSlug ?? ''}`);
       return;
     }
-    for (const item of order.items) {
-      addToCart({
+    startReorder(
+      { id: order._id, number: order.orderNumber },
+      order.items.map((item) => ({
         productId: item.product,
         slug: item.productSlug,
         name: item.productName,
@@ -94,10 +96,10 @@ export default function OrderDetailPage() {
         notes: item.notes,
         files: [],
         estimate: item.lineTotal,
-      });
-    }
-    toast.success(t('orders.addedAgain', { count: order.items.length }));
-    navigate('/cart');
+      })),
+      order.items.map((item) => item.files.length > 0),
+    );
+    navigate('/checkout?from=reorder');
   };
 
   const pay = async () => {
@@ -137,7 +139,7 @@ export default function OrderDetailPage() {
           <Button variant="outline" onClick={orderAgain}>
             <IconRepeat /> {t('orders.orderAgain')}
           </Button>
-          {!['quote_pending', 'quote_sent', 'cancelled'].includes(order.status) && (
+          {!['quote_pending', 'quote_sent', 'awaiting_payment', 'cancelled'].includes(order.status) && (
             <Button
               variant="outline"
               onClick={() =>

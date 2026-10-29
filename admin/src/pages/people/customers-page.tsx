@@ -1,8 +1,10 @@
-import { IconSearch, IconUserOff } from '@tabler/icons-react';
+import { IconSearch, IconUserCheck, IconUserOff } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { Pagination } from '@/components/common/pagination';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -19,6 +21,18 @@ export default function CustomersPage() {
   const q = useDebouncedValue(search.trim(), 300) || undefined;
   const { data, isLoading, error, refetch } = useCustomers({ page, q });
   const toggle = useToggleCustomer();
+  type Customer = NonNullable<typeof data>['items'][number];
+
+  /** Same confirmation from the table switch and the phone row menu. */
+  const setActive = (c: Customer, v: boolean) =>
+    void confirmAction({
+      tone: v ? 'default' : 'danger',
+      title: v ? `Enable ${c.name || `+91 ${c.phone}`}?` : `Disable ${c.name || `+91 ${c.phone}`}?`,
+      description: v ? 'They can sign in and place orders again.' : 'They are signed out and cannot sign in or place orders. Their order history is kept.',
+      confirmLabel: v ? 'Enable customer' : 'Disable customer',
+      action: () => toggle.mutateAsync({ id: c._id, isActive: v }),
+      successTitle: v ? 'Customer enabled' : 'Customer disabled',
+    });
 
   return (
     <div>
@@ -45,6 +59,34 @@ export default function CustomersPage() {
             </div>
           ) : data?.items.length ? (
             <>
+              <MobileList>
+                {data.items.map((c) => (
+                  <MobileRow
+                    key={c._id}
+                    title={c.name || `+91 ${c.phone}`}
+                    subtitle={`+91 ${c.phone}${c.email ? ` · ${c.email}` : ''}`}
+                    trailing={<span className="font-semibold tabular-nums">{formatINR(c.spent)}</span>}
+                    meta={
+                      <>
+                        {!c.isActive && <Badge variant="destructive">Disabled</Badge>}
+                        <span>
+                          {c.orders} order{c.orders === 1 ? '' : 's'} · joined {formatDate(c.createdAt)} · {c.language === 'hi' ? 'हिंदी' : 'English'}
+                        </span>
+                      </>
+                    }
+                    actions={
+                      isAdmin
+                        ? [
+                            c.isActive
+                              ? { label: 'Disable customer', icon: <IconUserOff />, destructive: true, onSelect: () => setActive(c, false) }
+                              : { label: 'Enable customer', icon: <IconUserCheck />, onSelect: () => setActive(c, true) },
+                          ]
+                        : undefined
+                    }
+                  />
+                ))}
+              </MobileList>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -75,22 +117,14 @@ export default function CustomersPage() {
                           checked={c.isActive}
                           disabled={!isAdmin}
                           aria-label={`${c.name || c.phone} active`}
-                          onCheckedChange={(v) =>
-                            void confirmAction({
-                              tone: v ? 'default' : 'danger',
-                              title: v ? `Enable ${c.name || `+91 ${c.phone}`}?` : `Disable ${c.name || `+91 ${c.phone}`}?`,
-                              description: v ? 'They can sign in and place orders again.' : 'They are signed out and cannot sign in or place orders. Their order history is kept.',
-                              confirmLabel: v ? 'Enable customer' : 'Disable customer',
-                              action: () => toggle.mutateAsync({ id: c._id, isActive: v }),
-                              successTitle: v ? 'Customer enabled' : 'Customer disabled',
-                            })
-                          }
+                          onCheckedChange={(v) => setActive(c, v)}
                         />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
               <Pagination page={data.page} pages={data.pages} total={data.total} onPage={setPage} />
             </>
           ) : (

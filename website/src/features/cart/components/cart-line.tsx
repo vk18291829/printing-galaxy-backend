@@ -6,7 +6,7 @@ import { SafeImage } from '@/components/common/safe-image';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import type { Quote } from '@/types/api';
-import type { CartItem } from '../cart-store';
+import { useCartStore, type CartItem } from '../cart-store';
 
 export function CartThumb({ item, className = 'size-14' }: { item: Pick<CartItem, 'image' | 'icon'>; className?: string }) {
   return (
@@ -20,6 +20,25 @@ export function CartThumb({ item, className = 'size-14' }: { item: Pick<CartItem
         </span>
       }
     />
+  );
+}
+
+/**
+ * "Design 2" when the same product is in the cart more than once (two key chains with different
+ * photos or sizes), so each one can be told apart; nothing for a single one.
+ */
+export function DesignBadge({ item }: { item: Pick<CartItem, 'id' | 'productId'> }) {
+  const { t } = useTranslation();
+  // Plain numbers from the store: a selector that returns a new array on every call makes the
+  // store look changed each render and React loops until the page crashes.
+  const count = useCartStore((s) => s.items.reduce((n, i) => n + (i.productId === item.productId ? 1 : 0), 0));
+  const n = useCartStore((s) => s.items.filter((i) => i.productId === item.productId).findIndex((i) => i.id === item.id) + 1);
+  // n is 0 for items checked out without the cart ("Order again").
+  if (count < 2 || n < 1) return null;
+  return (
+    <span className="ml-1.5 inline-flex rounded-md bg-primary/10 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-primary">
+      {t('cart.design', { n })}
+    </span>
   );
 }
 
@@ -51,11 +70,21 @@ export function CartLine({
           <Link to={`/products/${item.slug}`} className="leading-snug font-semibold hover:text-primary">
             {l(item.name)}
           </Link>
-          <span className="shrink-0 font-bold tabular-nums">
+          <DesignBadge item={item} />
+          <span className="ml-auto shrink-0 font-bold tabular-nums">
             {item.workflow === 'quote' ? <span className="text-sm text-primary">{t('product.quoteRequired')}</span> : formatINR(amount)}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">{qtyText}</p>
+        <p className="text-sm text-muted-foreground">
+          {qtyText}
+          {quote?.valid && !quote.requiresQuote && (
+            <span className="tabular-nums">
+              {' · '}
+              {formatINR(quote.unitPrice)}/{t(`units.${item.unit}`, { count: 1 })}
+              {quote.fixedFees > 0 && ` + ${formatINR(quote.fixedFees)}`}
+            </span>
+          )}
+        </p>
         {!compact && item.optionLabels.length > 0 && (
           <p className="text-xs text-muted-foreground">
             {item.optionLabels.map((o) => `${l(o.label)}: ${l(o.value)}`).join(' · ')}

@@ -7,9 +7,9 @@ import {
   IconInfoCircle,
   IconTruckDelivery,
 } from '@tabler/icons-react';
-import { useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageNav } from '@/components/common/page-nav';
@@ -26,6 +26,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { authApi } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCartStore } from '@/features/cart/cart-store';
+import { useReorderStore } from '@/features/cart/reorder-store';
+import { FileUploader } from '@/features/uploads/file-uploader';
+import { useLocalized } from '@/lib/i18n';
 import { CartLine } from '@/features/cart/components/cart-line';
 import { OrderReview } from '@/features/cart/components/order-review';
 import { useCartQuotes } from '@/features/cart/use-cart-quotes';
@@ -33,7 +36,7 @@ import { useCreateOrder } from '@/features/orders/api';
 import { payWithRazorpay } from '@/features/orders/razorpay';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
-import { getErrorMessage, newIdempotencyKey } from '@/lib/api-client';
+import { getErrorMessage } from '@/lib/api-client';
 import { formatINR } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Address } from '@/types/api';
@@ -76,19 +79,41 @@ function ChoiceCard({
   );
 }
 
+/** Files the earlier order's items take again; the server checks each against the product. */
+const REORDER_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx', 'ppt', 'pptx'];
+
+/** Short, stable fingerprint (FNV-1a) of the checkout details, for the checkout key. */
+function shortHash(text: string) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
 const EMPTY_ADDRESS: Address = { line1: '', line2: '', city: '', state: 'Uttar Pradesh', pincode: '' };
 
 export default function CheckoutPage() {
   const { t, i18n } = useTranslation();
+  const l = useLocalized();
   useDocumentTitle(t('checkout.title'));
   const navigate = useNavigate();
   const principal = useAuthStore((s) => s.principal);
-  const items = useCartStore((s) => s.items);
+  const cartItems = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clear);
-  // One key per checkout: double taps and network retries can never create two orders.
-  const checkoutKey = useRef(newIdempotencyKey());
+  // "Order again" checks out the earlier order's items on their own; the cart is not touched.
+  const [params] = useSearchParams();
+  const reorder = useReorderStore();
+  const isReorder = params.get('from') === 'reorder' && reorder.items.length > 0;
+  const items = isReorder ? reorder.items : cartItems;
+  const clearItems = isReorder ? reorder.clear : clearCart;
+  // Kept with the items (see cart-store): double taps, retries and coming back later never create a second order.
+  const cartKey = useCartStore((s) => s.checkoutKey);
+  const itemsKey = isReorder ? reorder.checkoutKey : cartKey;
+  const filesMissing = isReorder ? reorder.items.filter((i) => reorder.needsFiles.includes(i.id) && i.files.length === 0) : [];
   const { lines, subtotal, hasQuoteItems, invalid } = useCartQuotes(items);
-  const { data: settings, isLoading } = usePublicSettings();
+  const { data: settings, isLoading } = usePublicSettings({ fresh: true });
   const createOrder = useCreateOrder();
 
   const savedAddress =
@@ -113,22 +138,36 @@ export default function CheckoutPage() {
   };
 
   if (isLoading || !settings) return <PageLoader />;
-  if (items.length === 0 && !createOrder.isSuccess) return <Navigate to="/cart" replace />;
+  if (items.length === 0 && !createOrder.isSuccess) return <Navigate to={params.get('from') === 'reorder' ? '/account/orders' : '/cart'} replace />;
 
-  const onlineEnabled = settings.payments.onlineEnabled && !hasQuoteItems;
-  const paymentMethod = payment ?? (onlineEnabled ? 'online' : 'counter');
+  // Approved institutions are invoiced on account, so paying at the shop always stays open to them.
+  const counterAllowed = settings.payments.counterEnabled || principal?.kind === 'institution';
+  const onlineAllowed = settings.payments.onlineEnabled;
+  // Items priced on request are paid after the shop confirms the price: at the shop when that is
+  // offered, otherwise online from the order page.
+  const paymentMethod: 'online' | 'counter' = hasQuoteItems
+    ? counterAllowed ? 'counter' : 'online'
+    : payment && (payment === 'online' ? onlineAllowed : counterAllowed)
+      ? payment
+      : onlineAllowed ? 'online' : 'counter';
+  /** Paid now, in the Razorpay window, before the order is placed. */
+  const payNow = paymentMethod === 'online' && !hasQuoteItems;
+  const noPaymentMethod = !hasQuoteItems && !onlineAllowed && !counterAllowed;
   const deliveryFee =
     method === 'delivery' && subtotal < settings.delivery.freeAbove ? settings.delivery.fee : 0;
   const taxable = subtotal + deliveryFee;
   const taxAdded = settings.tax.enabled && !settings.tax.pricesIncludeTax ? (taxable * settings.tax.rate) / 100 : 0;
   const total = taxable + taxAdded;
+  // GST already inside the prices, shown so the customer sees it (same formula as the invoice).
+  const taxIncludedAmount =
+    settings.tax.enabled && settings.tax.pricesIncludeTax ? Math.round((taxable - taxable / (1 + settings.tax.rate / 100)) * 100) / 100 : 0;
 
   const addressValid =
     method === 'pickup' || (address.line1.trim().length >= 3 && address.city.trim() && /^\d{6}$/.test(address.pincode));
   const nameValid = !needsName || contactName.trim().length > 0;
   const cleanPhone = contactPhone.replace(/\D/g, '').slice(-10);
   const phoneValid = !needsPhone || /^[6-9]\d{9}$/.test(cleanPhone);
-  const canReview = !invalid && addressValid && nameValid && phoneValid;
+  const canReview = !invalid && !noPaymentMethod && filesMissing.length === 0 && addressValid && nameValid && phoneValid;
   const canSubmit = canReview && confirmed && !createOrder.isPending && !paying;
   const contact =
     principal?.kind === 'institution'
@@ -141,12 +180,15 @@ export default function CheckoutPage() {
       description: hasQuoteItems
         ? t('confirm.placeOrderQuote')
         : t('confirm.placeOrderDesc', { total: formatINR(total), count: items.length, method: method === 'delivery' ? t('checkout.delivery') : t('checkout.pickup') }),
-      confirmLabel: paymentMethod === 'online' ? t('checkout.placeAndPay', { amount: formatINR(total) }) : t('checkout.placeOrder'),
+      confirmLabel: payNow ? t('checkout.placeAndPay', { amount: formatINR(total) }) : t('checkout.placeOrder'),
     });
     if (!ok) return;
     createOrder.mutate(
       {
-        idempotencyKey: checkoutKey.current,
+        // Same items and same details: the same checkout. Changing pickup/delivery, the address,
+        // payment or the note after closing the payment window starts a fresh one instead of
+        // bringing back the old one with the old details.
+        idempotencyKey: `${itemsKey}-${shortHash(JSON.stringify({ method, address: method === 'delivery' ? address : null, paymentMethod, note: note.trim(), contactName, cleanPhone }))}`,
         items: items.map((i) => ({
           productId: i.productId,
           options: i.options,
@@ -164,16 +206,43 @@ export default function CheckoutPage() {
       },
       {
         onSuccess: async (order) => {
-          clearCart();
           // The number was saved to the account; refresh it so the next checkout does not ask again.
           if (needsPhone) void authApi.me().then(useAuthStore.getState().setPrincipal).catch(() => undefined);
+
+          // Paying online first: the order is placed only once the payment goes through. Until then the
+          // cart stays, and paying again reuses the same checkout (same key).
+          if (order.status === 'awaiting_payment') {
+            setPaying(true);
+            let paid = false;
+            try {
+              paid = await payWithRazorpay(order._id, i18n.language);
+            } catch (e) {
+              toast.error(getErrorMessage(e));
+              return;
+            } finally {
+              setPaying(false);
+            }
+            if (!paid) {
+              toast.info(t('toast.paymentLaterTitle'), { description: t('checkout.paymentLater') });
+              return;
+            }
+            clearItems();
+            toast.success(t('checkout.success'), { description: t('toast.paymentSuccessDesc', { number: order.orderNumber }) });
+            navigate(`/account/orders/${order._id}`, { replace: true });
+            return;
+          }
+
+          clearItems();
           toast.success(t('checkout.success'), { description: t('toast.orderPlacedDesc', { number: order.orderNumber, total: formatINR(order.totals.total) }) });
-          if (paymentMethod === 'online' && order.status !== 'quote_pending') {
+          // Approved institutions may also pay online, but their order starts either way. Nothing to
+          // pay (this checkout was already paid, e.g. a UPI payment confirmed after the window closed):
+          // no payment window, the order is simply placed.
+          if (paymentMethod === 'online' && order.status !== 'quote_pending' && order.payment.status !== 'paid') {
             setPaying(true);
             try {
               const paid = await payWithRazorpay(order._id, i18n.language);
               if (paid) toast.success(t('checkout.paymentSuccess'), { description: t('toast.paymentSuccessDesc', { number: order.orderNumber }) });
-              else toast.info(t('toast.paymentLaterTitle'), { description: t('checkout.paymentLater', { minutes: settings.payments.onlineTimeoutMinutes ?? 30 }) });
+              else toast.info(t('checkout.paymentCancelled'));
             } catch (e) {
               toast.error(getErrorMessage(e));
             } finally {
@@ -192,7 +261,13 @@ export default function CheckoutPage() {
 
   return (
     <div className="container-page py-10">
-      <PageNav items={[{ label: t('cart.title'), to: '/cart' }, { label: t('checkout.title') }]} />
+      <PageNav
+        items={
+          isReorder && reorder.from
+            ? [{ label: t('nav.myOrders'), to: '/account/orders' }, { label: reorder.from.number, to: `/account/orders/${reorder.from.id}` }, { label: t('checkout.title') }]
+            : [{ label: t('cart.title'), to: '/cart' }, { label: t('checkout.title') }]
+        }
+      />
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{step === 'review' ? t('checkout.reviewTitle') : t('checkout.title')}</h1>
@@ -229,11 +304,34 @@ export default function CheckoutPage() {
             note={note}
             contact={contact}
             settings={settings}
-            onEditItems={() => navigate('/cart')}
+            onEditItems={() => (isReorder && reorder.from ? navigate(`/account/orders/${reorder.from.id}`) : navigate('/cart'))}
             onEditDetails={() => goTo('details')}
           />
         ) : (
         <div className="space-y-6">
+          {isReorder && reorder.needsFiles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('checkout.reorderFilesTitle')}</CardTitle>
+                <p className="text-sm text-muted-foreground">{t('checkout.reorderFilesHint')}</p>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {reorder.items
+                  .filter((i) => reorder.needsFiles.includes(i.id))
+                  .map((i) => (
+                    <div key={i.id} className="space-y-2">
+                      <p className="text-sm font-semibold">{l(i.name)}</p>
+                      <FileUploader
+                        productId={i.productId}
+                        accepted={REORDER_FILE_TYPES}
+                        files={i.files}
+                        onChange={(files) => reorder.setFiles(i.id, files)}
+                      />
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>{t('checkout.fulfilment')}</CardTitle>
@@ -294,30 +392,41 @@ export default function CheckoutPage() {
               <CardTitle>{t('checkout.payment')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {hasQuoteItems && (
+              {hasQuoteItems ? (
                 <Alert variant="info">
                   <IconInfoCircle />
-                  <AlertDescription className="text-foreground">{t('checkout.quoteNotice')}</AlertDescription>
+                  <AlertDescription className="text-foreground">
+                    {t(paymentMethod === 'online' ? 'checkout.quoteNoticeOnline' : 'checkout.quoteNotice')}
+                  </AlertDescription>
                 </Alert>
+              ) : noPaymentMethod ? (
+                <Alert variant="destructive">
+                  <IconInfoCircle />
+                  <AlertDescription>{t('checkout.noPaymentMethod')}</AlertDescription>
+                </Alert>
+              ) : (
+                // Only the methods the shop offers right now; a switched-off one is not shown at all.
+                <div className={cn('grid gap-3', onlineAllowed && counterAllowed && 'sm:grid-cols-2')} role="radiogroup">
+                  {onlineAllowed && (
+                    <ChoiceCard
+                      selected={paymentMethod === 'online'}
+                      onSelect={() => setPayment('online')}
+                      icon={<IconCreditCard className="size-5" />}
+                      title={t('checkout.payOnline')}
+                      description={t('checkout.payOnlineDesc')}
+                    />
+                  )}
+                  {counterAllowed && (
+                    <ChoiceCard
+                      selected={paymentMethod === 'counter'}
+                      onSelect={() => setPayment('counter')}
+                      icon={<IconCash className="size-5" />}
+                      title={t('checkout.payCounter')}
+                      description={t('checkout.payCounterDesc')}
+                    />
+                  )}
+                </div>
               )}
-              <div className="grid gap-3 sm:grid-cols-2" role="radiogroup">
-                <ChoiceCard
-                  selected={paymentMethod === 'online'}
-                  onSelect={() => setPayment('online')}
-                  disabled={!onlineEnabled}
-                  icon={<IconCreditCard className="size-5" />}
-                  title={t('checkout.payOnline')}
-                  description={t('checkout.payOnlineDesc')}
-                />
-                <ChoiceCard
-                  selected={paymentMethod === 'counter'}
-                  onSelect={() => setPayment('counter')}
-                  disabled={!settings.payments.counterEnabled}
-                  icon={<IconCash className="size-5" />}
-                  title={t('checkout.payCounter')}
-                  description={t('checkout.payCounterDesc')}
-                />
-              </div>
               {needsName && (
                 <div className="space-y-2">
                   <Label htmlFor="contactName">{t('checkout.contactName')}</Label>
@@ -372,16 +481,17 @@ export default function CheckoutPage() {
                   <dt className="text-muted-foreground">{t('cart.subtotal')}</dt>
                   <dd className="tabular-nums">{formatINR(subtotal)}</dd>
                 </div>
-                {method === 'delivery' && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">{method === 'delivery' ? t('checkout.deliveryFee') : t('checkout.pickup')}</dt>
+                  <dd className="tabular-nums">{deliveryFee ? formatINR(deliveryFee) : t('common.free')}</dd>
+                </div>
+                {settings.tax.enabled && settings.tax.rate > 0 && (
                   <div className="flex justify-between">
-                    <dt className="text-muted-foreground">{t('checkout.deliveryFee')}</dt>
-                    <dd className="tabular-nums">{deliveryFee ? formatINR(deliveryFee) : t('common.free')}</dd>
-                  </div>
-                )}
-                {taxAdded > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">{t('checkout.tax', { rate: settings.tax.rate })}</dt>
-                    <dd className="tabular-nums">{formatINR(taxAdded)}</dd>
+                    <dt className="text-muted-foreground">
+                      {t('checkout.tax', { rate: settings.tax.rate })}
+                      {settings.tax.pricesIncludeTax && <span className="ml-1 text-xs">({t('checkout.taxIncluded')})</span>}
+                    </dt>
+                    <dd className="tabular-nums">{formatINR(taxAdded || taxIncludedAmount)}</dd>
                   </div>
                 )}
                 <div className="flex items-end justify-between pt-2">
@@ -401,7 +511,7 @@ export default function CheckoutPage() {
                   </Button>
                   {!canReview && (
                     <p className="text-center text-sm text-destructive">
-                      {invalid ? t('cart.invalid') : !nameValid ? t('checkout.needName') : !phoneValid ? t('checkout.needPhone') : t('checkout.needAddress')}
+                      {invalid ? t('cart.invalid') : filesMissing.length > 0 ? t('checkout.reorderFilesNeeded') : noPaymentMethod ? t('checkout.noPaymentMethod') : !nameValid ? t('checkout.needName') : !phoneValid ? t('checkout.needPhone') : t('checkout.needAddress')}
                     </p>
                   )}
                 </>
@@ -415,7 +525,7 @@ export default function CheckoutPage() {
                     {(createOrder.isPending || paying) && <Spinner className="size-4 text-current" />}
                     {createOrder.isPending
                       ? t('checkout.placing')
-                      : paymentMethod === 'online'
+                      : payNow
                         ? t('checkout.placeAndPay', { amount: formatINR(total) })
                         : t('checkout.placeOrder')}
                   </Button>

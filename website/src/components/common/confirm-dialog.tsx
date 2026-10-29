@@ -92,8 +92,8 @@ export function ConfirmHost() {
 
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && close(false)}>
-      <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-md" onEscapeKeyDown={(e) => busy && e.preventDefault()} onPointerDownOutside={(e) => busy && e.preventDefault()}>
-        <div className="flex gap-4 p-6">
+      <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-md sm:p-0" onEscapeKeyDown={(e) => busy && e.preventDefault()} onPointerDownOutside={(e) => busy && e.preventDefault()}>
+        <div className="flex gap-4 p-6 max-sm:pt-8">
           <span
             className={cn(
               'grid size-11 shrink-0 place-items-center rounded-full',
@@ -114,7 +114,7 @@ export function ConfirmHost() {
             </DialogDescription>
           </div>
         </div>
-        <div className="flex flex-col-reverse gap-2 border-t bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t bg-muted/40 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:pb-4">
           <Button variant="outline" onClick={() => close(false)} disabled={busy}>
             {phase === 'error' ? t('common.close') : (options.cancelLabel ?? t('common.cancel'))}
           </Button>

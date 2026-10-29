@@ -181,8 +181,9 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 bg-background/85 backdrop-blur-xl transition-shadow duration-300 supports-[backdrop-filter]:bg-background/75',
-        scrolled && 'shadow-[0_1px_0_rgb(11_42_101/0.06),0_8px_24px_-16px_rgb(11_42_101/0.25)]',
+        // The border is always there (transparent at the top), so showing it on scroll never moves the page.
+        'sticky top-0 z-40 border-b border-transparent bg-background/85 backdrop-blur-xl transition-colors duration-300 supports-[backdrop-filter]:bg-background/75',
+        scrolled && 'border-border',
       )}
     >
       <div className="container-page flex h-16 items-center gap-3 lg:h-[72px]">
@@ -234,7 +235,7 @@ export function SiteHeader() {
                 aria-current={on ? 'page' : undefined}
                 className={cn(
                   'shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold whitespace-nowrap transition-colors',
-                  on ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'bg-card text-foreground/75 shadow-card',
+                  on ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground/75 shadow-card',
                 )}
               >
                 {t(item.key)}

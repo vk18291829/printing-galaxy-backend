@@ -59,15 +59,19 @@ export const requireAdmin = requireRole('admin');
  * Lets the request through when the staff member's job roles grant `permission`. Roles are read
  * fresh from the database, so a change by the owner applies on the next request.
  */
+/** Throws unless the signed-in staff member's roles grant the permission (the owner has all). */
+export async function assertPermission(auth: AuthContext | undefined, permission: Permission) {
+  if (!auth || auth.kind !== 'user') throw ApiError.unauthorized();
+  if (auth.role === 'admin') return;
+  const user = await UserModel.findById(auth.id).select('role staffRoles isActive').lean();
+  if (!user?.isActive || !permissionsFor(user.role, user.staffRoles).includes(permission)) {
+    throw ApiError.forbidden("Your role doesn't allow this");
+  }
+}
+
 export function requirePermission(permission: Permission): RequestHandler {
   return async (req, _res, next) => {
-    const auth = req.auth;
-    if (!auth || auth.kind !== 'user') throw ApiError.unauthorized();
-    if (auth.role === 'admin') return next();
-    const user = await UserModel.findById(auth.id).select('role staffRoles isActive').lean();
-    if (!user?.isActive || !permissionsFor(user.role, user.staffRoles).includes(permission)) {
-      throw ApiError.forbidden("Your role doesn't allow this");
-    }
+    await assertPermission(req.auth, permission);
     next();
   };
 }

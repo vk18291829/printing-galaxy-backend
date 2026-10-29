@@ -1,7 +1,7 @@
 import { razorpayEnabled } from '@/config/env';
 import { logEvent, logger } from '@/config/logger';
 import { OrderModel } from '@/modules/orders/order.model';
-import { changeStatus, planOrder } from '@/modules/orders/order.service';
+import { changeStatus, discardDraft, planOrder } from '@/modules/orders/order.service';
 import { TERMINAL_STATUSES } from '@/modules/orders/order.model';
 import { PaymentModel } from '@/modules/payments/payment.model';
 import { AUTO_CANCEL_REASON, reconcileRazorpayOrder } from '@/modules/payments/payment.service';
@@ -20,6 +20,12 @@ export async function cancelUnpaidOrders(now = new Date()) {
       if (razorpayEnabled() && order.payment.razorpayOrderId && (await reconcileRazorpayOrder(order.payment.razorpayOrderId))) continue;
       const fresh = await OrderModel.findById(order._id);
       if (fresh?.status !== 'awaiting_payment') continue;
+      if (fresh.draft) {
+        // Never became an order for the customer, so they are not told it was cancelled.
+        await discardDraft(fresh, AUTO_CANCEL_REASON);
+        cancelled += 1;
+        continue;
+      }
       fresh.cancelReason = AUTO_CANCEL_REASON;
       await changeStatus(null, fresh, 'cancelled', { note: AUTO_CANCEL_REASON, byKind: 'system' });
       cancelled += 1;
@@ -89,8 +95,32 @@ export async function backfillOrderPlans() {
   return updated;
 }
 
+/**
+ * Online checkouts left unpaid before drafts existed: they were never paid and never priced by the
+ * shop, so they are drafts too and leave the customer's and staff lists. Paid ones, quotes the shop
+ * priced, and walk-ins are untouched.
+ */
+export async function backfillDrafts() {
+  const result = await OrderModel.updateMany(
+    {
+      draft: { $exists: false },
+      source: 'online',
+      audience: 'retail',
+      'payment.amountPaid': { $lte: 0 },
+      'quote.sentAt': { $exists: false },
+      // Priced by the shop first (quote_pending → awaiting_payment): a real order waiting for its money.
+      'statusHistory.status': { $ne: 'quote_pending' },
+      $or: [{ status: 'awaiting_payment' }, { status: 'cancelled', cancelReason: AUTO_CANCEL_REASON }],
+    },
+    { $set: { draft: true } },
+  );
+  if (result.modifiedCount) logEvent('job.drafts_backfilled', { updated: result.modifiedCount });
+  return result.modifiedCount;
+}
+
 export function scheduleOrderMaintenance() {
   void backfillOrderPlans().catch((err) => logger.error({ err }, 'Order backfill failed'));
+  void backfillDrafts().catch((err) => logger.error({ err }, 'Draft backfill failed'));
   let running = false;
   const tick = async () => {
     if (running) return;

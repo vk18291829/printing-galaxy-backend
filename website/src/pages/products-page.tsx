@@ -123,7 +123,7 @@ export default function ProductsPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('products.searchPlaceholder')}
                 aria-label={t('common.search')}
-                className="h-14 w-full rounded-full bg-background pr-12 pl-13 text-base shadow-sm shadow-brand-navy/5 outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
+                className="h-14 w-full rounded-full bg-background pr-12 pl-13 text-base border outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
               />
               {search && (
                 <button
@@ -158,7 +158,7 @@ export default function ProductsPage() {
                     if (needle) setQuery('');
                     requestAnimationFrame(() => scrollToCategory(c.slug));
                   }}
-                  className={cn('group flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-[border-color,transform] hover:-translate-y-0.5 sm:p-5', tint.tile)}
+                  className={cn('group flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-[border-color] hover:border-primary/30 sm:p-5', tint.tile)}
                 >
                   <span className={cn('grid size-11 place-items-center rounded-xl shadow-xs', tint.icon)}>
                     <DynamicIcon name={c.icon} className="size-5.5" />
