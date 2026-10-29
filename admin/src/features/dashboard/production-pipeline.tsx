@@ -1,7 +1,8 @@
-import { IconArrowRight, IconClockPause, IconHandClick } from '@tabler/icons-react';
+import { IconArrowRight, IconBuildingFactory2, IconClockPause, IconHandClick } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import { ORDER_STATUS_LABEL } from '@/components/common/status-badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SectionTitle } from '@/components/common/states';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/api';
 
@@ -36,10 +37,7 @@ export function ProductionPipeline({ counts }: { counts: Partial<Record<OrderSta
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-        <div>
-          <CardTitle className="text-lg">Production pipeline</CardTitle>
-          <CardDescription>Every open order, by the stage it is at.</CardDescription>
-        </div>
+        <SectionTitle icon={<IconBuildingFactory2 />} title="Production pipeline" description="Every open order, by the stage it is at." />
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-amber/40 bg-brand-amber/12 px-3 py-1 font-semibold text-foreground">
             <IconHandClick className="size-4 text-brand-navy" /> {yourTurn} need you

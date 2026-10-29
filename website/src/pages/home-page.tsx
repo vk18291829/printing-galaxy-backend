@@ -1,5 +1,6 @@
 import {
   IconArrowRight,
+  IconBolt,
   IconBriefcase,
   IconCheck,
   IconChevronDown,
@@ -38,27 +39,80 @@ import { cn } from '@/lib/utils';
 import type { Product } from '@/types/api';
 
 /**
- * Real products in a 2×2 mosaic (their own photos or samples), so the first screen shows what the
- * shop makes. Tablets and up; on phones the same products follow a little further down.
+ * What the shop prints, drawn as loose printed pieces floating on soft glows in the logo colours:
+ * no panel or frame around them. They drift a few pixels (not for visitors who reduce motion).
  */
-function ProductMosaic() {
-  const l = useLocalized();
-  const { data } = useProducts({ excludeCategory: HOME_HIDDEN_CATEGORY });
-  const picks = (data ?? []).filter((p) => p.isFeatured && p.images.length > 0).slice(0, 4);
-  if (picks.length < 4) return null;
+function HeroVisual() {
+  const { t } = useTranslation();
   return (
-    <div className="hidden grid-cols-2 gap-3 md:grid lg:gap-4" aria-hidden>
-      {picks.map((p, i) => (
-        <Link
-          key={p._id}
-          to={`/products/${p.slug}`}
-          tabIndex={-1}
-          className={cn('group relative overflow-hidden rounded-2xl border bg-card', i % 2 === 1 && 'translate-y-6')}
-        >
-          <SafeImage src={p.images[0]} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" fallback={<span className="block aspect-[4/3] w-full bg-secondary" />} />
-          <span className="absolute bottom-2.5 left-2.5 rounded-full bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground">{l(p.name)}</span>
-        </Link>
-      ))}
+    <div className="relative mx-auto aspect-square w-full max-w-[340px] select-none sm:max-w-[460px] lg:max-w-[520px]" aria-hidden>
+      {/* Logo-colour light behind the pieces instead of a box. */}
+      <div className="absolute top-[6%] right-[4%] size-[46%] rounded-full bg-brand-cyan/25 blur-3xl" />
+      <div className="absolute bottom-[4%] left-[2%] size-[44%] rounded-full bg-brand-amber/25 blur-3xl" />
+      <div className="absolute top-[38%] left-[30%] size-[30%] rounded-full bg-brand-magenta/12 blur-3xl" />
+      <div className="absolute inset-[10%] rounded-full border border-dashed border-brand-navy/10" />
+
+      {/* Bound document */}
+      <div className="hero-float absolute top-[7%] left-[6%] w-[46%] rotate-[-6deg] rounded-xl bg-card p-4 shadow-xl shadow-brand-navy/10">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">PDF</span>
+          <span className="h-2 w-20 rounded bg-brand-navy/15" />
+        </div>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <span key={i} className="mb-2 block h-1.5 rounded bg-brand-navy/10" style={{ width: `${92 - i * 9}%` }} />
+        ))}
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-muted px-2 py-1.5 text-[11px] font-semibold text-brand-navy">
+          120 pages <span className="text-muted-foreground">A4 · B/W</span>
+        </div>
+      </div>
+
+      {/* Visiting card */}
+      <div className="hero-float-slow absolute top-[33%] right-[4%] w-[60%] rotate-[4deg] overflow-hidden rounded-xl bg-brand-navy p-4 text-white shadow-2xl shadow-brand-navy/30">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1.5">
+            <span className="block h-2.5 w-24 rounded bg-white/90" />
+            <span className="block h-1.5 w-16 rounded bg-white/45" />
+          </div>
+          <img src="/logo-mark-dark.png?v=3" alt="" className="size-8 object-contain" />
+        </div>
+        <div className="mt-6 space-y-1.5">
+          <span className="block h-1.5 w-3/5 rounded bg-white/40" />
+          <span className="block h-1.5 w-2/5 rounded bg-white/40" />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-1.5 bg-brand-amber" />
+        <p className="mt-3 text-right text-[9px] font-medium text-white/55">9 × 5.5 cm · Matt</p>
+      </div>
+
+      {/* Student ID */}
+      <div className="hero-float absolute bottom-[7%] left-[10%] w-[38%] rotate-[-3deg] overflow-hidden rounded-xl bg-card shadow-xl shadow-brand-navy/15 [animation-delay:-2s]">
+        <div className="flex items-center justify-between bg-brand-navy px-3 py-2 text-white">
+          <span className="text-[9px] font-bold tracking-widest uppercase">Student ID</span>
+          <span className="size-2 rounded-full bg-brand-amber" />
+        </div>
+        <div className="flex gap-2.5 p-3">
+          <div className="size-11 shrink-0 rounded-md bg-linear-to-br from-brand-cyan/70 to-brand-navy" />
+          <div className="flex-1 space-y-1.5 pt-1">
+            <span className="block h-1.5 w-4/5 rounded bg-brand-navy/70" />
+            <span className="block h-1.5 w-3/5 rounded bg-brand-navy/25" />
+            <span className="block h-1.5 w-2/5 rounded bg-brand-navy/25" />
+          </div>
+        </div>
+      </div>
+
+      {/* Chips: what the customer gets */}
+      <div className="hero-float-slow absolute right-[8%] bottom-[15%] flex items-center gap-2 rounded-full bg-card py-1.5 pr-3.5 pl-1.5 shadow-lg shadow-brand-navy/10 [animation-delay:-3s]">
+        <span className="grid size-6 place-items-center rounded-full bg-success text-white">
+          <IconCheck className="size-3.5" stroke={3} />
+        </span>
+        <span className="text-xs font-semibold text-brand-navy">Proof approved</span>
+      </div>
+      <div className="hero-float absolute top-[2%] right-[14%] flex items-center gap-1.5 rounded-full bg-brand-amber py-1.5 pr-3 pl-2 text-xs font-bold text-brand-navy shadow-lg shadow-brand-amber/30 [animation-delay:-1s]">
+        <IconBolt className="size-3.5" /> {t('products.trust1')}
+      </div>
+
+      <span className="absolute top-[24%] left-[1%] size-2.5 rounded-full bg-brand-magenta" />
+      <span className="absolute right-[1%] bottom-[36%] size-2.5 rounded-full bg-brand-cyan" />
+      <span className="absolute bottom-[2%] left-[52%] size-2 rounded-full bg-brand-amber" />
     </div>
   );
 }
@@ -114,7 +168,7 @@ function Hero() {
             </Link>
           </div>
         </div>
-        <ProductMosaic />
+        <HeroVisual />
       </div>
     </section>
   );

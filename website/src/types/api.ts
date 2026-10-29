@@ -136,6 +136,8 @@ export interface User {
   /** Promotional SMS; order updates are always sent. */
   offers?: boolean;
   addresses: Address[];
+  /** Profile photo. */
+  avatarUrl?: string;
 }
 
 export type InstitutionType = 'school' | 'college' | 'coaching' | 'enterprise';

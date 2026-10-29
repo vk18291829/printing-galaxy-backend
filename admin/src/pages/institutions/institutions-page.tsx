@@ -1,4 +1,4 @@
-import { IconBuildingOff, IconSearch } from '@tabler/icons-react';
+import { IconBuildingCommunity, IconBuildingOff, IconSearch } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { MobileList, MobileRow } from '@/components/common/mobile-list';
@@ -28,7 +28,7 @@ export default function InstitutionsPage() {
 
   return (
     <div>
-      <PageHeader title="Institutions" description="Schools, colleges and businesses. Approve accounts to unlock institution prices." />
+      <PageHeader icon={<IconBuildingCommunity />} title="Institutions" description="Schools, colleges and businesses. Approve accounts to unlock institution prices." />
       <div className="mb-4 flex flex-col gap-3 lg:flex-row">
         <div className="flex gap-1 overflow-x-auto rounded-xl shadow-card bg-card p-1">
           {TABS.map((t) => (

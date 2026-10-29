@@ -10,12 +10,14 @@ import {
   IconPalette,
   IconPencil,
   IconRulerMeasure,
+  IconShoppingCartPlus,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
+import { PageBanner } from '@/components/common/page-banner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { PageNav } from '@/components/common/page-nav';
@@ -438,10 +440,7 @@ export default function NewOrderPage() {
   return (
     <div className="container-page py-8 sm:py-10">
       <PageNav items={[{ label: t('nav.dashboard'), to: '/institution' }, { label: t('newOrder.title') }]} />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">{t('newOrder.title')}</h1>
-        <p className="mt-1 text-muted-foreground">{t('newOrder.subtitle')}</p>
-      </div>
+      <PageBanner className="mb-6" icon={<IconShoppingCartPlus />} title={t('newOrder.title')} description={t('newOrder.subtitle')} />
 
       {!approved && (
         <Alert variant="warning" className="mb-6">

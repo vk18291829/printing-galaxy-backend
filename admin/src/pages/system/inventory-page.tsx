@@ -288,7 +288,7 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconBoxSeam />}
         title="Materials & stock"
         description="PVC sheets, paper, lamination, ink and blanks. Record what comes in and what gets used."
         actions={

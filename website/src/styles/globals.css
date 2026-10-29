@@ -309,6 +309,23 @@ input:-webkit-autofill:focus {
   color: transparent;
 }
 
+/* The home hero's printed pieces drift gently (reduced motion stops it with every other animation). */
+@keyframes hero-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+}
+@utility hero-float {
+  animation: hero-float 6s ease-in-out infinite;
+}
+@utility hero-float-slow {
+  animation: hero-float 8s ease-in-out infinite;
+}
+
 /* Screens fade in quickly when they open; no slide, so the page does not jump. */
 @keyframes page-in {
   from {
@@ -350,4 +367,28 @@ h3 {
   --ring: var(--brand-amber);
   --brand-navy-deep: #ffb02e;
   --brand-orange-hover: #ffb02e;
+}
+
+/* Inside navy bands everything reads light-on-navy: theme colours are redefined there, so badges,
+   outline buttons and red/green amounts in them need no special classes. */
+.on-navy {
+  --foreground: #ffffff;
+  --muted-foreground: rgb(255 255 255 / 65%);
+  --primary: var(--brand-amber);
+  --primary-foreground: var(--brand-navy);
+  --secondary: rgb(255 255 255 / 12%);
+  --secondary-foreground: #ffffff;
+  --accent: rgb(255 255 255 / 12%);
+  --accent-foreground: #ffffff;
+  --border: rgb(255 255 255 / 22%);
+  --input: rgb(255 255 255 / 22%);
+  --background: rgb(255 255 255 / 8%);
+  --card: rgb(255 255 255 / 8%);
+  --ring: var(--brand-amber);
+  --destructive: #ff9b9b;
+  --success: #6ee7a8;
+  --info: #8fd3ff;
+  --color-amber-700: #ffc164;
+  --color-sky-700: #8fd3ff;
+  color: #ffffff;
 }

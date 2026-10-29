@@ -3,8 +3,9 @@ import { Schema, model, type InferSchemaType, type HydratedDocument } from 'mong
 /**
  * `bulk`: class lists, photo ZIPs and generated print sheets for institution bulk jobs.
  * `roster`: student/staff photos and the sheets imported into an institution's list.
+ * `avatar`: a customer's profile photo.
  */
-export const FILE_PURPOSES = ['order', 'proof', 'logo', 'catalog', 'bulk', 'roster'] as const;
+export const FILE_PURPOSES = ['order', 'proof', 'logo', 'catalog', 'bulk', 'roster', 'avatar'] as const;
 export type FilePurpose = (typeof FILE_PURPOSES)[number];
 
 const ownerSchema = new Schema(
@@ -31,7 +32,7 @@ const fileSchema = new Schema(
     /** Set for sensitive files once the order is completed. */
     deleteAfter: { type: Date, index: true },
     publicUrl: String,
-    /** Roster photos: set while the photo belongs to a person, so it is kept. */
+    /** Roster photos and avatars: set while the photo is in use, so it is kept. */
     attachedAt: Date,
   },
   { timestamps: true, toJSON: { versionKey: false } },

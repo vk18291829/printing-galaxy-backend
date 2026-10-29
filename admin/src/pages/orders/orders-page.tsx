@@ -1,4 +1,4 @@
-import { IconAlertTriangle, IconBriefcase, IconHeart, IconLayoutGrid, IconPackageOff, IconReceipt, IconSchool, IconSearch, IconUser } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBriefcase, IconHeart, IconLayoutGrid, IconPackage, IconPackageOff, IconReceipt, IconSchool, IconSearch, IconUser } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Pagination } from '@/components/common/pagination';
@@ -91,7 +91,7 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconPackage />}
         title="Orders"
         description="Every online and counter order in one place."
         actions={

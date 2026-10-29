@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { loadImage, type CropSource } from './load-source';
 
 /** Output size: the card at 300 DPI. */
@@ -38,6 +39,7 @@ export function CropEditor({
   onCancel,
   onConfirm,
   onPage,
+  round,
 }: {
   source: CropSource;
   output: CropOutput;
@@ -46,6 +48,8 @@ export function CropEditor({
   onCancel: () => void;
   onConfirm: (blob: Blob) => void;
   onPage?: (page: number) => void;
+  /** A circle frame (profile photos) instead of the card shape, without the print size. */
+  round?: boolean;
 }) {
   const { t } = useTranslation();
   const aspect = output.heightMm / output.widthMm;
@@ -142,7 +146,10 @@ export function CropEditor({
         <div className="rounded-xl bg-[repeating-conic-gradient(var(--muted)_0_25%,transparent_0_50%)] bg-size-[16px_16px] p-3 sm:p-6">
           <div
             ref={setFrameEl}
-            className="relative mx-auto w-full touch-none overflow-hidden rounded-[3.5%/5.6%] bg-white shadow-lg ring-2 ring-primary select-none"
+            className={cn(
+              'relative mx-auto w-full touch-none overflow-hidden bg-white shadow-lg ring-2 ring-primary select-none',
+              round ? 'max-w-80 rounded-full' : 'rounded-[3.5%/5.6%]',
+            )}
             style={{ aspectRatio: `${output.widthMm} / ${output.heightMm}`, cursor: 'grab' }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -170,9 +177,11 @@ export function CropEditor({
               ))}
             </div>
           </div>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            {output.widthMm / 10} × {output.heightMm / 10} cm
-          </p>
+          {!round && (
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              {output.widthMm / 10} × {output.heightMm / 10} cm
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

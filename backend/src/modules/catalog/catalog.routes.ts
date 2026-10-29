@@ -8,6 +8,7 @@ import { optionalAuth } from '@/middleware/auth';
 import { validate } from '@/middleware/validate';
 import { resolvePricingContext } from '@/modules/institutions/institution.service';
 import { quoteProduct } from '@/modules/pricing/pricing.service';
+import { SCHOOL_CATEGORY_SLUGS } from './segments';
 import { categoryIdsFor, hideInstitutionPrices, restrictToCategoryAudience } from './audience';
 import { CategoryModel } from './category.model';
 import { productBrowseQuery, productListQuery } from './catalog.schema';
@@ -22,18 +23,25 @@ export const catalogRouter = Router();
  */
 async function resolveCategoryFilter(category?: string, section?: Audience, excludeCategory?: string) {
   const excluded = excludeCategory?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+  // The institution range is the school & college range only: general products (gifts, photos,
+  // notes…) stay on their own pages even when their category is also offered to institutions.
+  const schoolOnly = section === 'institution';
+  const allowed = (slug: string) => !excluded.includes(slug) && (!schoolOnly || SCHOOL_CATEGORY_SLUGS.includes(slug));
+  const audience = section ? { audiences: section } : {};
   // Several categories at once (comma-separated), e.g. everything on the Business Printing page.
   if (category?.includes(',')) {
-    const slugs = category.split(',').map((s) => s.trim()).filter((s) => s && !excluded.includes(s));
-    const ids = await CategoryModel.find({ slug: { $in: slugs }, isActive: true, ...(section && { audiences: section }) }).distinct('_id');
+    const slugs = category.split(',').map((s) => s.trim()).filter((s) => s && allowed(s));
+    const ids = await CategoryModel.find({ slug: { $in: slugs }, isActive: true, ...audience }).distinct('_id');
     return ids.length ? { $in: ids } : null;
   }
   if (category) {
-    const cat = await CategoryModel.findOne({ slug: category, isActive: true, ...(section && { audiences: section }) }).select('_id').lean();
-    return cat && !excluded.includes(category) ? cat._id : null;
+    if (!allowed(category)) return null;
+    const cat = await CategoryModel.findOne({ slug: category, isActive: true, ...audience }).select('_id').lean();
+    return cat ? cat._id : null;
   }
   if (!section && !excluded.length) return undefined;
-  const ids = await CategoryModel.find({ isActive: true, ...(section && { audiences: section }), ...(excluded.length && { slug: { $nin: excluded } }) }).distinct('_id');
+  const slug = schoolOnly ? { slug: { $in: SCHOOL_CATEGORY_SLUGS.filter((s) => !excluded.includes(s)) } } : excluded.length ? { slug: { $nin: excluded } } : {};
+  const ids = await CategoryModel.find({ isActive: true, ...audience, ...slug }).distinct('_id');
   return { $in: ids };
 }
 

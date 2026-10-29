@@ -95,7 +95,7 @@ export default function InstitutionDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{data.name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-[1.75rem] dark:text-foreground">{data.name}</h1>
         <InstitutionStatusBadge status={data.status} />
         {canOrder && data.status === 'approved' && (
           <Button className="ml-auto" asChild>

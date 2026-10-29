@@ -1,22 +1,11 @@
-import {
-  IconAlertTriangle,
-  IconBuildingStore,
-  IconCheck,
-  IconClockHour4,
-  IconCreditCard,
-  IconFileInvoice,
-  IconFileText,
-  IconKey,
-  IconMapPin,
-  IconRepeat,
-  IconX,
-} from '@tabler/icons-react';
+import { IconAlertTriangle, IconBuildingStore, IconCheck, IconClockHour4, IconCreditCard, IconFileInvoice, IconFileText, IconKey, IconMapPin, IconPackage, IconRepeat, IconX } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { PageBanner } from '@/components/common/page-banner';
 import { PageNav } from '@/components/common/page-nav';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
@@ -119,23 +108,25 @@ export default function OrderDetailPage() {
     <div className="container-page py-10">
       <PageNav items={[{ label: t('nav.myOrders'), to: '/account/orders' }, { label: order.orderNumber }]} />
 
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="font-mono text-2xl font-bold sm:text-3xl">{order.orderNumber}</h1>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageBanner
+        className="mb-6"
+        icon={<IconPackage />}
+        eyebrow={t('orders.order')}
+        title={<span className="font-mono">{order.orderNumber}</span>}
+        description={
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <OrderStatusBadge status={order.status} />
             <PaymentStatusBadge status={order.payment.status} />
-            <span className="text-sm text-muted-foreground">
-              {t('orders.placedOn', { date: formatDate(order.createdAt, i18n.language, true) })}
-            </span>
+            <span>{t('orders.placedOn', { date: formatDate(order.createdAt, i18n.language, true) })}</span>
             {order.reference && (
-              <span className="text-sm text-muted-foreground">
-                · {t('orders.reference')}: <span className="font-mono font-medium text-foreground">{order.reference}</span>
+              <span>
+                · {t('orders.reference')}: <span className="font-mono font-medium text-white">{order.reference}</span>
               </span>
             )}
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        }
+        actions={
+          <>
           <Button variant="outline" onClick={orderAgain}>
             <IconRepeat /> {t('orders.orderAgain')}
           </Button>
@@ -176,8 +167,9 @@ export default function OrderDetailPage() {
               <IconX /> {t('orders.cancel')}
             </Button>
           )}
-        </div>
-      </header>
+        </>
+        }
+      />
 
       {order.status === 'quote_pending' && (
         <Alert variant="info" className="mb-6">

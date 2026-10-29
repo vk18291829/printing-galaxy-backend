@@ -22,15 +22,13 @@ import { ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useAudience, useAuthStore } from '@/features/auth/auth-store';
 import { sectionOf, useProduct, useQuote, type QuoteInput } from '@/features/catalog/api';
 import { OptionPicker } from '@/features/catalog/components/option-picker';
 import { ProductGallery } from '@/features/catalog/components/product-gallery';
-import { PriceTierTable } from '@/features/catalog/components/price-tier-table';
+import { startingPrice } from '@/features/catalog/components/product-card';
 import { RangeRails } from '@/features/catalog/components/range-rails';
 import { RelatedProducts } from '@/features/catalog/components/related-products';
 import { useCartStore, type CartFile } from '@/features/cart/cart-store';
@@ -44,7 +42,7 @@ import { breadcrumbLd, productLd } from '@/lib/seo';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import type { Product, Quote } from '@/types/api';
+import type { PriceBook, Product, Quote } from '@/types/api';
 import { categoryHome } from '@/features/catalog/sections';
 
 function defaultOptions(product: Product) {
@@ -85,81 +83,113 @@ function PriceSummary({
   const uniqueErrors = [...new Set(errors)];
 
   return (
-    <Card className="gap-4 overflow-hidden pt-0">
-      <div className="h-1 cmyk-strip" />
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{t('product.priceTitle')}</CardTitle>
-        {loading && <Spinner className="size-4" />}
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <div className="space-y-3 rounded-2xl border bg-card p-4 sm:p-5">
+      <div className="flex items-end justify-between gap-4" aria-live="polite">
         {quote?.requiresQuote ? (
-          <div className="rounded-xl bg-primary/8 p-4">
+          <div>
             <p className="font-semibold text-primary">{t('product.quoteRequired')}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t('product.quoteHint')}</p>
+            <p className="text-sm text-muted-foreground">{t('product.quoteHint')}</p>
           </div>
         ) : (
-          quote && (
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">{t('product.unitPrice')}</dt>
-                <dd className="font-medium tabular-nums">{formatINR(quote.unitPrice)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">{t('product.units')}</dt>
-                <dd className="font-medium tabular-nums">
-                  {formatNumber(quote.units)} {unitLabel(quote.units)}
-                </dd>
-              </div>
-              {quote.fixedFees > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">{t('product.extras')}</dt>
-                  <dd className="font-medium tabular-nums">{formatINR(quote.fixedFees)}</dd>
-                </div>
-              )}
-              {quote.discount > 0 && (
-                <div className="flex justify-between text-success">
-                  <dt>{t('product.discount')}</dt>
-                  <dd className="font-medium tabular-nums">−{formatINR(quote.discount)}</dd>
-                </div>
-              )}
-              <Separator className="my-1" />
-              <div className="flex items-end justify-between">
-                <dt className="font-semibold">{t('product.subtotal')}</dt>
-                <dd className="text-2xl font-semibold tracking-tight sm:text-3xl tabular-nums">{formatINR(quote.subtotal)}</dd>
-              </div>
-            </dl>
-          )
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">{t('product.subtotal')}</p>
+            <p className="flex items-center gap-2">
+              <span className="text-3xl font-bold tracking-tight text-foreground tabular-nums">{quote ? formatINR(quote.subtotal) : '—'}</span>
+              {loading && <Spinner className="size-4" />}
+            </p>
+          </div>
         )}
-
-        {quote?.nextTier && quote.valid && !quote.requiresQuote && (
-          <p className="rounded-lg bg-success/10 px-3 py-2 text-xs font-medium text-success">
-            {t('product.nextTier', { qty: formatNumber(quote.nextTier.minQty), price: formatINR(quote.nextTier.unitPrice) })}
+        {quote && !quote.requiresQuote && (
+          <p className="pb-1 text-right text-sm text-muted-foreground tabular-nums">
+            {formatINR(quote.unitPrice)} × {formatNumber(quote.units)} {unitLabel(quote.units)}
+            {quote.fixedFees > 0 && <span className="block">+ {formatINR(quote.fixedFees)} {t('product.extras').toLowerCase()}</span>}
+            {quote.discount > 0 && <span className="block text-success">−{formatINR(quote.discount)} {t('product.discount').toLowerCase()}</span>}
           </p>
         )}
+      </div>
 
-        {uniqueErrors.length > 0 && (
-          <ul className="space-y-1.5">
-            {uniqueErrors.map((e) => (
-              <li key={e} className="flex items-start gap-2 text-sm text-destructive">
-                <IconAlertCircle className="mt-0.5 size-4 shrink-0" /> {e}
-              </li>
-            ))}
-          </ul>
-        )}
+      {quote?.nextTier && quote.valid && !quote.requiresQuote && (
+        <p className="rounded-lg bg-success/10 px-3 py-2 text-xs font-medium text-success">
+          {t('product.nextTier', { qty: formatNumber(quote.nextTier.minQty), price: formatINR(quote.nextTier.unitPrice) })}
+        </p>
+      )}
+      {uniqueErrors.length > 0 && (
+        <ul className="space-y-1.5">
+          {uniqueErrors.map((e) => (
+            <li key={e} className="flex items-start gap-2 text-sm text-destructive">
+              <IconAlertCircle className="mt-0.5 size-4 shrink-0" /> {e}
+            </li>
+          ))}
+        </ul>
+      )}
 
-        {orderLink ? (
-          <Button size="lg" variant="brand" className="w-full" asChild>
-            <Link to={orderLink}>
-              <IconClipboardList /> {t('product.orderThis')}
-            </Link>
-          </Button>
-        ) : (
-          <Button size="lg" variant="brand" className="w-full" onClick={onAdd} disabled={!canAdd}>
-            <IconShoppingBagPlus /> {inCart > 0 ? t('product.addAnother') : t('product.addToCart')}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+      {orderLink ? (
+        <Button size="lg" variant="brand" className="w-full" asChild>
+          <Link to={orderLink}>
+            <IconClipboardList /> {t('product.orderThis')}
+          </Link>
+        </Button>
+      ) : (
+        <Button size="lg" variant="brand" className="w-full" onClick={onAdd} disabled={!canAdd}>
+          <IconShoppingBagPlus /> {inCart > 0 ? t('product.addAnother') : t('product.addToCart')}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The quantity price bands right under the quantity picker: the band the order is in is lit, and
+ * tapping a band sets the quantity to its start (when the quantity is a plain count).
+ */
+function QuantityPrices({ book, unit, units, onPick }: { book: PriceBook; unit: string; units?: number; onPick?: (qty: number) => void }) {
+  const { t } = useTranslation();
+  const tiers = [...book.tiers].sort((a, b) => a.minQty - b.minQty);
+  if (tiers.length < 2) return null;
+  const base = tiers[0]!.unitPrice;
+  const active = units ? tiers.reduce((idx, tier, i) => (units >= tier.minQty ? i : idx), 0) : 0;
+  const unitName = (count: number) => t(`units.${unit}`, { count });
+
+  return (
+    <section>
+      <h3 className="mb-2.5 text-sm font-semibold text-foreground">{t('product.priceByQuantity')}</h3>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {tiers.map((tier, i) => {
+          const from = i === 0 ? Math.max(tier.minQty, book.minQty) : tier.minQty;
+          const next = tiers[i + 1];
+          const save = Math.round((1 - tier.unitPrice / base) * 100);
+          const on = i === active;
+          const body = (
+            <>
+              <span className="block text-xs text-muted-foreground tabular-nums">
+                {next ? `${formatNumber(from)}–${formatNumber(next.minQty - 1)}` : `${formatNumber(from)}+`} {unitName(2)}
+              </span>
+              <span className="mt-0.5 block text-lg font-bold text-foreground tabular-nums">
+                {formatINR(tier.unitPrice)}
+                <span className="text-xs font-normal text-muted-foreground"> / {unitName(1)}</span>
+              </span>
+              <span className={cn('block text-xs font-semibold', save > 0 ? 'text-success' : 'text-muted-foreground')}>
+                {save > 0 ? t('product.savePct', { pct: save }) : t('product.basePrice')}
+              </span>
+            </>
+          );
+          const style = cn(
+            'rounded-xl border p-3 text-left transition-colors',
+            on ? 'border-primary bg-primary/6 ring-2 ring-primary/15' : 'bg-card',
+            onPick && !on && 'hover:border-primary/40',
+          );
+          return onPick ? (
+            <button key={tier.minQty} type="button" aria-pressed={on} onClick={() => onPick(from)} className={style}>
+              {body}
+            </button>
+          ) : (
+            <div key={tier.minQty} className={style}>
+              {body}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -377,32 +407,31 @@ export default function ProductPage() {
     </Button>
   );
 
-  const uploadCard = (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+  const uploadSection = (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">
           {useCropper ? t('crop.title') : t('product.uploadHeading')}{' '}
-          {!needsUpload && <span className="text-sm font-normal text-muted-foreground">({t('common.optional')})</span>}
-        </CardTitle>
-        {!useCropper && l(product.uploadHint) && <p className="text-sm text-muted-foreground">{l(product.uploadHint)}</p>}
-        {!useCropper && photosOnly && <p className="text-sm text-muted-foreground">{t('product.photosHint')}</p>}
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!principal ? (
-          signInButton
-        ) : useCropper ? (
-          <CardCropUploader productId={product._id} files={files} onChange={setFiles} />
-        ) : (
-          <FileUploader productId={product._id} accepted={product.acceptedFileTypes} files={files} onChange={setFiles} />
-        )}
-        {principal && product.workflow === 'identity' && (
-          <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => setPlainUpload((v) => !v)}>
-            {plainUpload ? t('crop.useCropper') : t('crop.orUpload')}
-          </button>
-        )}
-      </CardContent>
-    </Card>
+          {!needsUpload && <span className="font-normal text-muted-foreground">({t('common.optional')})</span>}
+        </h3>
+        {!useCropper && l(product.uploadHint) && <p className="mt-0.5 text-sm text-muted-foreground">{l(product.uploadHint)}</p>}
+        {!useCropper && photosOnly && <p className="mt-0.5 text-sm text-muted-foreground">{t('product.photosHint')}</p>}
+      </div>
+      {!principal ? (
+        signInButton
+      ) : useCropper ? (
+        <CardCropUploader productId={product._id} files={files} onChange={setFiles} />
+      ) : (
+        <FileUploader productId={product._id} accepted={product.acceptedFileTypes} files={files} onChange={setFiles} />
+      )}
+      {principal && product.workflow === 'identity' && (
+        <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => setPlainUpload((v) => !v)}>
+          {plainUpload ? t('crop.useCropper') : t('crop.orUpload')}
+        </button>
+      )}
+    </section>
   );
+  const fromPrice = startingPrice(product, audience);
 
   return (
     <div className="container-page pt-6 sm:pt-8 lg:pb-8">
@@ -423,155 +452,142 @@ export default function ProductPage() {
       <div className="relative">
       {locked && <LockedOverlay forInstitutions={sectionOf(product) === 'institution'} />}
       <div
-        className={cn('grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]', locked && 'pointer-events-none max-h-[900px] overflow-hidden blur-md select-none')}
+        className={cn(
+          'grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-12 xl:gap-16',
+          locked && 'pointer-events-none max-h-[900px] overflow-hidden blur-md select-none',
+        )}
         aria-hidden={locked || undefined}
         inert={locked}
       >
+        <div className="lg:sticky lg:top-32 lg:self-start">
+          <ProductGallery product={product} />
+        </div>
+
+        {/* Everything to buy, in one panel: what it is, the price, the choices, Add to cart. */}
         <div className="space-y-6">
-          <header className="grid gap-6 *:min-w-0 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start">
-            <ProductGallery product={product} />
-            <div className="space-y-3">
-              <p className="flex items-center gap-2 text-sm font-medium text-primary">
-                <DynamicIcon name={product.icon} className="size-4" /> {l(product.category.name)}
+          <header className="space-y-2.5">
+            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <DynamicIcon name={product.icon} className="size-4" /> {l(product.category.name)}
+            </p>
+            <h1 className="text-[1.75rem] leading-tight font-bold tracking-tight text-brand-navy sm:text-[2.25rem]">{l(product.name)}</h1>
+            <RatingSummaryLink slug={product.slug} />
+            {!audienceBlocked && fromPrice !== null && (
+              <p className="flex items-baseline gap-1.5 pt-1">
+                <span className="text-sm text-muted-foreground">{t('products.startingAt')}</span>
+                <span className="text-3xl font-bold tracking-tight text-foreground tabular-nums">{formatINR(fromPrice)}</span>
+                <span className="text-sm text-muted-foreground">/ {t(`units.${product.unit}`, { count: 1 })}</span>
               </p>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{l(product.name)}</h1>
-              <RatingSummaryLink slug={product.slug} />
-              <p className="text-lg leading-relaxed text-foreground/90">{l(product.shortDescription)}</p>
-              {l(product.description) && <p className="text-base leading-relaxed text-foreground/75">{l(product.description)}</p>}
-              <div className="flex flex-wrap gap-2">
-                {audience === 'institution' && product.pricing.institution.enabled && (
-                  <Badge variant="success">
-                    <IconBuildingCommunity /> {t('product.institutionPricing')}
-                  </Badge>
-                )}
-                {product.specs.map((s) => (
-                  <Badge key={s} variant="outline">{s}</Badge>
-                ))}
-                {!audienceBlocked && sectionOf(product) === 'retail' && (
-                  <Badge variant="outline">
-                    <IconClock /> {t('product.leadTime')}:{' '}
-                    {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
-                  </Badge>
-                )}
-              </div>
-              {product.workflow === 'design' && (
-                <Alert variant="info">
-                  <IconPalette />
-                  <AlertDescription className="text-foreground">{t('product.designNote')}</AlertDescription>
-                </Alert>
+            )}
+            <p className="text-base leading-relaxed text-muted-foreground">{l(product.shortDescription)}</p>
+            {l(product.description) && <p className="text-sm leading-relaxed text-muted-foreground">{l(product.description)}</p>}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {!audienceBlocked && sectionOf(product) === 'retail' && (
+                <Badge variant="secondary">
+                  <IconClock /> {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
+                </Badge>
               )}
-              {product.sensitive && (
-                <Alert variant="success">
-                  <IconLock />
-                  <AlertDescription className="text-foreground">{t('product.sensitiveNote')}</AlertDescription>
-                </Alert>
+              {audience === 'institution' && product.pricing.institution.enabled && (
+                <Badge variant="success">
+                  <IconBuildingCommunity /> {t('product.institutionPricing')}
+                </Badge>
               )}
-              <ProductContact product={product} />
+              {product.specs.map((spec) => (
+                <Badge key={spec} variant="outline">{spec}</Badge>
+              ))}
             </div>
           </header>
 
-          {!audienceBlocked && (
-          <>
-          {inCart > 0 && !orderLink && (
-            <Alert variant="success">
-              <IconShoppingBagPlus />
-              <AlertDescription className="text-foreground">
-                <span className="font-semibold">{t('product.inCartCount', { count: inCart })}</span> {t('product.makeAnother')}{' '}
-                <Link to="/cart" className="font-medium text-primary underline-offset-4 hover:underline">{t('product.goToCart')}</Link>
-              </AlertDescription>
-            </Alert>
-          )}
-          {product.options.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('product.optionsHeading')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <OptionPicker options={product.options} value={options} onChange={(k, v) => setOptions((o) => ({ ...o, [k]: v }))} />
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('product.quantityHeading')}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-5 sm:grid-cols-2">
-              {isPageBased ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="pages">{t('product.pages')}</Label>
-                    {pagesFromFiles ? (
-                      <div className="flex h-11 items-center gap-2 rounded-xl shadow-card bg-muted/50 px-3">
-                        <span className="text-base font-semibold tabular-nums">{formatNumber(pagesFromFiles)}</span>
-                        <span className="text-xs text-muted-foreground">{t('product.pagesFromFiles')}</span>
-                      </div>
-                    ) : (
-                      <Stepper id="pages" value={manualPages} onChange={setManualPages} min={1} step={10} />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="copies">{t('product.copies')}</Label>
-                    <Stepper id="copies" value={copies} onChange={setCopies} min={1} />
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="qty" className="capitalize">{t(`units.${product.unit}`, { count: 2 })}</Label>
-                  <Stepper id="qty" value={quantity} onChange={setQuantity} min={1} step={book.minQty >= 50 ? 10 : 1} />
-                  {book.minQty > 1 && (
-                    <p className="text-xs text-muted-foreground">
-                      {t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })}
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {(product.requiresUpload || product.acceptedFileTypes.length > 0) && uploadCard}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <Label htmlFor="notes" className="text-base">{t('product.notes')}</Label>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                id="notes"
-                value={notes}
-                maxLength={1000}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('product.notesPlaceholder')}
-              />
-            </CardContent>
-          </Card>
-          </>
-          )}
-        </div>
-
-        <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
           {audienceBlocked ? (
             <LockedCard forInstitutions={sectionOf(product) === 'institution'} className="p-5 sm:p-6" />
           ) : (
-            <PriceSummary
-              product={product}
-              quote={quote}
-              loading={quoting || stale}
-              extraErrors={extraErrors}
-              onAdd={handleAdd}
-              canAdd={canAdd}
-              orderLink={orderLink}
-              inCart={inCart}
-            />
-          )}
-          {!audienceBlocked && book.tiers.length > 0 && (
-            <PriceTierTable book={book} unit={product.unit} activeUnits={quote?.units} />
-          )}
-        </aside>
-      </div>
+            <div className="space-y-6 border-t pt-6">
+              {inCart > 0 && !orderLink && (
+                <Alert variant="success">
+                  <IconShoppingBagPlus />
+                  <AlertDescription className="text-foreground">
+                    <span className="font-semibold">{t('product.inCartCount', { count: inCart })}</span> {t('product.makeAnother')}{' '}
+                    <Link to="/cart" className="font-medium text-primary underline-offset-4 hover:underline">{t('product.goToCart')}</Link>
+                  </AlertDescription>
+                </Alert>
+              )}
 
+              {product.options.length > 0 && (
+                <OptionPicker options={product.options} value={options} onChange={(k, v) => setOptions((o) => ({ ...o, [k]: v }))} />
+              )}
+
+              <section className="grid gap-5 sm:grid-cols-2">
+                {isPageBased ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="pages" className="text-sm font-semibold">{t('product.pages')}</Label>
+                      {pagesFromFiles ? (
+                        <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/50 px-3">
+                          <span className="text-base font-semibold tabular-nums">{formatNumber(pagesFromFiles)}</span>
+                          <span className="text-xs text-muted-foreground">{t('product.pagesFromFiles')}</span>
+                        </div>
+                      ) : (
+                        <Stepper id="pages" value={manualPages} onChange={setManualPages} min={1} step={10} />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="copies" className="text-sm font-semibold">{t('product.copies')}</Label>
+                      <Stepper id="copies" value={copies} onChange={setCopies} min={1} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="qty" className="text-sm font-semibold">{t('product.quantityHeading')}</Label>
+                    <Stepper id="qty" value={quantity} onChange={setQuantity} min={1} step={book.minQty >= 50 ? 10 : 1} />
+                    {book.minQty > 1 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('common.minOrder', { count: book.minQty, unit: t(`units.${product.unit}`, { count: book.minQty }) })}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {book.tiers.length > 1 && (
+                <QuantityPrices book={book} unit={product.unit} units={quote?.units} onPick={isPageBased ? undefined : setQuantity} />
+              )}
+
+              {(product.requiresUpload || product.acceptedFileTypes.length > 0) && uploadSection}
+
+              <section className="space-y-2">
+                <Label htmlFor="notes" className="text-sm font-semibold">{t('product.notes')}</Label>
+                <Textarea id="notes" value={notes} maxLength={1000} onChange={(e) => setNotes(e.target.value)} placeholder={t('product.notesPlaceholder')} className="min-h-20" />
+              </section>
+
+              <PriceSummary
+                product={product}
+                quote={quote}
+                loading={quoting || stale}
+                extraErrors={extraErrors}
+                onAdd={handleAdd}
+                canAdd={canAdd}
+                orderLink={orderLink}
+                inCart={inCart}
+              />
+            </div>
+          )}
+
+          {(product.workflow === 'design' || product.sensitive) && (
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {product.workflow === 'design' && (
+                <li className="flex items-start gap-2.5">
+                  <IconPalette className="mt-0.5 size-4 shrink-0 text-primary" /> {t('product.designNote')}
+                </li>
+              )}
+              {product.sensitive && (
+                <li className="flex items-start gap-2.5">
+                  <IconLock className="mt-0.5 size-4 shrink-0 text-primary" /> {t('product.sensitiveNote')}
+                </li>
+              )}
+            </ul>
+          )}
+          <ProductContact product={product} />
+        </div>
+      </div>
       </div>
 
       {!locked && (

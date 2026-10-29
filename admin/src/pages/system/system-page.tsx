@@ -1,14 +1,4 @@
-import {
-  IconAlertTriangle,
-  IconArrowBackUp,
-  IconCircleCheck,
-  IconClockHour4,
-  IconDatabase,
-  IconMessageCircle,
-  IconRefresh,
-  IconWebhook,
-  type Icon,
-} from '@tabler/icons-react';
+import { IconActivityHeartbeat, IconAlertTriangle, IconArrowBackUp, IconCircleCheck, IconClockHour4, IconDatabase, IconMessageCircle, IconRefresh, IconWebhook, type Icon } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -356,7 +346,7 @@ export default function SystemPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="System activity" description="Is everything working? Failed messages, payment events and the server's health." />
+      <PageHeader icon={<IconActivityHeartbeat />} title="System activity" description="Is everything working? Failed messages, payment events and the server's health." />
       {error ? (
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : data ? (

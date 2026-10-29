@@ -27,11 +27,10 @@ import {
   IconUsers,
   type Icon,
 } from '@tabler/icons-react';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { WEBSITE_URL } from '@/components/common/link-picker';
-import { Badge } from '@/components/ui/badge';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -138,13 +137,14 @@ function readCollapsed() {
 function Brand({ collapsed }: { collapsed?: boolean }) {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-3">
-      {/* No box: the dark-theme file has light ink so the mark stays visible. */}
-      <img src="/logo-mark.png?v=3" alt="" width={40} height={40} className="size-10 shrink-0 object-contain dark:hidden" />
-      <img src="/logo-mark-dark.png?v=3" alt="" width={40} height={40} className="hidden size-10 shrink-0 object-contain dark:block" />
+      {/* On the navy sidebar: the logo file with light ink. */}
+      <img src="/logo-mark-dark.png?v=3" alt="" width={40} height={40} className="size-10 shrink-0 object-contain" />
       {!collapsed && (
         <span className="min-w-0 leading-tight">
-          <span className="block truncate text-base font-semibold text-foreground">Printing Galaxy</span>
-          <span className="block truncate text-xs text-muted-foreground">Admin panel</span>
+          <span className="block truncate font-display text-base font-bold text-white">
+            Printing <span className="text-brand-amber">Galaxy</span>
+          </span>
+          <span className="block truncate text-[11px] font-semibold tracking-[0.14em] text-white/55 uppercase">Admin panel</span>
         </span>
       )}
     </Link>
@@ -176,7 +176,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed?: boolean; onNavigate
             {collapsed ? (
               <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border" />
             ) : (
-              <p className="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground">{group.section}</p>
+              <p className="mb-1.5 px-2.5 text-[11px] font-semibold tracking-[0.12em] text-white/45 uppercase">{group.section}</p>
             )}
             <ul className="space-y-0.5">
               {items.map((item) => {
@@ -188,24 +188,28 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed?: boolean; onNavigate
                     onClick={onNavigate}
                     className={({ isActive }) =>
                       cn(
-                        'group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground',
+                        'group relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-white',
                         collapsed && 'justify-center px-0',
-                        isActive && 'bg-sidebar-accent font-medium text-foreground',
+                        isActive && 'bg-white font-semibold text-brand-navy hover:bg-white hover:text-brand-navy',
                       )
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        {isActive && <span className="absolute top-2 bottom-2 left-0 w-0.5 rounded-full bg-primary" />}
-                        <item.icon className={cn('size-4.5 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                        <item.icon className={cn('size-4.5 shrink-0', isActive ? 'text-brand-navy' : 'text-white/60 group-hover:text-white')} />
                         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                         {count > 0 &&
                           (collapsed ? (
-                            <span className={cn('absolute top-1.5 right-1.5 size-2 rounded-full', item.badge === 'orders' ? 'bg-primary' : 'bg-warning')} />
+                            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-brand-amber" />
                           ) : (
-                            <Badge variant={item.badge === 'orders' ? 'secondary' : 'warning'} className="h-5 min-w-5 justify-center px-1.5 py-0 text-[11px] tabular-nums">
+                            <span
+                              className={cn(
+                                'grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums',
+                                item.badge === 'orders' && !isActive ? 'bg-white/15 text-white' : 'bg-brand-amber text-brand-navy',
+                              )}
+                            >
                               {count}
-                            </Badge>
+                            </span>
                           ))}
                       </>
                     )}
@@ -250,7 +254,7 @@ function UserMenu({ collapsed }: { collapsed?: boolean }) {
             collapsed && 'justify-center p-1.5',
           )}
         >
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">{initial}</span>
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-amber text-sm font-bold text-brand-navy">{initial}</span>
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1 leading-tight">
@@ -290,8 +294,9 @@ function UserMenu({ collapsed }: { collapsed?: boolean }) {
 
 function SidebarBody({ collapsed, onNavigate, onToggle }: { collapsed?: boolean; onNavigate?: () => void; onToggle?: () => void }) {
   return (
-    <div className="flex h-full flex-col">
-      <div className={cn('flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border px-4', collapsed && 'justify-center px-0')}>
+    <div className="sidebar-navy relative flex h-full flex-col">
+      <div className="cmyk-strip h-1 shrink-0" />
+      <div className={cn('flex h-16 shrink-0 items-center gap-2 px-4', collapsed && 'justify-center px-0')}>
         <Brand collapsed={collapsed} />
       </div>
       <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
@@ -301,7 +306,7 @@ function SidebarBody({ collapsed, onNavigate, onToggle }: { collapsed?: boolean;
             variant="ghost"
             size="sm"
             onClick={onToggle}
-            className={cn('w-full justify-start text-muted-foreground', collapsed && 'justify-center px-0')}
+            className={cn('w-full justify-start text-white/60 hover:bg-white/10 hover:text-white', collapsed && 'justify-center px-0')}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? <IconChevronsRight /> : <IconChevronsLeft />}
@@ -320,47 +325,68 @@ function SidebarBody({ collapsed, onNavigate, onToggle }: { collapsed?: boolean;
  * Phone / tablet tab bar, like an app: the screens used all day, a big "+" for a counter order,
  * and More for the full menu. Tabs follow the person's permissions.
  */
+/** One tab: an amber mark and a navy pill behind the icon for the open screen. */
+function Tab({ to, end, icon, label, onClick }: { to?: string; end?: boolean; icon: ReactNode; label: string; onClick?: () => void }) {
+  const body = (isActive: boolean) => (
+    <>
+      <span className={cn('absolute top-0 h-[3px] w-8 rounded-b-full transition-colors', isActive ? 'bg-brand-amber' : 'bg-transparent')} />
+      <span
+        className={cn(
+          'grid h-8 w-14 place-items-center rounded-full transition-colors [&_svg]:size-[22px]',
+          isActive ? 'bg-brand-navy text-white' : 'text-muted-foreground',
+        )}
+      >
+        {icon}
+      </span>
+      <span className={cn('max-w-full truncate px-1 text-[11px] transition-colors', isActive ? 'font-bold text-brand-navy' : 'font-medium text-muted-foreground')}>{label}</span>
+    </>
+  );
+  const cls = 'relative flex flex-1 flex-col items-center justify-center gap-1 pt-1';
+  return to ? (
+    <NavLink to={to} end={end} className={cls}>
+      {({ isActive }) => body(isActive)}
+    </NavLink>
+  ) : (
+    <button type="button" onClick={onClick} className={cls}>
+      {body(false)}
+    </button>
+  );
+}
+
+/**
+ * Phone / tablet tab bar, like an app: the screens used all day, a big "+" for a counter order,
+ * and More for the full menu. Tabs follow the person's permissions.
+ */
 function BottomTabs({ onMore }: { onMore: () => void }) {
   const user = useAuthStore((s) => s.user);
   const can = (p: Permission) => user?.role === 'admin' || Boolean(user?.permissions?.includes(p));
   const rider = user?.role === 'delivery';
-  const tab = 'flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors';
-  const on = 'text-primary';
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       aria-label="Main"
     >
       <div className="mx-auto flex h-16 max-w-lg items-stretch px-2">
-        {!rider && (
-          <NavLink to="/" end className={({ isActive }) => cn(tab, isActive && on)}>
-            <IconLayoutDashboard className="size-6" /> Home
-          </NavLink>
-        )}
-        {!rider && can('orders') && (
-          <NavLink to="/orders" end className={({ isActive }) => cn(tab, isActive && on)}>
-            <IconPackage className="size-6" /> Orders
-          </NavLink>
-        )}
+        {!rider && <Tab to="/" end icon={<IconLayoutDashboard />} label="Home" />}
+        {!rider && can('orders') && <Tab to="/orders" end icon={<IconPackage />} label="Orders" />}
         {!rider && can('walkin') && (
           <div className="flex flex-1 items-start justify-center">
-            <Link
+            <NavLink
               to="/orders/new"
               aria-label="New walk-in order"
-              className="-mt-5 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground ring-4 ring-background active:scale-95"
+              className={({ isActive }) =>
+                cn(
+                  '-mt-5 grid size-14 place-items-center rounded-full ring-4 ring-background transition-colors active:scale-95',
+                  isActive ? 'bg-brand-amber text-brand-navy' : 'bg-primary text-primary-foreground',
+                )
+              }
             >
               <IconPlus className="size-7" stroke={2.5} />
-            </Link>
+            </NavLink>
           </div>
         )}
-        {(rider || can('orders')) && (
-          <NavLink to="/deliveries" className={({ isActive }) => cn(tab, isActive && on)}>
-            <IconTruckDelivery className="size-6" /> {rider ? 'My deliveries' : 'Deliveries'}
-          </NavLink>
-        )}
-        <button type="button" onClick={onMore} className={tab}>
-          <IconMenu2 className="size-6" /> More
-        </button>
+        {(rider || can('orders')) && <Tab to="/deliveries" icon={<IconTruckDelivery />} label={rider ? 'My deliveries' : 'Deliveries'} />}
+        <Tab onClick={onMore} icon={<IconMenu2 />} label="More" />
       </div>
     </nav>
   );
@@ -467,10 +493,10 @@ export function AdminLayout() {
         <div ref={scroller} className="relative flex min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
           {/* Solid, not frosted: a backdrop blur pulls the white sidebar into the header's edge and
               re-renders (shimmers) whenever anything in the header changes on hover. */}
-          <header className="sticky top-0 z-30 border-b bg-background px-4 sm:px-6 lg:px-8">
-            <div className="page-container flex h-14 items-center gap-2">
+          <header className="sticky top-0 z-30 border-b bg-card px-4 sm:px-6 lg:px-8">
+            <div className="page-container flex h-16 items-center gap-2">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetContent side="left" className="w-72 gap-0 border-sidebar-border bg-sidebar p-0">
+              <SheetContent side="left" className="w-72 gap-0 border-sidebar-border bg-sidebar p-0 [&>button]:text-white">
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                 <SidebarBody onNavigate={() => setMobileOpen(false)} />
               </SheetContent>
@@ -488,7 +514,7 @@ export function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 md:pb-6 lg:px-8">
+          <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 sm:pt-8 md:pb-8 lg:px-8">
             <div key={pathname} className="page-container page-enter">
               <Outlet />
             </div>

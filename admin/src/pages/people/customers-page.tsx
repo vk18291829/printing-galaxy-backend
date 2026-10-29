@@ -1,4 +1,4 @@
-import { IconSearch, IconUserCheck, IconUserOff } from '@tabler/icons-react';
+import { IconSearch, IconUserCheck, IconUserOff, IconUsers } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { MobileList, MobileRow } from '@/components/common/mobile-list';
@@ -36,7 +36,7 @@ export default function CustomersPage() {
 
   return (
     <div>
-      <PageHeader title="Customers" description="Individuals who signed in with their phone or ordered at the counter." />
+      <PageHeader icon={<IconUsers />} title="Customers" description="Individuals who signed in with their phone or ordered at the counter." />
       <div className="relative mb-4">
         <IconSearch className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input

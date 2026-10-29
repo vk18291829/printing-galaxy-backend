@@ -226,6 +226,9 @@
     "viewDetails": "View details"
   },
   "product": {
+    "priceByQuantity": "Price by quantity",
+    "savePct": "Save {{pct}}%",
+    "basePrice": "Standard price",
     "optionsHeading": "Choose your options",
     "quantityHeading": "Select quantity",
     "uploadHeading": "Upload your design",
@@ -540,6 +543,19 @@
     }
   },
   "cart": {
+    "change": "Change",
+    "removed": "{{name}} removed",
+    "undo": "Undo",
+    "removeLabel": "Remove {{name}}",
+    "updated": "{{name}} updated",
+    "editTitle": "Change {{name}}",
+    "editDesc": "Your uploaded files and instructions stay with this item.",
+    "saveChanges": "Save changes",
+    "copiesOf": "copies of {{pages}} pages",
+    "filesAttached": "Files attached",
+    "estimatedTotal": "Estimated total",
+    "totalForPickup": "For pickup; home delivery is added at checkout if you choose it.",
+    "totalPickupOnly": "Pick up from the shop.",
     "design": "Design {{n}}",
     "title": "Your cart",
     "empty": "Your cart is empty",
@@ -570,6 +586,22 @@
     ]
   },
   "checkout": {
+    "receiveLabel": "Pickup or delivery",
+    "contactAndNote": "Contact & note",
+    "contactAndNoteDesc": "Who we call about this order, and anything the shop should know.",
+    "notePlaceholder": "For example: call before delivery, or a preferred pickup time.",
+    "securePayment": "Secure payment by Razorpay. Your order is placed once the payment goes through.",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "tickFirst": "Tick the box to confirm you have checked the order.",
+    "payShort": "Pay {{amount}}",
+    "itemsTitle": "Items",
+    "detailsTitle": "Delivery, payment and contact",
+    "uploaded": "Uploaded files",
+    "noFiles": "No files",
+    "yourNote": "Your note",
+    "noNote": "No note added",
+    "shopHours": "Shop hours",
     "title": "Checkout",
     "fulfilment": "How would you like to receive it?",
     "pickup": "Pick up from shop",
@@ -605,6 +637,7 @@
     "paymentSuccess": "Payment received. Thank you!",
     "paymentCancelled": "Payment not completed. You can pay later from your order page.",
     "steps": {
+      "cart": "Cart",
       "details": "Details",
       "review": "Review & confirm"
     },
@@ -622,6 +655,7 @@
     "policyPrefix": "By placing the order you agree to our"
   },
   "orders": {
+    "subtitle": "Every order you have placed, with its status, proofs and invoices.",
     "title": "My orders",
     "empty": "No orders yet",
     "emptyDesc": "Your orders will appear here.",
@@ -698,6 +732,21 @@
     "addedAgain_other": "{{count}} items added to your cart. Upload your files again if needed."
   },
   "account": {
+    "details": "Your details",
+    "detailsDesc": "How we address you and reach you about orders.",
+    "preferences": "Preferences",
+    "addressDesc": "Filled in for you at checkout when you choose home delivery.",
+    "emailLocked": "You sign in with your email, so it cannot be changed here.",
+    "phoneLocked": "You sign in with your mobile number, so it cannot be changed here.",
+    "unsaved": "You have unsaved changes.",
+    "privacyLink": "How we use your details",
+    "photoAdd": "Add photo",
+    "photoChange": "Change photo",
+    "photoTitle": "Fit your photo in the circle",
+    "photoSaved": "Profile photo saved",
+    "photoRemoved": "Profile photo removed",
+    "photoFailed": "The photo could not be saved. Please try again.",
+    "photoInvalid": "Choose a JPG, PNG or WebP photo under 15 MB.",
     "profile": "Profile",
     "profileDesc": "Your details and preferences.",
     "name": "Name",
@@ -868,6 +917,7 @@
     "next": "Next"
   },
   "reviews": {
+    "subtitle": "What customers say about this product.",
     "title": "Ratings & reviews",
     "count_one": "{{count}} review",
     "count_other": "{{count}} reviews",
@@ -1069,6 +1119,10 @@
     }
   },
   "updates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "actionNeeded": "Action needed",
+    "filter": {"all": "All", "order": "Orders", "refund": "Refunds", "offer": "Offers"},
     "title": "Updates",
     "subtitle": "Order progress, refunds and offers from the last 90 days.",
     "empty": "No updates yet",

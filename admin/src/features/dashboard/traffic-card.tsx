@@ -1,8 +1,8 @@
 import { IconDeviceDesktop, IconDeviceMobile, IconDeviceTablet, IconWorld } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { ErrorState, Spinner } from '@/components/common/states';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ErrorState, SectionTitle, Spinner } from '@/components/common/states';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { api } from '@/lib/api-client';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -142,8 +142,7 @@ export function TrafficCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Website visits</CardTitle>
-        <CardDescription>Counted without cookies; bots and “do not track” browsers are left out.</CardDescription>
+        <SectionTitle icon={<IconWorld />} title="Website visits" description="Counted without cookies; bots and “do not track” browsers are left out." />
       </CardHeader>
       <CardContent>
         {isLoading ? (

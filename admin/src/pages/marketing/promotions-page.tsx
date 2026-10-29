@@ -448,7 +448,7 @@ export default function PromotionsPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconMessage2 />}
         title="Promotions"
         description={`Send an offer ${byEmail ? 'by email' : 'by SMS'} to every customer who has not turned offers off.`}
       />

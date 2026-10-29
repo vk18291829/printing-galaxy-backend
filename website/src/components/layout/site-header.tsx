@@ -3,7 +3,6 @@ import {
   IconLayoutDashboard,
   IconLogout,
   IconPackage,
-  IconSearch,
   IconShoppingBag,
   IconUser,
   IconUsers,
@@ -24,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLogout } from '@/features/auth/api';
+import { UserAvatar } from '@/features/account/avatar';
 import { useAuthStore, useDisplayName } from '@/features/auth/auth-store';
 import { useProduct } from '@/features/catalog/api';
 import { InstallAppButton } from '@/features/pwa/pwa';
@@ -51,18 +51,6 @@ function useIsNavActive() {
   const { data: product } = useProduct(slug);
   const section = slug && product ? categoryHome(product.category.slug).split('?')[0]! : pathname;
   return (item: NavItem) => section === item.to || section.startsWith(`${item.to}/`);
-}
-
-/** Search from any page (tablet and up; phones search from the Products tab). */
-function SearchButton() {
-  const { t } = useTranslation();
-  return (
-    <Button variant="ghost" size="icon" className="hidden size-9 sm:inline-flex" asChild>
-      <Link to="/products#search" aria-label={t('common.search')}>
-        <IconSearch className="size-[19px]" />
-      </Link>
-    </Button>
-  );
 }
 
 function CartButton() {
@@ -102,11 +90,6 @@ function UpdatesButton() {
   );
 }
 
-/** "Galaxy Public School" → "GP". */
-function initials(name: string) {
-  const words = name.replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean);
-  return ((words[0]?.[0] ?? '') + (words[1]?.[0] ?? '')).toUpperCase() || '?';
-}
 
 function AccountMenu() {
   const { t } = useTranslation();
@@ -128,10 +111,8 @@ function AccountMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="size-9 rounded-full" aria-label={t('nav.account')}>
-          {isInstitution ? (
-            <span className="grid size-8 place-items-center rounded-full bg-brand-navy text-xs font-bold text-white ring-2 ring-primary/30">
-              {initials(name)}
-            </span>
+          {isInstitution || principal.user.avatarUrl ? (
+            <UserAvatar name={name} src={isInstitution ? undefined : principal.user.avatarUrl} className="size-8 text-xs ring-2 ring-primary/30" />
           ) : (
             <IconUserCircle className="size-5" />
           )}
@@ -210,11 +191,13 @@ export function SiteHeader() {
               to={item.to}
               aria-current={isActive(item) ? 'page' : undefined}
               className={cn(
-                'rounded-full px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-foreground/70 transition-colors hover:bg-secondary hover:text-primary',
-                isActive(item) && 'bg-secondary text-primary',
+                'relative rounded-full px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition-colors',
+                isActive(item) ? 'bg-brand-navy text-white' : 'text-foreground/70 hover:bg-secondary hover:text-primary',
               )}
             >
               {t(item.key)}
+              {/* Same marker as the phone tab bar: a small amber line under the open section. */}
+              {isActive(item) && <span aria-hidden className="absolute -bottom-1.5 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-full bg-brand-amber" />}
             </Link>
           ))}
         </nav>
@@ -222,7 +205,6 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-1">
           <InstallAppButton variant="pill" className="mr-1 lg:hidden" />
           <UpdatesButton />
-          {principal?.kind !== 'institution' && <SearchButton />}
           {principal?.kind !== 'institution' && <CartButton />}
           {principal?.kind === 'institution' && (
             <Button size="sm" className="ml-1 hidden md:inline-flex" asChild>

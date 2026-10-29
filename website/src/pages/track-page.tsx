@@ -1,8 +1,9 @@
-import { IconPackage, IconRefresh, IconSearch } from '@tabler/icons-react';
+import { IconPackage, IconRefresh, IconSearch, IconTruckDelivery } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { PageBanner } from '@/components/common/page-banner';
 import { PageNav } from '@/components/common/page-nav';
 import { PrefixedInput } from '@/components/common/prefixed-input';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
@@ -77,10 +78,7 @@ export default function TrackPage() {
   return (
     <div className="container-page max-w-2xl py-10">
       <PageNav items={[{ label: t('track.title') }]} />
-      <header className="mb-6 space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('track.title')}</h1>
-        <p className="text-base text-muted-foreground">{byEmail ? t('track.subtitleEmail') : t('track.subtitle')}</p>
-      </header>
+      <PageBanner className="mb-6" icon={<IconTruckDelivery />} title={t('track.title')} description={byEmail ? t('track.subtitleEmail') : t('track.subtitle')} />
 
       {step !== 'done' && (
         <Card>

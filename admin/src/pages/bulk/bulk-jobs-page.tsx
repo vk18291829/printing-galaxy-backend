@@ -1,4 +1,4 @@
-import { IconFileSpreadsheet } from '@tabler/icons-react';
+import { IconFileSpreadsheet, IconIdBadge2 } from '@tabler/icons-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { Pagination } from '@/components/common/pagination';
@@ -22,7 +22,7 @@ export default function BulkJobsPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconIdBadge2 />}
         title="Bulk card lists"
         description="Class lists and photo ZIPs uploaded by institutions, checked and turned into print sheets automatically."
       />

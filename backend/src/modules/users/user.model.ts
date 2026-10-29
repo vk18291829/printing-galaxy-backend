@@ -15,6 +15,8 @@ const userSchema = new Schema(
     /** Promotional email / SMS. Order updates and sign-in codes are always sent. */
     offers: { type: Boolean, default: true },
     addresses: { type: [addressSchema], default: [] },
+    /** Profile photo (public image), set from an avatar upload the customer owns. */
+    avatarUrl: String,
     isActive: { type: Boolean, default: true },
     lastLoginAt: Date,
     /** When the customer last opened their Updates page; newer updates count as unread. */

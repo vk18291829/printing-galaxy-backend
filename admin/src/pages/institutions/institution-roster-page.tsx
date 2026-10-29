@@ -251,7 +251,7 @@ export default function InstitutionRosterPage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Students & staff</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-[1.75rem] dark:text-foreground">Students & staff</h1>
           <p className="text-sm text-muted-foreground">{institution?.name} · codes and photo names are ready for an ID card data merge.</p>
         </div>
         <Button className="shrink-0" onClick={() => setEditing('new')}>

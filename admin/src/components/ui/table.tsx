@@ -10,7 +10,7 @@ function Table({ className, ...props }: ComponentProps<'table'>) {
 }
 
 function TableHeader({ className, ...props }: ComponentProps<'thead'>) {
-  return <thead data-slot="table-header" className={cn('[&_tr]:border-b', className)} {...props} />;
+  return <thead data-slot="table-header" className={cn('bg-muted/60 [&_tr]:border-b [&_tr]:hover:bg-transparent', className)} {...props} />;
 }
 
 function TableBody({ className, ...props }: ComponentProps<'tbody'>) {
@@ -25,7 +25,7 @@ function TableRow({ className, ...props }: ComponentProps<'tr'>) {
   return (
     <tr
       data-slot="table-row"
-      className={cn('border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted', className)}
+      className={cn('border-b transition-colors hover:bg-secondary/50 data-[state=selected]:bg-secondary', className)}
       {...props}
     />
   );
@@ -36,7 +36,7 @@ function TableHead({ className, ...props }: ComponentProps<'th'>) {
     <th
       data-slot="table-head"
       className={cn(
-        'h-10 px-3 text-left align-middle text-xs font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase',
+        'h-11 px-3 text-left align-middle text-[11px] font-semibold tracking-[0.08em] whitespace-nowrap text-muted-foreground uppercase',
         className,
       )}
       {...props}
@@ -45,7 +45,7 @@ function TableHead({ className, ...props }: ComponentProps<'th'>) {
 }
 
 function TableCell({ className, ...props }: ComponentProps<'td'>) {
-  return <td data-slot="table-cell" className={cn('p-3 align-middle whitespace-nowrap', className)} {...props} />;
+  return <td data-slot="table-cell" className={cn('px-3 py-3.5 align-middle whitespace-nowrap', className)} {...props} />;
 }
 
 export { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow };

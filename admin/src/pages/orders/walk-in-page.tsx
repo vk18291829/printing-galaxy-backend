@@ -484,7 +484,7 @@ export default function WalkInPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconReceipt />}
         title="Walk-in order"
         description="Enter counter orders so every job lives in one system. Uses individual prices."
         actions={

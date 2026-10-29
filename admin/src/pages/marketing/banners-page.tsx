@@ -314,7 +314,7 @@ export default function BannersPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconSpeakerphone />}
         title="Banners & offers"
         description="Home page slides, promotion tiles, new-feature announcements and the offer strip."
         actions={

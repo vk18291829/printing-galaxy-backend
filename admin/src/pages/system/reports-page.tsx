@@ -109,7 +109,7 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconReportAnalytics />}
         title="Reports"
         description="Sales, products, dues and workload. Export any report as CSV for Excel or your accountant."
         actions={

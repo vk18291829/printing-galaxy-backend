@@ -58,7 +58,7 @@ const presignSchema = z.object({
     .int()
     .positive()
     .max(env.MAX_UPLOAD_MB * 1024 * 1024, `Files must be smaller than ${env.MAX_UPLOAD_MB} MB`),
-  purpose: z.enum(['order', 'logo', 'proof', 'catalog', 'bulk', 'roster']).default('order'),
+  purpose: z.enum(['order', 'logo', 'proof', 'catalog', 'bulk', 'roster', 'avatar']).default('order'),
   productId: objectId.optional(),
 });
 
@@ -68,6 +68,10 @@ uploadsRouter.post('/presign', authenticate, validate({ body: presignSchema }), 
 
   if (input.mimeType.startsWith('video/') && input.purpose !== 'catalog') {
     throw ApiError.badRequest('Videos can only be added to products');
+  }
+  // Profile photos: small images only.
+  if (input.purpose === 'avatar' && (!input.mimeType.startsWith('image/') || input.size > 5 * 1024 * 1024)) {
+    throw ApiError.badRequest('Choose a JPG, PNG or WebP photo under 5 MB');
   }
   if ((input.purpose === 'proof' || input.purpose === 'catalog') && !isStaff(auth)) {
     throw ApiError.forbidden();
@@ -83,7 +87,7 @@ uploadsRouter.post('/presign', authenticate, validate({ body: presignSchema }), 
     sensitive ||= Boolean(product?.sensitive);
   }
 
-  const bucket = input.purpose === 'catalog' || input.purpose === 'logo' ? 'public' : 'private';
+  const bucket = input.purpose === 'catalog' || input.purpose === 'logo' || input.purpose === 'avatar' ? 'public' : 'private';
   const ext = ALLOWED_TYPES[input.mimeType] ?? path.extname(input.fileName).slice(1);
   const now = new Date();
   const key = `${input.purpose}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${nanoid(21)}.${ext}`;

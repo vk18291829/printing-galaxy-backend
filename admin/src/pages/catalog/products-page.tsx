@@ -1,4 +1,4 @@
-import { IconEye, IconEyeOff, IconPencil, IconPlus, IconSearch, IconTagsOff } from '@tabler/icons-react';
+import { IconEye, IconEyeOff, IconPencil, IconPlus, IconSearch, IconTags, IconTagsOff } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
@@ -67,7 +67,7 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconTags />}
         title="Products & prices"
         description="Each product has an individual and an institution price book."
         actions={
@@ -189,7 +189,7 @@ export default function ProductsPage() {
                     <TableCell>
                       <Switch checked={p.isActive} onCheckedChange={(v) => setActive(p, v)} aria-label="Visible on website" />
                     </TableCell>
-                    <TableCell className="pr-5 text-right">
+                    <TableCell className="pr-5 text-right [&>*+*]:ml-2">
                       <Button variant="outline" size="sm" onClick={() => navigate(`/products/${p._id}`)}>
                         <IconPencil /> Edit
                       </Button>

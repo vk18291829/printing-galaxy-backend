@@ -41,6 +41,8 @@ interface CartState {
   add: (item: Omit<CartItem, 'id'>) => void;
   update: (id: string, patch: Partial<CartItem>) => void;
   remove: (id: string) => void;
+  /** Puts a removed item back where it was (Undo). */
+  restore: (item: CartItem, index: number) => void;
   clear: () => void;
 }
 
@@ -53,6 +55,8 @@ export const useCartStore = create<CartState>()(
       update: (id, patch) =>
         set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, ...patch } : i)), checkoutKey: crypto.randomUUID() })),
       remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id), checkoutKey: crypto.randomUUID() })),
+      restore: (item, index) =>
+        set((s) => (s.items.some((i) => i.id === item.id) ? s : { items: [...s.items.slice(0, index), item, ...s.items.slice(index)], checkoutKey: crypto.randomUUID() })),
       clear: () => set({ items: [], checkoutKey: crypto.randomUUID() }),
     }),
     {

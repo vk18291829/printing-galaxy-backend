@@ -138,7 +138,7 @@ export default function ProductFormPage() {
   return (
     <form onSubmit={onSubmit} className="space-y-6 pb-20">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">{isNew ? 'New product' : en(product?.name)}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-[1.75rem] dark:text-foreground">{isNew ? 'New product' : en(product?.name)}</h1>
         <div className="flex gap-2">
           {!isNew && (
             <Button

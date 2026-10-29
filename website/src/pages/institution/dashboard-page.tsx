@@ -7,12 +7,14 @@ import {
   IconFileInvoice,
   IconPackage,
   IconPlus,
+  IconSchool,
   IconUsers,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { PageBanner } from '@/components/common/page-banner';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -32,17 +34,16 @@ import { useLocalized } from '@/lib/i18n';
 /** Five products plus a sixth tile that opens the full list. */
 const QUICK_PICKS = 5;
 
+/** One number in the navy welcome band. */
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
-    <Card className="gap-2 py-4">
-      <CardContent className="flex items-center gap-4">
-        <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">{icon}</span>
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-xl font-bold">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-3 rounded-2xl bg-white/8 p-4 ring-1 ring-white/10">
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy [&_svg]:size-5">{icon}</span>
+      <div className="min-w-0">
+        <p className="truncate text-xs text-white/65">{label}</p>
+        <p className="truncate text-xl font-bold text-white">{value}</p>
+      </div>
+    </div>
   );
 }
 
@@ -77,11 +78,24 @@ export default function InstitutionDashboardPage() {
   const hidden = sorted.length - QUICK_PICKS;
 
   return (
-    <div className="container-page py-10">
-      <div className="mb-8">
-        <p className="text-sm font-medium text-primary">{t(`auth.types.${institution.type}`)}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">{t('institutionDashboard.welcome', { name: institution.name })}</h1>
-      </div>
+    <div className="container-page py-8 sm:py-10">
+      <PageBanner
+        className="mb-8"
+        icon={<IconSchool />}
+        eyebrow={t(`auth.types.${institution.type}`)}
+        title={t('institutionDashboard.welcome', { name: institution.name })}
+      >
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+          <StatCard
+            icon={status === 'approved' ? <IconCircleCheck /> : <IconClockHour4 />}
+            label={t('institutionDashboard.pricingActive')}
+            value={t(`status.institutionShort.${status}`)}
+          />
+          <StatCard icon={<IconPackage />} label={t('institutionDashboard.orders')} value={orders?.total ?? 0} />
+          <StatCard icon={<IconClockHour4 />} label={t('institutionDashboard.openOrders')} value={open} />
+          <StatCard icon={<IconDiscount2 />} label={t('institutionDashboard.discount')} value={`${institution.extraDiscountPercent}%`} />
+        </div>
+      </PageBanner>
 
       {status !== 'approved' && (
         <Alert variant={status === 'pending' ? 'warning' : 'destructive'} className="mb-8">
@@ -99,17 +113,6 @@ export default function InstitutionDashboardPage() {
           )}
         </Alert>
       )}
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={status === 'approved' ? <IconCircleCheck /> : <IconClockHour4 />}
-          label={t('institutionDashboard.pricingActive')}
-          value={t(`status.institutionShort.${status}`)}
-        />
-        <StatCard icon={<IconPackage />} label={t('institutionDashboard.orders')} value={orders?.total ?? 0} />
-        <StatCard icon={<IconClockHour4 />} label={t('institutionDashboard.openOrders')} value={open} />
-        <StatCard icon={<IconDiscount2 />} label={t('institutionDashboard.discount')} value={`${institution.extraDiscountPercent}%`} />
-      </div>
 
       {quotes.length > 0 && (
         <Card className="mb-8 border-primary/40 bg-primary/5">

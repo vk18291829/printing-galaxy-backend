@@ -20,19 +20,14 @@ import { useProductReviews, useSubmitReview } from './api';
 export function RatingSummaryLink({ slug }: { slug: string }) {
   const { t } = useTranslation();
   const { data } = useProductReviews(slug);
-  if (!data) return null;
+  // Nothing under the title until there are reviews to show.
+  if (!data || data.summary.count === 0) return null;
   const { average, count } = data.summary;
   return (
     <a href="#reviews" className="inline-flex items-center gap-2 text-sm hover:underline">
-      {count > 0 ? (
-        <>
-          <StarRating value={average} />
-          <span className="font-semibold tabular-nums">{average.toFixed(1)}</span>
-          <span className="text-muted-foreground">{t('reviews.count', { count })}</span>
-        </>
-      ) : (
-        <span className="text-muted-foreground">{t('reviews.beFirst')}</span>
-      )}
+      <StarRating value={average} />
+      <span className="font-semibold tabular-nums">{average.toFixed(1)}</span>
+      <span className="text-muted-foreground">{t('reviews.count', { count })}</span>
     </a>
   );
 }
@@ -90,30 +85,39 @@ function ReviewForm({ slug, existing, onDone }: { slug: string; existing: Review
 
 function ReviewItem({ review, own }: { review: Review; own?: boolean }) {
   const { t, i18n } = useTranslation();
+  const name = own ? t('reviews.you') : review.authorName;
   return (
-    <li className="space-y-2 py-5 first:pt-0">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <StarRating value={review.rating} size="size-3.5" />
-        {review.title && <p className="font-semibold">{review.title}</p>}
-        {own && review.status && review.status !== 'approved' && (
-          <Badge variant={review.status === 'pending' ? 'warning' : 'secondary'}>{t(`reviews.status.${review.status}`)}</Badge>
-        )}
-      </div>
-      {review.comment && <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{review.comment}</p>}
-      <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{own ? t('reviews.you') : review.authorName}</span>
-        <span>·</span>
-        <span>{formatDate(review.updatedAt, i18n.language)}</span>
-        {review.verifiedPurchase && (
-          <span className="inline-flex items-center gap-1 text-success">
-            <IconRosetteDiscountCheck className="size-3.5" /> {t('reviews.verified')}
+    <li className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-navy text-sm font-bold text-white">
+            {(review.authorName || '?').slice(0, 1).toUpperCase()}
           </span>
-        )}
-      </p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(review.updatedAt, i18n.language)}</p>
+          </div>
+        </div>
+        <StarRating value={review.rating} size="size-4" />
+      </div>
+      {(review.verifiedPurchase || (own && review.status && review.status !== 'approved')) && (
+        <div className="flex flex-wrap gap-2">
+          {review.verifiedPurchase && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+              <IconRosetteDiscountCheck className="size-3.5" /> {t('reviews.verified')}
+            </span>
+          )}
+          {own && review.status && review.status !== 'approved' && (
+            <Badge variant={review.status === 'pending' ? 'warning' : 'secondary'}>{t(`reviews.status.${review.status}`)}</Badge>
+          )}
+        </div>
+      )}
+      {review.title && <p className="font-semibold text-foreground">{review.title}</p>}
+      {review.comment && <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{review.comment}</p>}
       {review.reply?.text && (
-        <div className="ml-1 border-l-2 border-primary/40 pl-3 text-sm">
+        <div className="rounded-xl bg-secondary/70 p-3 text-sm">
           <p className="text-xs font-semibold text-primary">{t('reviews.shopReply')}</p>
-          <p className="text-muted-foreground">{review.reply.text}</p>
+          <p className="mt-0.5 text-muted-foreground">{review.reply.text}</p>
         </div>
       )}
     </li>
@@ -131,61 +135,77 @@ export function ProductReviews({ slug }: { slug: string }) {
   const { summary, reviews, mine } = data;
   const isStaff = principal?.kind === 'user' && principal.user.role !== 'customer';
   const others = reviews.filter((r) => r._id !== mine?._id);
+  const writeButton = isStaff ? null : principal ? (
+    !writing && (
+      <Button variant="brand" onClick={() => setWriting(true)}>
+        <IconPencil /> {mine ? t('reviews.edit') : t('reviews.write')}
+      </Button>
+    )
+  ) : (
+    <Button variant="brand" asChild>
+      <Link to="/login" state={{ from: `${location.pathname}#reviews` }}>
+        <IconPencil /> {t('reviews.signInToWrite')}
+      </Link>
+    </Button>
+  );
 
   return (
-    <section id="reviews" className="scroll-mt-32 border-t pt-10 pb-6">
-      <h2 className="mb-6 text-xl font-semibold tracking-tight sm:text-2xl">{t('reviews.title')}</h2>
-      <div className="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="space-y-5">
-          <div className="flex items-center gap-4">
-            <p className="text-5xl font-bold tabular-nums">{summary.count ? summary.average.toFixed(1) : '–'}</p>
-            <div className="space-y-1">
-              <StarRating value={summary.average} />
-              <p className="text-sm text-muted-foreground">{t('reviews.count', { count: summary.count })}</p>
-            </div>
+    <section id="reviews" className="mt-12 scroll-mt-32 border-t pt-10">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-brand-navy">{t('reviews.title')}</h2>
+          <p className="mt-1 text-muted-foreground">{t('reviews.subtitle')}</p>
+        </div>
+        {writeButton}
+      </div>
+
+      <div className="grid gap-6 *:min-w-0 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8">
+        {/* The score at a glance. */}
+        <div className="space-y-5 self-start rounded-2xl bg-brand-navy p-6 text-white lg:sticky lg:top-32">
+          <div>
+            {summary.count ? (
+              <p className="flex items-end gap-2">
+                <span className="text-5xl leading-none font-bold tabular-nums">{summary.average.toFixed(1)}</span>
+                <span className="pb-1 text-white/60">/ 5</span>
+              </p>
+            ) : (
+              <p className="text-xl font-bold">{t('reviews.empty')}</p>
+            )}
+            {/* Empty stars in soft white so they show on navy. */}
+            <StarRating value={summary.average} size="size-5" className="mt-3 [&>span:first-child]:text-white/25" />
+            <p className="mt-1.5 text-sm text-white/70">{t('reviews.count', { count: summary.count })}</p>
           </div>
-          <ul className="space-y-1.5">
+          {/* The breakdown only means something once there are reviews. */}
+          {summary.count > 0 && (
+          <ul className="space-y-2">
             {[5, 4, 3, 2, 1].map((star) => {
               const n = summary.breakdown[star - 1];
               const pct = summary.count ? (n / summary.count) * 100 : 0;
               return (
                 <li key={star} className="flex items-center gap-2 text-sm">
                   <span className="flex w-7 items-center gap-0.5 tabular-nums">
-                    {star} <IconStarFilled className="size-3 text-amber-500" />
+                    {star} <IconStarFilled className="size-3 text-brand-amber" />
                   </span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <span className="block h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
+                    <span className="block h-full rounded-full bg-brand-amber" style={{ width: `${pct}%` }} />
                   </span>
-                  <span className="w-8 text-right text-xs text-muted-foreground tabular-nums">{n}</span>
+                  <span className="w-6 text-right text-xs text-white/60 tabular-nums">{n}</span>
                 </li>
               );
             })}
           </ul>
-          {!isStaff &&
-            (principal ? (
-              !writing && (
-                <Button variant="outline" className="w-full" onClick={() => setWriting(true)}>
-                  <IconPencil /> {mine ? t('reviews.edit') : t('reviews.write')}
-                </Button>
-              )
-            ) : (
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/login" state={{ from: `${location.pathname}#reviews` }}>
-                  <IconPencil /> {t('reviews.signInToWrite')}
-                </Link>
-              </Button>
-            ))}
+          )}
         </div>
 
-        <div className="min-w-0 space-y-6">
+        <div className="space-y-4">
           {writing && <ReviewForm slug={slug} existing={mine} onDone={() => setWriting(false)} />}
           {mine && !writing && (
-            <ul className="rounded-xl shadow-card bg-muted/30 px-5 pt-5">
+            <ul>
               <ReviewItem review={mine} own />
             </ul>
           )}
           {others.length > 0 ? (
-            <ul className="divide-y">
+            <ul className="grid gap-4 md:grid-cols-2">
               {others.map((r) => (
                 <ReviewItem key={r._id} review={r} />
               ))}
@@ -193,10 +213,12 @@ export function ProductReviews({ slug }: { slug: string }) {
           ) : (
             !mine &&
             !writing && (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center">
-                <IconMessageCircle className="size-8 text-muted-foreground" />
-                <p className="font-medium">{t('reviews.empty')}</p>
-                <p className="text-sm text-muted-foreground">{t('reviews.emptyHint')}</p>
+              <div className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-card px-6 py-12 text-center">
+                <span className="grid size-12 place-items-center rounded-full bg-secondary text-primary">
+                  <IconMessageCircle className="size-6" />
+                </span>
+                <p className="font-semibold text-foreground">{t('reviews.empty')}</p>
+                <p className="max-w-sm text-sm text-muted-foreground">{t('reviews.emptyHint')}</p>
               </div>
             )
           )}

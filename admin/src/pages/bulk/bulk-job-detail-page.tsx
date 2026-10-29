@@ -90,7 +90,7 @@ export default function BulkJobDetailPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{job.institution?.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-[1.75rem] dark:text-foreground">{job.institution?.name}</h1>
             <BulkStatusBadge status={job.status} />
             {busy && <Spinner className="size-4" />}
           </div>

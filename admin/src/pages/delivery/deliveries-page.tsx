@@ -309,7 +309,7 @@ export default function DeliveriesPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconTruckDelivery />}
         title={showRider ? 'Deliveries' : 'My deliveries'}
         description={showRider ? 'All delivery orders that have a rider assigned.' : 'Start a delivery when you leave the shop; customers get a message.'}
       />

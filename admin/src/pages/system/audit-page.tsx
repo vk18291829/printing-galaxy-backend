@@ -27,7 +27,7 @@ export default function AuditPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconHistory />}
         title="Audit log"
         description="Who changed an order status, a price or an account — and when."
         actions={

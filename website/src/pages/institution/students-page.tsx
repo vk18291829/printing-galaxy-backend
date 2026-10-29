@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { PageBanner } from '@/components/common/page-banner';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { PageNav } from '@/components/common/page-nav';
 import { EmptyState, ErrorState, PageLoader } from '@/components/common/states';
@@ -131,12 +132,12 @@ export default function StudentsPage() {
   return (
     <div className="container-page py-8 sm:py-10">
       <PageNav items={[{ label: t('nav.dashboard'), to: '/institution' }, { label: t('roster.title') }]} />
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">{t('roster.title')}</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">{t('roster.subtitle')}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <PageBanner
+        className="mb-6"
+        icon={<IconUsers />}
+        title={t('roster.title')}
+        description={t('roster.subtitle')}
+        actions={<>
           <Button variant="outline" onClick={() => setImporting(true)}>
             <IconFileSpreadsheet /> {t('roster.import')}
           </Button>
@@ -151,8 +152,8 @@ export default function StudentsPage() {
           <Button variant="brand" onClick={() => setEditing('new')}>
             <IconPlus /> {t(isStaff ? 'roster.addStaff' : 'roster.addStudent')}
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="mb-5 inline-flex rounded-xl shadow-card bg-muted/40 p-1" role="tablist">
         {(['student', 'staff'] as const).map((k) => (

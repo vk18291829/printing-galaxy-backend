@@ -1,4 +1,4 @@
-import { IconCheck, IconPencil, IconUserPlus } from '@tabler/icons-react';
+import { IconCheck, IconPencil, IconUserPlus, IconUserShield } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { MobileList, MobileRow } from '@/components/common/mobile-list';
@@ -158,7 +158,7 @@ export default function StaffPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconUserShield />}
         title="Staff"
         description="Who can sign in to the admin panel."
         actions={
@@ -224,7 +224,7 @@ export default function StaffPage() {
                 </TableCell>
                 <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{s.lastLoginAt ? formatDate(s.lastLoginAt, 'en', true) : 'Never'}</TableCell>
                 <TableCell>{s.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}</TableCell>
-                <TableCell className="pr-5 text-right">
+                <TableCell className="pr-5 text-right [&>*+*]:ml-2">
                   <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                     <IconPencil /> Edit
                   </Button>

@@ -16,21 +16,27 @@ export function useBottomTabsVisible() {
 
 function Tab({ to, icon, label, end, badge }: { to: string; icon: ReactNode; label: string; end?: boolean; badge?: number }) {
   return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        cn(
-          'relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors [&_svg]:size-6',
-          isActive ? 'text-primary' : 'text-muted-foreground',
-        )
-      }
-    >
-      {icon}
-      {badge ? (
-        <span className="absolute top-1.5 left-1/2 ml-1.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] leading-4 font-bold text-primary-foreground">{badge}</span>
-      ) : null}
-      <span className="max-w-full truncate px-1">{label}</span>
+    <NavLink to={to} end={end} className="relative flex flex-1 flex-col items-center justify-center gap-1 pt-1">
+      {({ isActive }) => (
+        <>
+          {/* The open screen: an amber mark on top and a navy pill behind the icon. */}
+          <span className={cn('absolute top-0 h-[3px] w-8 rounded-b-full transition-colors', isActive ? 'bg-brand-amber' : 'bg-transparent')} />
+          <span
+            className={cn(
+              'relative grid h-8 w-14 place-items-center rounded-full transition-colors [&_svg]:size-[22px]',
+              isActive ? 'bg-brand-navy text-white' : 'text-muted-foreground',
+            )}
+          >
+            {icon}
+            {badge ? (
+              <span className="absolute -top-1 right-1.5 grid min-w-[18px] place-items-center rounded-full bg-brand-amber px-1 text-[10px] leading-[18px] font-bold text-brand-navy ring-2 ring-background">
+                {badge}
+              </span>
+            ) : null}
+          </span>
+          <span className={cn('max-w-full truncate px-1 text-[11px] transition-colors', isActive ? 'font-bold text-brand-navy' : 'font-medium text-muted-foreground')}>{label}</span>
+        </>
+      )}
     </NavLink>
   );
 }

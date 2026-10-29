@@ -1,14 +1,4 @@
-import {
-  IconCheck,
-  IconExternalLink,
-  IconMessageCircle,
-  IconMessageReply,
-  IconRosetteDiscountCheck,
-  IconSearch,
-  IconStarFilled,
-  IconTrash,
-  IconX,
-} from '@tabler/icons-react';
+import { IconCheck, IconExternalLink, IconMessageCircle, IconMessageReply, IconRosetteDiscountCheck, IconSearch, IconStarFilled, IconStars, IconTrash, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
@@ -285,7 +275,7 @@ export default function ReviewsPage() {
 
   return (
     <div>
-      <PageHeader title="Ratings & reviews" description="Approve reviews before they appear on the website, reply to customers and pick testimonials for the home page." />
+      <PageHeader icon={<IconStars />} title="Ratings & reviews" description="Approve reviews before they appear on the website, reply to customers and pick testimonials for the home page." />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Average rating" value={stats ? (stats.averageRating ? `${stats.averageRating.toFixed(1)} ★` : '—') : '…'} hint="Published reviews" />

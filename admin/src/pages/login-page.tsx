@@ -27,16 +27,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative grid min-h-dvh place-items-center bg-gradient-to-br from-brand-navy via-[#16213a] to-[#1b2f5e] p-4">
-      <div className="absolute inset-0 bg-grid opacity-10" />
+    <div className="navy-panel grid min-h-dvh place-items-center p-4">
       <div className="relative w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center text-white">
           {/* Light-ink mark: the background here is always navy. */}
           <img src="/logo-mark-dark.png?v=3" alt="" width={80} height={80} className="mb-4 size-20 object-contain drop-shadow-xl" />
-          <h1 className="text-2xl font-semibold tracking-tight">Printing Galaxy Admin</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Printing <span className="text-brand-amber">Galaxy</span> Admin
+          </h1>
           <p className="mt-1 text-sm text-white/60">Staff and owner sign in</p>
         </div>
-        <Card className="overflow-hidden pt-0">
+        <Card className="light-surface overflow-hidden pt-0">
           <div className="h-1 cmyk-strip" />
           <CardContent className="pt-1">
             <form onSubmit={submit} className="space-y-4">

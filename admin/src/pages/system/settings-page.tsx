@@ -1,14 +1,26 @@
-import { IconDeviceFloppy } from '@tabler/icons-react';
-import { useEffect, type ReactNode } from 'react';
+import {
+  IconBuildingStore,
+  IconDeviceFloppy,
+  IconPencil,
+  IconReceiptTax,
+  IconSettings,
+  IconShare,
+  IconShieldLock,
+  IconTruckDelivery,
+  IconX,
+} from '@tabler/icons-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { confirmAction } from '@/components/common/confirm-dialog';
-import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
+import { ErrorState, PageHeader, PageLoader, SectionTitle, Spinner } from '@/components/common/states';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useSaveSettings, useSettings } from '@/features/management/api';
+import { cn } from '@/lib/utils';
 import type { Settings } from '@/types/admin';
 
 type FormValues = Omit<Settings, '_id'>;
@@ -35,10 +47,96 @@ function Toggle({ label, hint, value, onChange }: { label: string; hint?: string
   );
 }
 
+type SectionId = 'shop' | 'social' | 'tax' | 'delivery' | 'privacy';
+
+/** The settings each section owns; saving a section sends only these, the rest as last saved. */
+const SECTION_KEYS: Record<SectionId, (keyof FormValues)[]> = {
+  shop: ['shop'],
+  social: ['social'],
+  tax: ['tax'],
+  delivery: ['delivery', 'payments'],
+  privacy: ['sensitiveRetentionDays'],
+};
+
+const SECTION_TITLE: Record<SectionId, string> = {
+  shop: 'Shop details',
+  social: 'Social media',
+  tax: 'GST',
+  delivery: 'Delivery & payments',
+  privacy: 'Privacy',
+};
+
+/**
+ * One full-width settings section. Its fields are read-only until Edit; while editing, Cancel and
+ * Save sit at the bottom of the section and save just this section.
+ */
+function Section({
+  icon,
+  title,
+  description,
+  editing,
+  locked,
+  saving,
+  onEdit,
+  onCancel,
+  onSave,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+  editing: boolean;
+  /** Another section is being edited. */
+  locked: boolean;
+  saving: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Card className={cn(editing && 'outline-2 outline-offset-0 outline-brand-amber')}>
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <SectionTitle icon={icon} title={title} description={description} />
+        {editing ? (
+          <Badge variant="warning" className="shrink-0">
+            Editing
+          </Badge>
+        ) : (
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={onEdit} disabled={locked}>
+            <IconPencil /> Edit
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {/* Read-only until Edit, but still easy to read (not faded). */}
+        <fieldset
+          disabled={!editing}
+          className="min-w-0 [&_button[role=switch]:disabled]:opacity-100 [&_input:disabled]:cursor-default [&_input:disabled]:bg-muted/50 [&_input:disabled]:opacity-100"
+        >
+          {children}
+        </fieldset>
+        {editing && (
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+              <IconX /> Cancel
+            </Button>
+            <Button type="button" onClick={onSave} disabled={saving}>
+              {saving ? <Spinner className="size-4 text-current" /> : <IconDeviceFloppy />} Save {title}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
   const { data, isLoading, error, refetch } = useSettings();
   const save = useSaveSettings();
   const { register, control, handleSubmit, reset } = useForm<FormValues>();
+  // The section being edited; one at a time, so saving never overwrites another section's edits.
+  const [editing, setEditing] = useState<SectionId | null>(null);
 
   useEffect(() => {
     if (data) {
@@ -51,43 +149,57 @@ export default function SettingsPage() {
   if (isLoading) return <PageLoader />;
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
-  const onSubmit = handleSubmit((values) =>
-    confirmAction({
-      title: 'Save shop settings?',
-      description: 'Shop details, tax, delivery and payment options change on the website and on new invoices straight away. Existing orders keep their totals.',
-      confirmLabel: 'Save settings',
-      action: () =>
-        save.mutateAsync({
-          shop: values.shop,
-          social: values.social,
-          tax: values.tax,
-          delivery: values.delivery,
-          payments: values.payments,
-          sensitiveRetentionDays: values.sensitiveRetentionDays,
-        }),
-      successTitle: 'Settings saved',
-    }),
-  );
+  const { _id: _savedId, ...saved } = data;
+  void _savedId;
+  const cancel = () => {
+    reset(saved);
+    setEditing(null);
+  };
+  const saveSection = (id: SectionId) =>
+    void handleSubmit((values) => {
+      const next = { ...saved, ...Object.fromEntries(SECTION_KEYS[id].map((k) => [k, values[k]])) } as FormValues;
+      return confirmAction({
+        title: `Save ${SECTION_TITLE[id].toLowerCase()}?`,
+        description:
+          id === 'shop' || id === 'social'
+            ? 'The website shows the new details straight away.'
+            : 'This changes the website and new orders straight away. Existing orders keep their totals.',
+        confirmLabel: 'Save',
+        action: () =>
+          save.mutateAsync({
+            shop: next.shop,
+            social: next.social,
+            tax: next.tax,
+            delivery: next.delivery,
+            payments: next.payments,
+            sensitiveRetentionDays: next.sensitiveRetentionDays,
+          }),
+        successTitle: `${SECTION_TITLE[id]} saved`,
+      }).then((ok) => {
+        if (ok) setEditing(null);
+      });
+    })();
+  const sectionProps = (id: SectionId) => ({
+    title: SECTION_TITLE[id],
+    editing: editing === id,
+    locked: editing !== null && editing !== id,
+    saving: save.isPending && editing === id,
+    onEdit: () => setEditing(id),
+    onCancel: cancel,
+    onSave: () => saveSection(id),
+  });
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={(e) => e.preventDefault()}>
       <PageHeader
+        icon={<IconSettings />}
         title="Settings"
-        description="Shop details shown on the website, tax, delivery and payments."
-        actions={
-          <Button type="submit" disabled={save.isPending}>
-            {save.isPending ? <Spinner className="size-4 text-current" /> : <IconDeviceFloppy />} Save settings
-          </Button>
-        }
+        description="Shop details shown on the website, tax, delivery and payments. Press Edit on a section to change it."
       />
-      <div className="grid items-start gap-6 *:min-w-0 xl:grid-cols-2">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shop</CardTitle>
-              <CardDescription>Shown in the website footer, contact page and messages.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-col gap-6">
+        <div className="contents">
+          <Section icon={<IconBuildingStore />} description="Shown in the website footer, contact page and messages." {...sectionProps('shop')}>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <Field label="Shop name">
                 <Input {...register('shop.name')} />
               </Field>
@@ -100,7 +212,7 @@ export default function SettingsPage() {
               <Field label="Email (shop alerts go here)">
                 <Input type="email" {...register('shop.email')} />
               </Field>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 xl:col-span-3">
                 <Field label="Address">
                   <Input {...register('shop.address')} />
                 </Field>
@@ -129,15 +241,11 @@ export default function SettingsPage() {
               <Field label="State (GST registration)" hint="Same state as the customer = CGST + SGST, otherwise IGST">
                 <Input placeholder="Uttar Pradesh" {...register('shop.state')} />
               </Field>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Social media</CardTitle>
-              <CardDescription>Shown as icons in the website footer and on the contact page. Leave empty to hide.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Section icon={<IconShare />} description="Shown as icons in the website footer and on the contact page. Leave empty to hide." {...sectionProps('social')}>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <Field label="Instagram">
                 <Input type="url" placeholder="https://instagram.com/printinggalaxy" {...register('social.instagram')} />
               </Field>
@@ -153,17 +261,13 @@ export default function SettingsPage() {
               <Field label="LinkedIn">
                 <Input type="url" placeholder="https://linkedin.com/company/printinggalaxy" {...register('social.linkedin')} />
               </Field>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>GST</CardTitle>
-              <CardDescription>Requirements doc: confirm whether the shop is GST registered.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <div className="contents">
+          <Section icon={<IconReceiptTax />} description="Whether GST is charged and how it shows on prices and invoices." {...sectionProps('tax')}>
+            <div className="space-y-4">
               <Controller control={control} name="tax.enabled" render={({ field }) => <Toggle label="Charge / show GST" value={field.value} onChange={field.onChange} />} />
               <Controller
                 control={control}
@@ -180,14 +284,11 @@ export default function SettingsPage() {
                   <Input maxLength={10} {...register('tax.sacCode')} />
                 </Field>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Delivery & payments</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Section icon={<IconTruckDelivery />} description="Home delivery charges and the ways customers can pay." {...sectionProps('delivery')}>
+            <div className="space-y-4">
               <Controller control={control} name="delivery.enabled" render={({ field }) => <Toggle label="Offer home delivery" value={field.value} onChange={field.onChange} />} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Delivery fee (₹)">
@@ -213,19 +314,14 @@ export default function SettingsPage() {
                   <Input type="number" min={1} max={30} {...register('payments.quotePaymentDays', { valueAsNumber: true })} />
                 </Field>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Privacy</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Section icon={<IconShieldLock />} description="How long identity documents are kept." {...sectionProps('privacy')}>
               <Field label="Delete identity documents after (days)" hint="Counted from when the order is delivered or picked up">
                 <Input type="number" min={1} max={365} {...register('sensitiveRetentionDays', { valueAsNumber: true })} />
               </Field>
-            </CardContent>
-          </Card>
+          </Section>
         </div>
       </div>
     </form>

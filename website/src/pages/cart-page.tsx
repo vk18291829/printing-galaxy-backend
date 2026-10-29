@@ -10,11 +10,13 @@ import {
   IconTruckDelivery,
   IconAlertCircle,
 } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Link } from 'react-router';
-import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { PageNav } from '@/components/common/page-nav';
+import { QuantityStepper } from '@/components/common/quantity-stepper';
 import { Rail } from '@/components/common/section';
 import { Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,6 +27,7 @@ import { useCategories, useProducts } from '@/features/catalog/api';
 import { ProductCard } from '@/features/catalog/components/product-card';
 import { useCartStore, type CartItem } from '@/features/cart/cart-store';
 import { CartThumb, DesignBadge } from '@/features/cart/components/cart-line';
+import { EditItemDialog } from '@/features/cart/components/edit-item-dialog';
 import { useCartQuotes } from '@/features/cart/use-cart-quotes';
 import { usePublicSettings } from '@/features/settings/api';
 import { useDocumentTitle } from '@/hooks/use-document-title';
@@ -60,32 +63,38 @@ function Steps() {
   );
 }
 
-function Line({ item, quote, amount }: { item: CartItem; quote?: Quote; amount: number }) {
+function Line({ item, quote, amount, index }: { item: CartItem; quote?: Quote; amount: number; index: number }) {
   const { t } = useTranslation();
   const l = useLocalized();
   const remove = useCartStore((s) => s.remove);
-  const qty =
-    item.unit === 'page'
-      ? `${formatNumber(item.pageCount ?? 0)} ${t('units.page', { count: item.pageCount ?? 0 })} × ${item.copies ?? 1} ${t('units.copy', { count: item.copies ?? 1 })}`
-      : `${formatNumber(item.quantity ?? 0)} ${t(`units.${item.unit}`, { count: item.quantity ?? 0 })}`;
+  const restore = useCartStore((s) => s.restore);
+  const update = useCartStore((s) => s.update);
+  const [editing, setEditing] = useState(false);
+  const isPage = item.unit === 'page';
   const unitPrice = quote?.valid && quote.unitPrice ? `${formatINR(quote.unitPrice)} / ${t(`units.${item.unit}`, { count: 1 })}` : null;
+
+  // Removing is instant; the toast offers Undo instead of asking "are you sure?" first.
+  const removeItem = () => {
+    remove(item.id);
+    toast(t('cart.removed', { name: l(item.name) }), {
+      description: item.files.length ? t('cart.removeDescFiles') : undefined,
+      action: { label: t('cart.undo'), onClick: () => restore(item, index) },
+    });
+  };
 
   return (
     <li className="flex gap-4 p-4 sm:gap-5 sm:p-5">
       <Link to={`/products/${item.slug}`} className="shrink-0">
-        <CartThumb item={item} className="size-20 sm:size-24" />
+        <CartThumb item={item} className="size-20 sm:size-28" />
       </Link>
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Link to={`/products/${item.slug}`} className="leading-snug font-semibold hover:text-primary">
+            <Link to={`/products/${item.slug}`} className="leading-snug font-semibold hover:text-primary sm:text-lg">
               {l(item.name)}
             </Link>
             <DesignBadge item={item} />
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {qty}
-              {unitPrice && <span className="text-muted-foreground/80"> · {unitPrice}</span>}
-            </p>
+            {unitPrice && <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">{unitPrice}</p>}
           </div>
           <p className="shrink-0 text-right text-lg font-bold tabular-nums">
             {item.workflow === 'quote' ? <span className="text-sm font-semibold text-primary">{t('product.quoteRequired')}</span> : formatINR(amount)}
@@ -101,7 +110,16 @@ function Line({ item, quote, amount }: { item: CartItem; quote?: Quote; amount: 
             ))}
           </div>
         )}
-        {item.notes && <p className="line-clamp-2 text-xs text-muted-foreground italic">“{item.notes}”</p>}
+        {(item.notes || item.files.length > 0) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {item.files.length > 0 && (
+              <span className="flex items-center gap-1">
+                <IconPaperclip className="size-3.5" /> {t('cart.files', { count: item.files.length })}
+              </span>
+            )}
+            {item.notes && <span className="line-clamp-1 italic">“{item.notes}”</span>}
+          </div>
+        )}
         {quote && !quote.valid && (
           <p className="flex items-center gap-1.5 text-xs text-destructive">
             <IconAlertCircle className="size-3.5" />
@@ -112,32 +130,114 @@ function Line({ item, quote, amount }: { item: CartItem; quote?: Quote; amount: 
           </p>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
-          {item.files.length > 0 && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <IconPaperclip className="size-3.5" /> {t('cart.files', { count: item.files.length })}
-            </span>
-          )}
-          <Link to={`/products/${item.slug}`} className="flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground">
-            <IconPencil className="size-3.5" /> {t('cart.changeOptions')}
-          </Link>
-          <button
-            type="button"
-            onClick={() =>
-              void confirmAction({
-                tone: 'danger',
-                title: t('cart.removeTitle', { name: l(item.name) }),
-                description: item.files.length ? t('cart.removeDescFiles') : t('cart.removeDesc'),
-                confirmLabel: t('common.remove'),
-              }).then((ok) => ok && remove(item.id))
-            }
-            className="flex items-center gap-1 font-medium text-muted-foreground hover:text-destructive"
-          >
-            <IconTrash className="size-3.5" /> {t('common.remove')}
-          </button>
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+          {/* Quantity right here; pages counted from a PDF stay as they are. */}
+          <div className="w-36">
+            <QuantityStepper
+              value={isPage ? (item.copies ?? 1) : (item.quantity ?? 1)}
+              onChange={(n) => update(item.id, isPage ? { copies: Math.max(1, n) } : { quantity: Math.max(1, n) })}
+              min={1}
+            />
+          </div>
+          {isPage && <span className="text-xs text-muted-foreground">{t('cart.copiesOf', { pages: formatNumber(item.pageCount ?? 0) })}</span>}
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <IconPencil /> {t('cart.change')}
+            </Button>
+            <Button variant="danger" size="sm" onClick={removeItem} aria-label={t('cart.removeLabel', { name: l(item.name) })}>
+              <IconTrash /> <span className="max-sm:sr-only">{t('common.remove')}</span>
+            </Button>
+          </div>
         </div>
       </div>
+      <EditItemDialog item={item} open={editing} onOpenChange={setEditing} />
     </li>
+  );
+}
+
+/**
+ * The full picture before checkout: every item, the subtotal, what pickup and delivery cost, GST
+ * as the shop charges it, and the total. Delivery is chosen at checkout, so the total is for pickup.
+ */
+function OrderSummary({ lines, subtotal, loading }: { lines: { item: CartItem; amount: number }[]; subtotal: number; loading: boolean }) {
+  const { t } = useTranslation();
+  const l = useLocalized();
+  const { data: settings } = usePublicSettings();
+  const tax = settings?.tax;
+  const delivery = settings?.delivery;
+  const taxRate = tax?.enabled ? tax.rate : 0;
+  const taxIncluded = Boolean(tax?.pricesIncludeTax);
+  const taxAmount = taxRate ? Math.round((taxIncluded ? subtotal - subtotal / (1 + taxRate / 100) : (subtotal * taxRate) / 100) * 100) / 100 : 0;
+  const total = subtotal + (taxIncluded ? 0 : taxAmount);
+  const deliveryFree = delivery ? subtotal >= delivery.freeAbove : false;
+  const files = lines.reduce((n, x) => n + x.item.files.length, 0);
+  const qtyOf = (item: CartItem) =>
+    item.unit === 'page'
+      ? `${formatNumber(item.pageCount ?? 0)} ${t('units.page', { count: item.pageCount ?? 0 })} × ${item.copies ?? 1}`
+      : `${formatNumber(item.quantity ?? 0)} ${t(`units.${item.unit}`, { count: item.quantity ?? 0 })}`;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">{t('cart.summary')}</h2>
+        {loading && <Spinner className="size-4" />}
+      </div>
+
+      <ul className="space-y-2.5 text-sm">
+        {lines.map(({ item, amount }) => (
+          <li key={item.id} className="flex items-start justify-between gap-3">
+            <span className="min-w-0">
+              <span className="line-clamp-1 font-medium">
+                {l(item.name)}
+                <DesignBadge item={item} />
+              </span>
+              <span className="block text-xs text-muted-foreground tabular-nums">{qtyOf(item)}</span>
+            </span>
+            <span className="shrink-0 tabular-nums">{item.workflow === 'quote' ? '—' : formatINR(amount)}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Separator />
+      <dl className="space-y-2 text-sm">
+        <div className="flex justify-between">
+          <dt className="text-muted-foreground">{t('cart.subtotal')}</dt>
+          <dd className="font-medium tabular-nums">{formatINR(subtotal)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-muted-foreground">{t('checkout.pickup')}</dt>
+          <dd className="text-success">{t('common.free')}</dd>
+        </div>
+        {delivery?.enabled && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">{t('checkout.delivery')}</dt>
+            <dd className="tabular-nums">{deliveryFree ? <span className="text-success">{t('common.free')}</span> : formatINR(delivery.fee)}</dd>
+          </div>
+        )}
+        {taxRate > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">
+              {t('checkout.tax', { rate: taxRate })} {taxIncluded && <span className="text-xs">({t('checkout.taxIncluded')})</span>}
+            </dt>
+            <dd className="tabular-nums">{formatINR(taxAmount)}</dd>
+          </div>
+        )}
+        {files > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">{t('cart.filesAttached')}</dt>
+            <dd className="tabular-nums">{files}</dd>
+          </div>
+        )}
+      </dl>
+      <Separator />
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="font-semibold">{t('cart.estimatedTotal')}</p>
+          <p className="text-xs text-muted-foreground">{delivery?.enabled ? t('cart.totalForPickup') : t('cart.totalPickupOnly')}</p>
+        </div>
+        <span className="text-3xl font-bold tracking-tight tabular-nums">{formatINR(total)}</span>
+      </div>
+    </div>
   );
 }
 
@@ -244,32 +344,14 @@ export default function CartPage() {
 
       <div className="grid items-start gap-6 *:min-w-0 md:grid-cols-[minmax(0,1fr)_300px] lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
         <ul className="divide-y overflow-hidden rounded-2xl shadow-card bg-card">
-          {lines.map(({ item, quote, amount }) => (
-            <Line key={item.id} item={item} quote={quote} amount={amount} />
+          {lines.map(({ item, quote, amount }, index) => (
+            <Line key={item.id} item={item} quote={quote} amount={amount} index={index} />
           ))}
         </ul>
 
         <aside className="space-y-4 md:sticky md:top-32">
           <div className="space-y-4 rounded-2xl shadow-card bg-card p-5 sm:p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{t('cart.summary')}</h2>
-              {loading && <Spinner className="size-4" />}
-            </div>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">{t('cart.itemsCount', { count: items.length })}</dt>
-                <dd className="tabular-nums">{formatINR(subtotal)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">{t('checkout.deliveryFee')}</dt>
-                <dd className="text-muted-foreground">{t('cart.atCheckout')}</dd>
-              </div>
-            </dl>
-            <Separator />
-            <div className="flex items-end justify-between">
-              <span className="font-medium">{t('cart.subtotal')}</span>
-              <span className="text-3xl font-bold tracking-tight tabular-nums">{formatINR(subtotal)}</span>
-            </div>
+            <OrderSummary lines={lines} subtotal={subtotal} loading={loading} />
             <FreeDeliveryMeter subtotal={subtotal} />
             {hasQuoteItems && (
               <Alert variant="info">

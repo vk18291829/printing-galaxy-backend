@@ -42,7 +42,7 @@ export default function MyWorkPage() {
 
   return (
     <div>
-      <PageHeader title="My work" description={`Open orders assigned to ${me?.name || 'you'}, soonest first.`} />
+      <PageHeader icon={<IconChecklist />} title="My work" description={`Open orders assigned to ${me?.name || 'you'}, soonest first.`} />
       {data.items.length === 0 ? (
         <EmptyState icon={<IconChecklist />} title="Nothing assigned to you" description="Orders show here when someone assigns them to you on the order page." />
       ) : (

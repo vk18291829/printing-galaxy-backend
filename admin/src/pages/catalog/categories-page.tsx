@@ -1,4 +1,4 @@
-import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconCategory, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { MobileList, MobileRow } from '@/components/common/mobile-list';
@@ -156,7 +156,7 @@ export default function CategoriesPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon={<IconCategory />}
         title="Categories"
         description="Groups shown on the website menu and home page."
         actions={
@@ -225,7 +225,7 @@ export default function CategoriesPage() {
                   ))}
                 </TableCell>
                 <TableCell>{c.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Hidden</Badge>}</TableCell>
-                <TableCell className="pr-5 text-right">
+                <TableCell className="pr-5 text-right [&>*+*]:ml-2">
                   <Button variant="outline" size="sm" onClick={() => setEditing(c)}>
                     <IconPencil /> Edit
                   </Button>

@@ -1,19 +1,8 @@
-import {
-  IconArrowRight,
-  IconBrandWhatsapp,
-  IconBuildingCommunity,
-  IconChevronDown,
-  IconClock,
-  IconMail,
-  IconMapPin,
-  IconPackage,
-  IconPhone,
-  IconShoppingBag,
-  type Icon,
-} from '@tabler/icons-react';
+import { IconArrowRight, IconBrandWhatsapp, IconBuildingCommunity, IconChevronDown, IconClock, IconHeadset, IconMail, IconMapPin, IconPackage, IconPhone, IconShoppingBag, type Icon } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { PageBanner } from '@/components/common/page-banner';
 import { PageNav } from '@/components/common/page-nav';
 import { SocialLinks, socialLinks } from '@/components/common/social-links';
 import { PageLoader } from '@/components/common/states';
@@ -53,15 +42,10 @@ export default function ContactPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b bg-muted/30">
-        <div className="pointer-events-none absolute -top-24 right-0 size-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="container-page relative py-8 sm:py-10">
-          <PageNav className="mb-5" items={[{ label: t('nav.home'), to: '/' }, { label: t('nav.contact') }]} />
-          <p className="eyebrow mb-1.5">{t('contact.eyebrow')}</p>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('contact.title')}</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">{t('contact.subtitle')}</p>
-        </div>
-      </section>
+      <div className="container-page pt-8 sm:pt-10">
+        <PageNav className="mb-5" items={[{ label: t('nav.home'), to: '/' }, { label: t('nav.contact') }]} />
+        <PageBanner icon={<IconHeadset />} eyebrow={t('contact.eyebrow')} title={t('contact.title')} description={t('contact.subtitle')} />
+      </div>
 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="space-y-4">

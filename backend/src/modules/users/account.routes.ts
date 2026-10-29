@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { ApiError } from '@/common/errors';
-import { addressInput, indianPhone } from '@/common/validation';
+import { addressInput, indianPhone, objectId } from '@/common/validation';
 import { emailChannel } from '@/config/env';
 import { authenticate } from '@/middleware/auth';
 import { assertContactAvailable } from '@/modules/auth/unique-contact';
 import { InstitutionModel } from '@/modules/institutions/institution.model';
+import { FileModel } from '@/modules/uploads/file.model';
 import { UserModel } from './user.model';
 
 export const accountRouter = Router();
@@ -18,6 +19,8 @@ const userUpdateSchema = z.object({
   language: z.enum(['en', 'hi']).optional(),
   offers: z.boolean().optional(),
   addresses: z.array(addressInput).max(5).optional(),
+  /** A finished avatar upload of this customer's, or null to remove the photo. */
+  avatarFileId: objectId.nullable().optional(),
 });
 
 const institutionUpdateSchema = z.object({
@@ -42,7 +45,7 @@ accountRouter.patch('/', async (req, res) => {
     res.json({ kind: 'institution', institution: institution.toJSON() });
     return;
   }
-  const input = userUpdateSchema.parse(req.body);
+  const { avatarFileId, ...input } = userUpdateSchema.parse(req.body);
   // The detail customers sign in with cannot be changed here: email on the email channel, phone on SMS.
   const login = emailChannel() ? 'email' : 'phone';
   delete input[login];
@@ -55,11 +58,29 @@ accountRouter.patch('/', async (req, res) => {
     }
   }
   await assertContactAvailable({ email: update.email as string | undefined, phone: update.phone as string | undefined }, { kind: 'user', id: auth.id });
+
+  // Profile photo: only a finished avatar upload this customer made, never an arbitrary address.
+  let photo: { _id: unknown; publicUrl?: string | null } | null = null;
+  if (avatarFileId) {
+    photo = await FileModel.findOne({ _id: avatarFileId, purpose: 'avatar', status: 'uploaded', 'owner.id': auth.id, 'owner.kind': 'user' })
+      .select('publicUrl')
+      .lean();
+    if (!photo?.publicUrl) throw ApiError.badRequest('Upload the photo again');
+    update.avatarUrl = photo.publicUrl;
+  } else if (avatarFileId === null) {
+    unset.avatarUrl = 1;
+  }
+  const previous = avatarFileId !== undefined ? (await UserModel.findById(auth.id).select('avatarUrl').lean())?.avatarUrl : undefined;
   const user = await UserModel.findByIdAndUpdate(
     auth.id,
     { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
     { new: true, runValidators: true },
   );
   if (!user) throw ApiError.notFound('User');
+  if (photo) await FileModel.updateOne({ _id: photo._id }, { $set: { attachedAt: new Date() } });
+  // The photo it replaces goes with the next file clean-up.
+  if (previous && previous !== user.avatarUrl) {
+    await FileModel.updateOne({ publicUrl: previous, purpose: 'avatar', 'owner.id': auth.id }, { $set: { deleteAfter: new Date() }, $unset: { attachedAt: 1 } });
+  }
   res.json({ kind: 'user', user: user.toJSON() });
 });

@@ -154,7 +154,7 @@ export default function ProductsPage() {
       {rows.length > 1 && (
         <div className="sticky top-16 z-30 border-b bg-background/90 backdrop-blur-xl lg:top-[72px]">
           <nav className="container-page scrollbar-none flex gap-2 overflow-x-auto py-3" aria-label={t('products.browseCategories')}>
-            {rows.map(({ category: c }) => (
+            {rows.map(({ category: c, items }) => (
               <button
                 key={c._id}
                 type="button"
@@ -167,7 +167,7 @@ export default function ProductsPage() {
               >
                 <DynamicIcon name={c.icon} className="size-4" />
                 {l(c.name)}
-                <span className={cn('rounded-full px-1.5 text-xs tabular-nums', active === c.slug ? 'bg-white/20' : 'bg-muted')}>{c.productCount ?? 0}</span>
+                <span className={cn('rounded-full px-1.5 text-xs tabular-nums', active === c.slug ? 'bg-white/20' : 'bg-muted')}>{/* While searching, how many match in this category. */}{items.length}</span>
               </button>
             ))}
           </nav>
@@ -176,7 +176,7 @@ export default function ProductsPage() {
 
       <div className="container-page section-y space-y-14 pt-8 sm:pt-10 lg:space-y-16">
         {needle && (
-          <div className="-mb-6 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {t('products.resultsFor', { q: search.trim() })} · {t('products.count', { count: found })}
             <button type="button" onClick={() => setQuery('')} className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 font-medium hover:text-foreground">
               <IconX className="size-3.5" /> {t('products.clearFilters')}

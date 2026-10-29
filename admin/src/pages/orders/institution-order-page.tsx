@@ -14,13 +14,14 @@ import {
   IconRulerMeasure,
   IconSchool,
   IconSearch,
+  IconStack2,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
-import { EmptyState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
+import { EmptyState, PageHeader, PageLoader, SectionTitle, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -161,8 +162,8 @@ function ProductThumb({ product, className }: { product: Product; className?: st
 
 function Stepper({ id, value, onChange, step = 1 }: { id: string; value: number; onChange: (n: number) => void; step?: number }) {
   return (
-    <div className="flex w-full max-w-60 items-center gap-2">
-      <Button variant="outline" size="icon" onClick={() => onChange(Math.max(1, value - step))} aria-label="Less">
+    <div className="flex w-full max-w-72 items-center gap-2">
+      <Button variant="secondary" size="icon" className="size-12 shrink-0" onClick={() => onChange(Math.max(1, value - step))} aria-label="Less">
         <IconMinus />
       </Button>
       <Input
@@ -170,11 +171,11 @@ function Stepper({ id, value, onChange, step = 1 }: { id: string; value: number;
         type="number"
         inputMode="numeric"
         min={1}
-        className="text-center text-base font-semibold tabular-nums"
+        className="h-12 text-center text-lg font-bold tabular-nums"
         value={value}
         onChange={(e) => onChange(Math.max(1, Math.floor(Number(e.target.value) || 1)))}
       />
-      <Button variant="outline" size="icon" onClick={() => onChange(value + step)} aria-label="More">
+      <Button variant="secondary" size="icon" className="size-12 shrink-0" onClick={() => onChange(value + step)} aria-label="More">
         <IconPlus />
       </Button>
     </div>
@@ -469,7 +470,7 @@ export default function InstitutionOrderPage() {
 
   return (
     <div>
-      <PageHeader title="School / college order" description="Place an order for an institution, the same way they do from their dashboard. Uses their school prices." />
+      <PageHeader icon={<IconSchool />} title="School / college order" description="Place an order for an institution, the same way they do from their dashboard. Uses their school prices." />
 
       <StepBar steps={steps} current={step} reached={reached} onGo={go} />
 
@@ -910,100 +911,143 @@ function QuantityStep({
   // Tier prices with the chosen options included, so they match the summary.
   const delta = quote?.optionUnitDelta ?? 0;
   const tiers = [...book.tiers].sort((a, b) => a.minQty - b.minQty);
-  // Each price break is a natural quantity to suggest.
-  const presets = [...new Set(tiers.map((tier) => tier.minQty))];
   const activeTier = quote ? [...tiers].reverse().find((t) => quote.units >= t.minQty) : undefined;
+
+  const base = tiers[0]?.unitPrice ?? 0;
+  const nextTier = quote ? tiers.find((t) => t.minQty > quote.units) : undefined;
+  const priced = quote && !quote.requiresQuote && quote.valid;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>How many?</CardTitle>
-        {book.minQty > 1 && <p className="text-sm text-muted-foreground">Minimum order {formatNumber(book.minQty)} {unit(book.minQty)}</p>}
+        <SectionTitle
+          icon={<IconStack2 />}
+          title="How many?"
+          description={book.minQty > 1 ? `Minimum order ${formatNumber(book.minQty)} ${unit(book.minQty)}` : 'Choose the quantity; the price updates as you go.'}
+        />
       </CardHeader>
-      <CardContent className="space-y-6">
-        {isPageBased ? (
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="pages">Pages per copy</Label>
-              <Stepper id="pages" value={pageCount} onChange={setPageCount} step={10} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="copies">Copies</Label>
-              <Stepper id="copies" value={copies} onChange={setCopies} />
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <Label htmlFor="qty" className="capitalize">{unit(2)}</Label>
-            <Stepper id="qty" value={quantity} onChange={setQuantity} step={book.minQty >= 50 ? 10 : 1} />
-            {presets.length > 1 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">Quick pick</span>
-                {presets.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setQuantity(q)}
-                    className={cn(
-                      'rounded-full border bg-muted px-3 py-1 text-sm font-semibold tabular-nums transition-colors hover:border-primary/50',
-                      quantity === q ? 'border-primary bg-primary/8 text-primary' : 'border-transparent text-brand-navy',
-                    )}
-                  >
-                    {formatNumber(q)}
-                  </button>
+      <CardContent>
+        <div className="space-y-6">
+          <div className="space-y-6">
+            {isPageBased ? (
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="pages">Pages per copy</Label>
+                  <Stepper id="pages" value={pageCount} onChange={setPageCount} step={10} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="copies">Copies</Label>
+                  <Stepper id="copies" value={copies} onChange={setCopies} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="qty" className="capitalize">
+                  {unit(2)}
+                </Label>
+                <Stepper id="qty" value={quantity} onChange={setQuantity} step={book.minQty >= 50 ? 10 : 1} />
+              </div>
+            )}
+
+            {tiers.length > 0 && (
+              <div>
+                <p className="mb-2.5 text-sm font-semibold">
+                  Price breaks {!isPageBased && tiers.length > 1 && <span className="font-normal text-muted-foreground">· tap one to choose it</span>}
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {tiers.map((tier, i) => {
+                    const upTo = tiers[i + 1] ? tiers[i + 1]!.minQty - 1 : null;
+                    const from = i === 0 ? Math.max(tier.minQty, book.minQty) : tier.minQty;
+                    const on = activeTier === tier;
+                    const save = base ? Math.round((1 - tier.unitPrice / base) * 100) : 0;
+                    const body = (
+                      <>
+                        <span className="block text-xs text-muted-foreground tabular-nums">
+                          {formatNumber(from)}
+                          {upTo === null ? '+' : upTo > from ? `–${formatNumber(upTo)}` : ''} {unit(2)}
+                        </span>
+                        <span className="mt-0.5 block text-lg font-bold text-foreground tabular-nums">
+                          {formatINR(tier.unitPrice + delta)}
+                          <span className="text-xs font-normal text-muted-foreground"> each</span>
+                        </span>
+                        <span className={cn('block text-xs font-semibold', save > 0 ? 'text-success' : 'text-muted-foreground')}>
+                          {save > 0 ? `Save ${save}%` : 'Standard price'}
+                        </span>
+                      </>
+                    );
+                    const style = cn(
+                      'rounded-xl border p-3 text-left transition-colors',
+                      on ? 'border-primary bg-primary/6 ring-2 ring-primary/15' : 'bg-card',
+                    );
+                    return isPageBased ? (
+                      <div key={tier.minQty} className={style}>
+                        {body}
+                      </div>
+                    ) : (
+                      <button key={tier.minQty} type="button" aria-pressed={on} onClick={() => setQuantity(from)} className={cn(style, !on && 'hover:border-primary/40')}>
+                        {body}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {errors.length > 0 && (
+              <ul className="space-y-1.5">
+                {[...new Set(errors)].map((e) => (
+                  <li key={e} className="flex items-start gap-2 text-sm text-destructive">
+                    <IconAlertCircle className="mt-0.5 size-4 shrink-0" /> {e}
+                  </li>
                 ))}
+              </ul>
+            )}
+          </div>
+
+          {/* The price at a glance: a band under the choice, laid out in a row when there is room. */}
+          <div className="navy-panel flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8" aria-live="polite">
+            {priced ? (
+              <>
+                <div className="sm:mr-auto">
+                  <p className="text-sm text-white/65">Total for this item</p>
+                  <p className="mt-1 text-3xl font-bold tracking-tight text-white tabular-nums">{formatINR(quote.subtotal)}</p>
+                </div>
+                <dl className="space-y-2 text-sm sm:min-w-44">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-white/65">Per {unit(1)}</dt>
+                    <dd className="font-semibold tabular-nums">{formatINR(quote.unitPrice)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-white/65">Quantity</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {formatNumber(quote.units)} {unit(quote.units)}
+                    </dd>
+                  </div>
+                </dl>
+                {nextTier && !isPageBased ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(nextTier.minQty)}
+                    className="rounded-xl bg-brand-amber/15 px-3.5 py-2.5 text-left text-sm text-white ring-1 ring-brand-amber/40 transition-colors hover:bg-brand-amber/25 sm:max-w-60"
+                  >
+                    Add <span className="font-bold tabular-nums">{formatNumber(nextTier.minQty - quote.units)}</span> more to pay{' '}
+                    <span className="font-bold text-brand-amber tabular-nums">{formatINR(nextTier.unitPrice + delta)}</span> each
+                  </button>
+                ) : (
+                  activeTier &&
+                  tiers.length > 1 && <p className="rounded-xl bg-white/8 px-3.5 py-2.5 text-sm text-white/80">Best price break reached.</p>
+                )}
+              </>
+            ) : (
+              <div className="w-full py-4 text-center">
+                <p className="font-semibold text-white">{quote?.requiresQuote ? 'Priced on request' : 'Set the quantity'}</p>
+                <p className="mt-1 text-sm text-white/65">
+                  {quote?.requiresQuote ? 'The shop sets the price for this item.' : 'The price shows here as soon as it is valid.'}
+                </p>
               </div>
             )}
           </div>
-        )}
-
-        {quote && !quote.requiresQuote && quote.valid && (
-          <div className="grid grid-cols-3 divide-x rounded-xl border bg-muted/40 text-center">
-            <div className="p-3">
-              <p className="text-xs text-muted-foreground">Per {unit(1)}</p>
-              <p className="mt-0.5 text-lg font-bold text-brand-navy tabular-nums">{formatINR(quote.unitPrice)}</p>
-            </div>
-            <div className="p-3">
-              <p className="text-xs text-muted-foreground">Quantity</p>
-              <p className="mt-0.5 text-lg font-bold text-brand-navy tabular-nums">{formatNumber(quote.units)}</p>
-            </div>
-            <div className="p-3">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="mt-0.5 text-lg font-bold text-primary tabular-nums">{formatINR(quote.subtotal)}</p>
-            </div>
-          </div>
-        )}
-
-        {errors.length > 0 && (
-          <ul className="space-y-1.5">
-            {[...new Set(errors)].map((e) => (
-              <li key={e} className="flex items-start gap-2 text-sm text-destructive">
-                <IconAlertCircle className="mt-0.5 size-4 shrink-0" /> {e}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {tiers.length > 0 && (
-          <div>
-            <p className="mb-2 text-sm font-semibold text-brand-navy">Price breaks</p>
-            <div className="overflow-hidden rounded-xl border text-sm">
-              {tiers.map((tier, i) => {
-                const upTo = tiers[i + 1] ? tiers[i + 1]!.minQty - 1 : null;
-                const on = activeTier === tier;
-                return (
-                  <div key={tier.minQty} className={cn('flex justify-between px-4 py-2 not-last:border-b', on && 'bg-primary/8 font-semibold text-primary')}>
-                    <span className="tabular-nums">
-                      {formatNumber(tier.minQty)}
-                      {upTo === null ? '+' : upTo > tier.minQty ? `–${formatNumber(upTo)}` : ''} {unit(2)}
-                    </span>
-                    <span className="tabular-nums">{formatINR(tier.unitPrice + delta)} each</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

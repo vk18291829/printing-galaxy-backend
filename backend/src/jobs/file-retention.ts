@@ -19,6 +19,8 @@ export async function runFileRetention() {
       { order: { $exists: false }, purpose: 'bulk', createdAt: { $lte: new Date(now.getTime() - 30 * 24 * HOUR) } },
       // Roster photos that were uploaded but never saved to a person.
       { attachedAt: { $exists: false }, purpose: 'roster', createdAt: { $lte: new Date(now.getTime() - 48 * HOUR) } },
+      // Profile photos that were uploaded but never saved to the profile.
+      { attachedAt: { $exists: false }, purpose: 'avatar', createdAt: { $lte: new Date(now.getTime() - 48 * HOUR) } },
     ],
   }).limit(500);
 

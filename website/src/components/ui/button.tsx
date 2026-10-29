@@ -20,7 +20,8 @@ const buttonVariants = cva(
         navy: 'bg-primary text-primary-foreground hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
         link: 'text-primary underline-offset-4 hover:underline',
         // The page's main call to action.
-        brand: 'bg-primary text-primary-foreground hover:bg-brand-navy-deep disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
+        // Disabled stays recognisably the main button (faded navy, white label) on any background.
+        brand: 'bg-primary text-primary-foreground hover:bg-brand-navy-deep disabled:bg-primary/40 disabled:text-white disabled:opacity-100',
       },
       size: {
         default: 'h-11 rounded-xl px-5 has-[>svg]:px-4',
