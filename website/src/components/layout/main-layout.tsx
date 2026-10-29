@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { cn } from '@/lib/utils';
+import { usePageViews } from '@/features/analytics/page-views';
 import { TopBar } from '@/features/marketing/offer-strip';
 import { OfflineBanner } from '@/features/pwa/pwa';
 import { BottomTabs, useBottomTabsVisible } from './bottom-tabs';
@@ -17,6 +18,7 @@ function ScrollToTop() {
 
 export function MainLayout() {
   const tabs = useBottomTabsVisible();
+  usePageViews();
   const { pathname } = useLocation();
   return (
     // Room for the phone tab bar under the footer.

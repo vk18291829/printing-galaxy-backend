@@ -279,6 +279,11 @@ export interface PublicSettings {
     mapUrl: string;
     hours: string;
     gstin: string;
+    /** Registered business name; the shop name when empty. Missing on an API older than these fields. */
+    legalName?: string;
+    grievanceName?: string;
+    grievanceEmail?: string;
+    grievancePhone?: string;
   };
   social: SocialLinks;
   tax: { enabled: boolean; rate: number; pricesIncludeTax: boolean };

@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RevenueChart } from '@/features/dashboard/revenue-chart';
+import { TrafficCard } from '@/features/dashboard/traffic-card';
+import { useCan } from '@/features/auth/auth-store';
 import { useDashboard } from '@/features/management/api';
 import { formatDate, formatINR } from '@/lib/format';
 import { en } from '@/lib/l10n';
@@ -48,6 +50,7 @@ const SEGMENTS: { key: OrderSegment; label: string }[] = [
 const PIPELINE: OrderStatus[] = ['quote_pending', 'quote_sent', 'received', 'proof_sent', 'approved', 'printing', 'ready', 'out_for_delivery'];
 
 export default function DashboardPage() {
+  const canSeeReports = useCan('reports');
   const { data, isLoading, error, refetch } = useDashboard();
   if (isLoading) return <PageLoader />;
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />;
@@ -143,6 +146,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {canSeeReports && (
+        <div className="mt-6">
+          <TrafficCard />
+        </div>
+      )}
 
       <div className="grid gap-6 *:min-w-0 xl:grid-cols-[1.6fr_1fr]">
         <Card className="gap-0 pb-0">

@@ -23,7 +23,7 @@ import { useDocumentTitle } from '@/hooks/use-document-title';
 
 function Channel({ icon: Icon, title, value, action }: { icon: Icon; title: string; value: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl shadow-card bg-card p-5">
+    <div className="flex min-w-0 flex-col gap-4 rounded-2xl shadow-card bg-card p-5">
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
           <Icon className="size-5" />
@@ -65,7 +65,8 @@ export default function ContactPage() {
 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* min-w-0: long values (email, hours) truncate instead of widening the column past the screen. */}
+          <div className="grid gap-4 *:min-w-0 sm:grid-cols-2">
             {shop.phone && (
               <Channel
                 icon={IconPhone}

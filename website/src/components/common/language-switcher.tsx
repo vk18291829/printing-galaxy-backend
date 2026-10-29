@@ -10,8 +10,12 @@ export function LanguageSwitcher({ className }: { className?: string }) {
   const setLanguage = useSetLanguage();
 
   return (
-    <div role="group" aria-label={t('nav.language')} className={cn('flex shrink-0 items-center gap-1.5', className)}>
+    <div role="group" aria-label={t('nav.chooseLanguage')} className={cn('flex shrink-0 items-center gap-1.5', className)}>
       <IconWorld className="size-3.5 text-white/55" aria-hidden />
+      {/* Spelled out from tablet width; phones keep just the globe (the strip is tight there). */}
+      <span className="hidden text-[11px] font-medium text-white/70 sm:inline" aria-hidden>
+        {t('nav.chooseLanguage')}
+      </span>
       <div className="flex items-center rounded-full bg-white/10 p-0.5 ring-1 ring-white/15">
         {LANGUAGES.map((l) => {
           const active = i18n.language === l.code;

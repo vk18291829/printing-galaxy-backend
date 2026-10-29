@@ -14,6 +14,12 @@ const shopSchema = new Schema(
     mapUrl: { type: String, default: '' },
     hours: { type: String, default: 'Mon–Sat, 9:00 AM – 8:00 PM' },
     gstin: { type: String, default: '' },
+    /** Registered business name, if different from the shop name (shown in the footer, as e-commerce rules require). */
+    legalName: { type: String, default: '' },
+    /** Grievance officer: the person customers can escalate a complaint to. */
+    grievanceName: { type: String, default: '' },
+    grievanceEmail: { type: String, default: '' },
+    grievancePhone: { type: String, default: '' },
   },
   { _id: false },
 );

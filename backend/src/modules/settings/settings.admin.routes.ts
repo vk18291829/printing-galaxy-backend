@@ -26,6 +26,10 @@ const settingsSchema = z.object({
     mapUrl: z.string().trim().max(500),
     hours: z.string().trim().max(120),
     gstin: z.string().trim().toUpperCase().max(15),
+    legalName: z.string().trim().max(150).default(''),
+    grievanceName: z.string().trim().max(100).default(''),
+    grievanceEmail: z.string().trim().max(120).default(''),
+    grievancePhone: z.string().trim().max(20).default(''),
   }),
   social: z
     .object({

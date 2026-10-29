@@ -114,6 +114,18 @@ export default function SettingsPage() {
               <Field label="GSTIN">
                 <Input className="uppercase" maxLength={15} {...register('shop.gstin')} />
               </Field>
+              <Field label="Registered business name" hint="As on your GST or shop registration, if different from the shop name. Shown in the website footer.">
+                <Input {...register('shop.legalName')} />
+              </Field>
+              <Field label="Grievance officer" hint="E-commerce rules ask online shops to name a person customers can escalate complaints to. Shown at the bottom of every page of the website.">
+                <Input placeholder="Name and designation, e.g. R. Sharma (Proprietor)" {...register('shop.grievanceName')} />
+              </Field>
+              <Field label="Grievance officer email">
+                <Input type="email" {...register('shop.grievanceEmail')} />
+              </Field>
+              <Field label="Grievance officer phone">
+                <Input inputMode="tel" {...register('shop.grievancePhone')} />
+              </Field>
               <Field label="State (GST registration)" hint="Same state as the customer = CGST + SGST, otherwise IGST">
                 <Input placeholder="Uttar Pradesh" {...register('shop.state')} />
               </Field>

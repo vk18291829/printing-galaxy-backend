@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireAdmin, requirePermission, requireStaff } from '@/middleware/auth';
+import { adminAnalyticsRouter } from '@/modules/analytics/analytics.routes';
 import { adminAuditRouter } from '@/modules/audit/audit.admin.routes';
 import { adminBulkRouter } from '@/modules/bulk/bulk.admin.routes';
 import { adminCatalogRouter } from '@/modules/catalog/catalog.admin.routes';
@@ -38,5 +39,6 @@ adminRouter.use('/reviews', adminReviewsRouter);
 adminRouter.use('/marketing/promotions', requirePermission('marketing'), adminPromoRouter);
 adminRouter.use('/marketing', adminMarketingRouter);
 adminRouter.use('/reports', requirePermission('reports'), adminReportsRouter);
+adminRouter.use('/analytics', requirePermission('reports'), adminAnalyticsRouter);
 adminRouter.use('/audit', requireAdmin, adminAuditRouter);
 adminRouter.use('/system', requireAdmin, adminSystemRouter);

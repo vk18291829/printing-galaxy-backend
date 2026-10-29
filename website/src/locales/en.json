@@ -46,6 +46,7 @@
     "photo_other": "photos"
   },
   "nav": {
+    "chooseLanguage": "Choose language",
     "home": "Home",
     "products": "Products",
     "institutions": "Schools & Colleges",
@@ -762,7 +763,14 @@
     "rights": "All rights reserved.",
     "privacy": "Identity documents are deleted automatically after delivery.",
     "legal": "Policies",
-    "track": "Track order"
+    "track": "Track order",
+    "allProducts": "All products",
+    "forSchools": "For schools",
+    "delivery": "Delivery & pickup",
+    "refunds": "Refunds & cancellations",
+    "securePay": "Secure online payments through Razorpay",
+    "proofFirst": "A proof to approve before personalised items are printed",
+    "grievance": "Grievance officer"
   },
   "notFound": {
     "title": "Page not found",
@@ -962,6 +970,14 @@
         [
           "Service providers",
           "We use Amazon Web Services (file storage), Razorpay (payments), Google Gmail (order and sign-in emails) and MSG91 (text messages, when switched on). They process data only to provide these services."
+        ],
+        [
+          "Website visits",
+          "We count visits to this website to see which pages help customers. This uses no cookies and no advertising or tracking services: our own server keeps only daily totals (pages viewed, the kind of device, and whether you came from a search engine or social media). Your IP address is never stored. If your browser sends “Do Not Track” or “Global Privacy Control”, you are not counted."
+        ],
+        [
+          "Complaints",
+          "If something went wrong with your order or your data, contact the shop first. If it is not resolved, write to the grievance officer named at the bottom of every page; we acknowledge complaints within 48 hours and aim to resolve them within one month."
         ],
         [
           "Your choices",

@@ -277,6 +277,11 @@ export interface PublicSettings {
     mapUrl: string;
     hours: string;
     gstin: string;
+    /** Registered business name; the shop name when empty. Missing on an API older than these fields. */
+    legalName?: string;
+    grievanceName?: string;
+    grievanceEmail?: string;
+    grievancePhone?: string;
   };
   /** Full profile URLs; empty = not shown. Missing on an API older than this field. */
   social?: Partial<Record<SocialNetwork, string>>;
