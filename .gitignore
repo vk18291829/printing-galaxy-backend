@@ -14,3 +14,7 @@ coverage/
 
 # Local SeaweedFS data (weed server -dir=./.s3-data)
 .s3-data/
+
+# Playwright screenshots and reports (npm run test:responsive)
+test-results/
+playwright-report/

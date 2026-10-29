@@ -1,9 +1,9 @@
 /* Printing Galaxy admin service worker: installable app and fast start-up. Shop data always comes
  * live from the API (another origin, never cached); only the app shell and build files are. */
-const VERSION = 'pga-v3';
+const VERSION = 'pga-v4';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
-const PRECACHE = ['/', '/manifest.webmanifest', '/logo-mark.png?v=3', '/icons/icon-192.png?v=3'];
+const PRECACHE = ['/', '/offline.html', '/manifest.webmanifest', '/logo-mark.png?v=3', '/icons/icon-192.png?v=3'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(SHELL).then((cache) => cache.put('/', copy));
           return res;
         })
-        .catch(async () => (await caches.match('/')) || Response.error()),
+        .catch(async () => (await caches.match('/')) || (await caches.match('/offline.html')) || Response.error()),
     );
     return;
   }

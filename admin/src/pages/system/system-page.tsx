@@ -12,6 +12,7 @@ import {
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { Pagination } from '@/components/common/pagination';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -93,6 +94,11 @@ function MessagesTab() {
   const [failedOnly, setFailedOnly] = useState(true);
   const { data, isLoading, error, refetch } = useMessageLog({ page, status: failedOnly ? 'failed' : undefined });
   const retry = useRetryMessage();
+  const resend = (id: string) =>
+    retry.mutate(id, {
+      onSuccess: () => toast.success('Message sent again'),
+      onError: (e) => toast.error(getErrorMessage(e)),
+    });
 
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />;
   return (
@@ -107,6 +113,29 @@ function MessagesTab() {
         <Loading />
       ) : data?.items.length ? (
         <>
+          <MobileList>
+            {data.items.map((m) => (
+              <MobileRow
+                key={m._id}
+                title={<span className="capitalize">{m.template.replace(/_/g, ' ')}</span>}
+                subtitle={`${formatDate(m.createdAt, 'en', true)} · ${m.channel} · ${m.to.replace(/^(\d{2})\d+(\d{4})$/, '$1****$2')}`}
+                trailing={<Badge variant={STATUS_VARIANT[m.status] ?? 'secondary'}>{m.status}</Badge>}
+                meta={
+                  <div className="w-full space-y-1">
+                    {m.body && <p className="line-clamp-2">{m.body}</p>}
+                    {m.error && <p className="line-clamp-2 text-destructive">{m.error}</p>}
+                    {m.relatedOrder && <OrderLink order={m.relatedOrder} />}
+                  </div>
+                }
+                actions={
+                  m.status === 'failed' && m.template !== 'otp'
+                    ? [{ label: `Retry${m.retries ? ` (${m.retries})` : ''}`, icon: <IconRefresh />, disabled: retry.isPending, onSelect: () => resend(m._id) }]
+                    : undefined
+                }
+              />
+            ))}
+          </MobileList>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -141,12 +170,7 @@ function MessagesTab() {
                         variant="outline"
                         size="sm"
                         disabled={retry.isPending}
-                        onClick={() =>
-                          retry.mutate(m._id, {
-                            onSuccess: () => toast.success('Message sent again'),
-                            onError: (e) => toast.error(getErrorMessage(e)),
-                          })
-                        }
+                        onClick={() => resend(m._id)}
                       >
                         <IconRefresh /> Retry{m.retries ? ` (${m.retries})` : ''}
                       </Button>
@@ -156,6 +180,7 @@ function MessagesTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
           <Pagination page={page} pages={data.pages} total={data.total} onPage={setPage} />
         </>
       ) : (
@@ -176,6 +201,24 @@ function WebhooksTab() {
         <Loading />
       ) : data?.items.length ? (
         <>
+          <MobileList>
+            {data.items.map((w) => (
+              <MobileRow
+                key={w._id}
+                title={w.event}
+                subtitle={`${formatDate(w.createdAt, 'en', true)} · ${w.provider}`}
+                trailing={<Badge variant={STATUS_VARIANT[w.status] ?? 'secondary'}>{w.status}</Badge>}
+                meta={
+                  <div className="w-full space-y-1">
+                    {w.summary && <p>{w.summary}</p>}
+                    {w.error && <p className="text-destructive">{w.error}</p>}
+                    {w.relatedOrder && <OrderLink order={w.relatedOrder} />}
+                  </div>
+                }
+              />
+            ))}
+          </MobileList>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -206,6 +249,7 @@ function WebhooksTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
           <Pagination page={page} pages={data.pages} total={data.total} onPage={setPage} />
         </>
       ) : (
@@ -238,6 +282,29 @@ function MoneyTab() {
         <Loading />
       ) : data?.items.length ? (
         <>
+          <MobileList>
+            {data.items.map((p) => (
+              <MobileRow
+                key={p._id}
+                title={p.kind === 'refund' ? <span className="text-destructive">Refund</span> : PROVIDER[p.provider]}
+                subtitle={`${formatDate(p.createdAt, 'en', true)} · ${p.recordedBy?.name ?? (p.provider === 'razorpay' ? 'Razorpay' : '—')}`}
+                trailing={
+                  <span className={cn('font-semibold tabular-nums', p.kind === 'refund' && 'text-destructive')}>
+                    {p.kind === 'refund' ? '−' : ''}
+                    {formatINR(p.amount)}
+                  </span>
+                }
+                meta={
+                  <>
+                    <Badge variant={STATUS_VARIANT[p.status] ?? 'secondary'}>{p.status.replace('_', ' ')}</Badge>
+                    <OrderLink order={p.order} />
+                    {p.note && <span className="w-full">{p.note}</span>}
+                  </>
+                }
+              />
+            ))}
+          </MobileList>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -272,6 +339,7 @@ function MoneyTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
           <Pagination page={page} pages={data.pages} total={data.total} onPage={setPage} />
         </>
       ) : (

@@ -208,6 +208,9 @@
     "extras": "Binding & extras",
     "discount": "Institution discount",
     "subtotal": "Subtotal",
+    "rangeBusiness": "Visiting cards, banners, letterheads and stationery for your shop or office.",
+    "rangeWedding": "Wedding cards, invitations and greetings, printed and finished with care.",
+    "rangeSchool": "ID cards, medals, ties and more for schools and colleges, at institution prices.",
     "addToCart": "Add to cart",
     "addAnother": "Add another to cart",
     "inCartCount_one": "1 of these is in your cart.",
@@ -799,6 +802,9 @@
     "landscape": "Landscape"
   },
   "pwa": {
+    "updateTitle": "A new version is ready",
+    "updateDesc": "Reload to use it. Your cart is kept.",
+    "reload": "Reload",
     "install": "Install app",
     "installDesc": "Add Printing Galaxy to your home screen",
     "offline": "You are offline. Pages you opened before still work; orders need a connection.",

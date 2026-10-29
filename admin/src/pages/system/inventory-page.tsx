@@ -1,5 +1,6 @@
 import { IconAlertTriangle, IconBoxSeam, IconHistory, IconPencil, IconPlus, IconTransferIn } from '@tabler/icons-react';
 import { useState } from 'react';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
@@ -316,6 +317,35 @@ export default function InventoryPage() {
             description={isAdmin ? 'Add the consumables you want to keep an eye on.' : 'Ask the owner to add materials.'}
           />
         ) : (
+          <>
+          <MobileList>
+            {items.map((m) => (
+              <MobileRow
+                key={m._id}
+                onClick={m.isActive ? () => setMoving(m) : () => setHistory(m)}
+                title={<span className={cn(!m.isActive && 'text-muted-foreground')}>{m.name}</span>}
+                subtitle={`${m.sku ? `${m.sku} · ` : ''}${m.supplier ? `${m.supplier} · ` : ''}updated ${formatDate(m.updatedAt)}${m.isActive ? '' : ' · archived'}`}
+                trailing={
+                  <span className="whitespace-nowrap">
+                    <span className={cn('font-semibold tabular-nums', m.low && 'text-destructive')}>{formatNumber(m.quantity)}</span>{' '}
+                    <span className="text-xs text-muted-foreground">{m.unit}</span>
+                  </span>
+                }
+                meta={
+                  <>
+                    {m.low && <Badge variant="warning">Low</Badge>}
+                    {m.lowStockThreshold > 0 && <span className="tabular-nums">Alert at {formatNumber(m.lowStockThreshold)}</span>}
+                  </>
+                }
+                actions={[
+                  ...(m.isActive ? [{ label: 'Update stock', icon: <IconTransferIn />, onSelect: () => setMoving(m) }] : []),
+                  { label: 'History', icon: <IconHistory />, onSelect: () => setHistory(m) },
+                  ...(isAdmin ? [{ label: 'Edit material', icon: <IconPencil />, onSelect: () => setEditing(m) }] : []),
+                ]}
+              />
+            ))}
+          </MobileList>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -372,6 +402,8 @@ export default function InventoryPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+          </>
         )}
       </Card>
       {data.some((m) => !m.isActive) && (

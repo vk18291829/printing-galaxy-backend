@@ -3,6 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -18,6 +19,16 @@ const subscribe = (cb: () => void) => {
 };
 
 /** Registers the service worker (production only) and keeps the browser's install offer for our button. */
+/** A new release is running in the background: offer a reload so this screen picks it up. */
+function announceUpdate() {
+  toast('A new version is ready', {
+    id: 'app-update',
+    description: 'Reload to use it. Anything you are typing is kept until you reload.',
+    duration: Infinity,
+    action: { label: 'Reload', onClick: () => window.location.reload() },
+  });
+}
+
 export function registerServiceWorker() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -29,7 +40,20 @@ export function registerServiceWorker() {
     notify();
   });
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+    window.addEventListener('load', () => {
+      // A worker already in charge means the next takeover is a new release, not the first install.
+      const updating = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker.addEventListener('controllerchange', () => updating && announceUpdate());
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          // The installed app can stay open for days: look for a release whenever it comes back to the front.
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') void registration.update().catch(() => undefined);
+          });
+        })
+        .catch(() => undefined);
+    });
   }
 }
 

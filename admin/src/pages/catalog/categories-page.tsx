@@ -1,6 +1,7 @@
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { IconPicker } from '@/components/common/icon-picker';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
@@ -139,6 +140,17 @@ export default function CategoriesPage() {
   const remove = useDeleteCategory();
   const [editing, setEditing] = useState<AdminCategory | 'new' | null>(null);
 
+  /** Same confirmation from the table and the phone row menu. */
+  const askDelete = (c: AdminCategory) =>
+    void confirmAction({
+      tone: 'danger',
+      title: `Delete “${c.name.en}”?`,
+      description: 'This cannot be undone. Categories that still have products cannot be deleted — move or hide those products first.',
+      confirmLabel: 'Delete category',
+      action: () => remove.mutateAsync(c._id),
+      successTitle: 'Category deleted',
+    });
+
   if (isLoading) return <PageLoader />;
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
@@ -154,6 +166,32 @@ export default function CategoriesPage() {
         }
       />
       <Card className="gap-0 py-0">
+        <MobileList>
+          {data?.map((c) => (
+            <MobileRow
+              key={c._id}
+              onClick={() => setEditing(c)}
+              leading={
+                <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <DynamicIcon name={c.icon} className="size-5" />
+                </span>
+              }
+              title={c.name.en}
+              subtitle={`${c.name.hi} · ${c.slug}`}
+              trailing={c.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Hidden</Badge>}
+              meta={c.audiences.map((a) => (
+                <Badge key={a} variant="outline">
+                  {a === 'retail' ? 'Individuals' : 'Institutions'}
+                </Badge>
+              ))}
+              actions={[
+                { label: 'Edit category', icon: <IconPencil />, onSelect: () => setEditing(c) },
+                { label: 'Delete category', icon: <IconTrash />, destructive: true, onSelect: () => askDelete(c) },
+              ]}
+            />
+          ))}
+        </MobileList>
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -196,16 +234,7 @@ export default function CategoriesPage() {
                     size="sm"
                     
                     aria-label={`Delete ${c.name.en}`}
-                    onClick={() =>
-                      void confirmAction({
-                        tone: 'danger',
-                        title: `Delete “${c.name.en}”?`,
-                        description: 'This cannot be undone. Categories that still have products cannot be deleted — move or hide those products first.',
-                        confirmLabel: 'Delete category',
-                        action: () => remove.mutateAsync(c._id),
-                        successTitle: 'Category deleted',
-                      })
-                    }
+                    onClick={() => askDelete(c)}
                   >
                     <IconTrash />
                   </Button>
@@ -214,6 +243,7 @@ export default function CategoriesPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </Card>
       {editing && <CategoryDialog category={editing} onClose={() => setEditing(null)} />}
     </div>

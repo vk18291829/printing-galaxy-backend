@@ -13,6 +13,7 @@ import {
 import { useMemo, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
 import { toast } from 'sonner';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { EmptyState, ErrorState, PageLoader, Spinner } from '@/components/common/states';
 import { useBreadcrumbLabel } from '@/components/layout/breadcrumbs';
@@ -366,6 +367,38 @@ export default function InstitutionRosterPage() {
           </div>
 
           <Card className="py-0">
+            <MobileList>
+              {shown.map((p) => (
+                <MobileRow
+                  key={p._id}
+                  leading={
+                    <button
+                      type="button"
+                      onClick={() => setPhotoFor(p._id)}
+                      aria-label={`Photo of ${p.name}`}
+                      className={cn('grid aspect-[3/4] w-11 place-items-center overflow-hidden rounded shadow-card', !p.hasPhoto && 'border-dashed text-muted-foreground')}
+                    >
+                      {p.photoUrl ? <img src={p.photoUrl} alt="" loading="lazy" className="size-full object-cover" /> : <IconCamera className="size-4" />}
+                    </button>
+                  }
+                  title={p.name}
+                  subtitle={<span className="font-mono">{p.code}</span>}
+                  meta={TABLE_FIELDS[kind]
+                    .filter((f) => f !== 'name' && p[f])
+                    .map((f) => (
+                      <span key={f}>
+                        {FIELD_LABELS[f]}: <span className="text-foreground">{p[f]}</span>
+                      </span>
+                    ))}
+                  actions={[
+                    { label: 'Edit', icon: <IconPencil />, onSelect: () => setEditing(p) },
+                    { label: p.hasPhoto ? 'Change photo' : 'Add photo', icon: <IconCamera />, onSelect: () => setPhotoFor(p._id) },
+                    { label: 'Remove', icon: <IconTrash />, destructive: true, onSelect: () => remove(p) },
+                  ]}
+                />
+              ))}
+            </MobileList>
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -406,6 +439,7 @@ export default function InstitutionRosterPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </Card>
         </>
       )}

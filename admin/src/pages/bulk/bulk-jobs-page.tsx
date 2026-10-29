@@ -1,5 +1,6 @@
 import { IconFileSpreadsheet } from '@tabler/icons-react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { Pagination } from '@/components/common/pagination';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { Card } from '@/components/ui/card';
@@ -50,6 +51,24 @@ export default function BulkJobsPage() {
             </div>
           ) : data?.items.length ? (
             <>
+              <MobileList>
+                {data.items.map((j) => (
+                  <MobileRow
+                    key={j._id}
+                    to={`/bulk-jobs/${j._id}`}
+                    title={j.institution?.name ?? '—'}
+                    subtitle={`${CARD_KIND_LABEL[j.kind]}${j.template?.name ? ` · ${j.template.name}` : ''}`}
+                    trailing={<BulkStatusBadge status={j.status} />}
+                    meta={
+                      <span className="tabular-nums">
+                        {formatNumber(j.report.validRows)}/{formatNumber(j.report.rows)} rows valid
+                        {j.order?.orderNumber && <span className="font-mono"> · {j.order.orderNumber}</span>} · {formatDate(j.createdAt, 'en', true)}
+                      </span>
+                    }
+                  />
+                ))}
+              </MobileList>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -81,6 +100,7 @@ export default function BulkJobsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               <Pagination
                 page={data.page}
                 pages={data.pages}

@@ -257,7 +257,7 @@ export default function OrderDetailPage() {
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 *:min-w-0 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
           {order.audience === 'institution' &&
             order.items.map((item) => <DataSheetCard key={item._id} order={order} item={item} />)}

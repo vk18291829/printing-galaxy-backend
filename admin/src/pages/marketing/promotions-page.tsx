@@ -1,6 +1,7 @@
 import { IconAlertTriangle, IconMail, IconMessage2, IconPlus, IconSend, IconTestPipe, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { LinkPicker } from '@/components/common/link-picker';
 import { EmptyState, ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
@@ -369,6 +370,29 @@ function CampaignHistory() {
       ) : !campaigns.data?.length ? (
         <p className="p-5 text-sm text-muted-foreground">Nothing sent yet.</p>
       ) : (
+        <>
+        <MobileList>
+          {campaigns.data.map((c) => (
+            <MobileRow
+              key={c._id}
+              leading={c.channel === 'email' ? <IconMail className="mt-0.5 size-4 text-muted-foreground" /> : <IconMessage2 className="mt-0.5 size-4 text-muted-foreground" />}
+              title={c.title}
+              subtitle={`${formatDate(c.createdAt, 'en', true)}${c.createdBy?.name ? ` · ${c.createdBy.name}` : ''}`}
+              trailing={<Badge variant={STATUS[c.status].variant}>{STATUS[c.status].label}</Badge>}
+              meta={
+                <div className="w-full space-y-1">
+                  <p className="line-clamp-2">{c.text}</p>
+                  <p className="tabular-nums">
+                    Reached {formatNumber(c.sent)} / {formatNumber(c.total)}
+                    {c.failed > 0 && <span className="text-destructive"> · {formatNumber(c.failed)} failed</span>}
+                  </p>
+                  {c.error && <p className="line-clamp-2 text-destructive">{c.error}</p>}
+                </div>
+              }
+            />
+          ))}
+        </MobileList>
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -404,6 +428,8 @@ function CampaignHistory() {
             ))}
           </TableBody>
         </Table>
+        </div>
+        </>
       )}
     </Card>
   );

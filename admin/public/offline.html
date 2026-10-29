@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b2a65" />
+    <title>Offline · Printing Galaxy Admin</title>
+    <style>
+      :root { color-scheme: light; --bg: #f5f7fb; --card: #fff; --fg: #0b1b3f; --muted: #5a6a88; --brand: #0b2a65; --border: #dfe5ef; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', 'Noto Sans Devanagari', sans-serif; }
+      main { width: 100%; max-width: 440px; background: var(--card); border-radius: 12px; padding: 28px 24px; border: 1px solid var(--border); }
+      .strip { height: 4px; border-radius: 4px; margin-bottom: 20px; background: linear-gradient(90deg, #00acfa 0 25%, #f91570 25% 50%, #fc9a01 50% 75%, #0b2a65 75%); }
+      img { width: 56px; height: 56px; }
+      h1 { font-size: 22px; margin: 12px 0 4px; }
+      p { margin: 0 0 12px; color: var(--muted); }
+      .counter { border: 1px dashed color-mix(in srgb, var(--muted) 40%, transparent); border-radius: 10px; padding: 14px; margin: 16px 0; }
+      .counter strong { color: var(--fg); display: block; margin-bottom: 4px; }
+      a { color: var(--brand); font-weight: 600; }
+      button { margin-top: 8px; width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--brand); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="strip"></div>
+      <img src="/logo-mark.png?v=3" alt="" />
+      <h1>You are offline</h1>
+      <p>The admin panel needs the internet to load orders, prices and payments, so nothing is shown from memory. Check the shop Wi-Fi or mobile data.</p>
+      <div class="counter">
+        <strong>Taking an order at the counter?</strong>
+        Note it on paper and enter it as a walk-in order once you are back online.
+      </div>
+      <button onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

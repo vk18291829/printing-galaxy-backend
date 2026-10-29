@@ -1,5 +1,6 @@
 import { IconHistory } from '@tabler/icons-react';
 import { useState } from 'react';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { Pagination } from '@/components/common/pagination';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,21 @@ export default function AuditPage() {
             </div>
           ) : data?.items.length ? (
             <>
+              <MobileList>
+                {data.items.map((e) => (
+                  <MobileRow
+                    key={e._id}
+                    title={<span className="font-medium whitespace-normal">{e.summary ?? e.entity}</span>}
+                    subtitle={`${e.actorName ?? 'System'}${e.actor?.role ? ` · ${e.actor.role}` : ''} · ${formatDate(e.createdAt, 'en', true)}`}
+                    meta={
+                      <Badge variant="outline" className="font-mono text-[11px]">
+                        {e.action}
+                      </Badge>
+                    }
+                  />
+                ))}
+              </MobileList>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -89,6 +105,7 @@ export default function AuditPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               <Pagination page={data.page} pages={data.pages} total={data.total} onPage={setPage} />
             </>
           ) : (

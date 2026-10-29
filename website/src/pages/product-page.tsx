@@ -31,6 +31,7 @@ import { sectionOf, useProduct, useQuote, type QuoteInput } from '@/features/cat
 import { OptionPicker } from '@/features/catalog/components/option-picker';
 import { ProductGallery } from '@/features/catalog/components/product-gallery';
 import { PriceTierTable } from '@/features/catalog/components/price-tier-table';
+import { RangeRails } from '@/features/catalog/components/range-rails';
 import { RelatedProducts } from '@/features/catalog/components/related-products';
 import { useCartStore, type CartFile } from '@/features/cart/cart-store';
 import { CardCropUploader } from '@/features/crop/card-crop-uploader';
@@ -577,6 +578,7 @@ export default function ProductPage() {
         <>
           <ProductReviews slug={product.slug} />
           <RelatedProducts product={product} />
+          <RangeRails product={product} />
         </>
       )}
 

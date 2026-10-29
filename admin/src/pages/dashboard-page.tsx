@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { ErrorState, PageHeader, PageLoader } from '@/components/common/states';
 import { ORDER_STATUS_LABEL, OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
@@ -153,6 +154,24 @@ export default function DashboardPage() {
               </Link>
             </Button>
           </CardHeader>
+          <MobileList className="border-t">
+            {data.recentOrders.map((o) => (
+              <MobileRow
+                key={o._id}
+                to={`/orders/${o._id}`}
+                title={<span className="font-mono">{o.orderNumber}</span>}
+                subtitle={`${o.contact?.name || '—'} · ${o.audience === 'institution' ? 'Institution' : o.source === 'walk_in' ? 'Walk-in' : 'Online'} · ${formatDate(o.createdAt, 'en', true)}`}
+                trailing={<span className="font-semibold tabular-nums">{formatINR(o.totals.total)}</span>}
+                meta={
+                  <>
+                    <OrderStatusBadge status={o.status} />
+                    <PaymentStatusBadge status={o.payment.status} />
+                  </>
+                }
+              />
+            ))}
+          </MobileList>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -186,6 +205,7 @@ export default function DashboardPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </Card>
 
         <div className="space-y-6">

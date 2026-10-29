@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cachedShop, usePublicSettings } from '@/features/settings/api';
+import i18n from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -14,6 +16,16 @@ interface BeforeInstallPromptEvent extends Event {
 let deferred: BeforeInstallPromptEvent | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
+
+/** A new release is running in the background: offer a reload so this screen picks it up. */
+function announceUpdate() {
+  toast(i18n.t('pwa.updateTitle'), {
+    id: 'app-update',
+    description: i18n.t('pwa.updateDesc'),
+    duration: Infinity,
+    action: { label: i18n.t('pwa.reload'), onClick: () => window.location.reload() },
+  });
+}
 
 /** Registers the service worker (production only, so development never serves stale files). */
 export function registerServiceWorker() {
@@ -28,7 +40,20 @@ export function registerServiceWorker() {
     notify();
   });
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+    window.addEventListener('load', () => {
+      // A worker already in charge means the next takeover is a new release, not the first install.
+      const updating = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker.addEventListener('controllerchange', () => updating && announceUpdate());
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          // The installed app can stay open for days: look for a release whenever it comes back to the front.
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') void registration.update().catch(() => undefined);
+          });
+        })
+        .catch(() => undefined);
+    });
   }
 }
 
@@ -82,7 +107,9 @@ export function InstallAppButton({ className, variant = 'button' }: { className?
           title={t('pwa.installDesc')}
           onClick={() => void install()}
         >
-          <IconDeviceMobileDown /> {variant === 'pill' ? t('pwa.getApp') : t('pwa.install')}
+          <IconDeviceMobileDown />
+          {/* On the narrowest phones the header pill is just the icon, so it never covers the logo. */}
+          <span className={cn(variant === 'pill' && 'max-[359px]:sr-only')}>{variant === 'pill' ? t('pwa.getApp') : t('pwa.install')}</span>
         </Button>
       )}
 

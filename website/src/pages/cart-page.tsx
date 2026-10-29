@@ -242,14 +242,14 @@ export default function CartPage() {
         <Steps />
       </div>
 
-      <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
+      <div className="grid items-start gap-6 *:min-w-0 md:grid-cols-[minmax(0,1fr)_300px] lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
         <ul className="divide-y overflow-hidden rounded-2xl shadow-card bg-card">
           {lines.map(({ item, quote, amount }) => (
             <Line key={item.id} item={item} quote={quote} amount={amount} />
           ))}
         </ul>
 
-        <aside className="space-y-4 lg:sticky lg:top-32">
+        <aside className="space-y-4 md:sticky md:top-32">
           <div className="space-y-4 rounded-2xl shadow-card bg-card p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('cart.summary')}</h2>

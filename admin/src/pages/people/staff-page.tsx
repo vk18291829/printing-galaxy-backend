@@ -1,6 +1,7 @@
 import { IconCheck, IconPencil, IconUserPlus } from '@tabler/icons-react';
 import { useState } from 'react';
 import { confirmAction } from '@/components/common/confirm-dialog';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { ErrorState, PageHeader, PageLoader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -167,6 +168,32 @@ export default function StaffPage() {
         }
       />
       <Card className="gap-0 py-0">
+        <MobileList>
+          {data?.map((s) => (
+            <MobileRow
+              key={s._id}
+              onClick={() => setEditing(s)}
+              title={
+                <p>
+                  {s.name} {s._id === me && <span className="text-xs font-normal text-muted-foreground">(you)</span>}
+                </p>
+              }
+              subtitle={`${s.email} · last sign-in ${s.lastLoginAt ? formatDate(s.lastLoginAt, 'en', true) : 'never'}`}
+              trailing={s.isActive ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}
+              meta={
+                <>
+                  <Badge variant={s.role === 'admin' ? 'soft' : 'outline'}>{ROLE_LABEL[s.role as Role]}</Badge>
+                  {s.role === 'staff' &&
+                    (s.staffRoles as StaffRole[] | undefined)?.map((r) => (
+                      <Badge key={r} variant="secondary">{STAFF_ROLE_INFO[r]?.label ?? r}</Badge>
+                    ))}
+                </>
+              }
+              actions={[{ label: 'Edit staff member', icon: <IconPencil />, onSelect: () => setEditing(s) }]}
+            />
+          ))}
+        </MobileList>
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -206,6 +233,7 @@ export default function StaffPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </Card>
       {editing && <StaffDialog member={editing} onClose={() => setEditing(null)} />}
     </div>

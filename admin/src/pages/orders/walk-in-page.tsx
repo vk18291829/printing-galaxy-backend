@@ -565,7 +565,7 @@ export default function WalkInPage() {
           </Card>
         </div>
 
-        <Card className="xl:sticky xl:top-24 xl:self-start">
+        <Card id="walkin-summary" className="scroll-mt-20 xl:sticky xl:top-24 xl:self-start">
           <CardHeader>
             <CardTitle>Summary</CardTitle>
           </CardHeader>
@@ -666,6 +666,23 @@ export default function WalkInPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Below 1280px the summary sits under the items: the running total stays in view, and one tap
+          goes to the summary to take the payment and create the order. */}
+      {active.length > 0 && (
+        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mt-4 flex items-center gap-3 rounded-xl border bg-card/95 px-4 py-2.5 backdrop-blur-xl md:bottom-3 xl:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">
+              {active.length} item{active.length > 1 ? 's' : ''}
+              {filesMissing.length > 0 && <span className="text-destructive"> · file needed</span>}
+            </p>
+            <p className="text-lg font-bold tabular-nums">{formatINR(total)}</p>
+          </div>
+          <Button onClick={() => document.getElementById('walkin-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <IconReceipt /> Review &amp; pay
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

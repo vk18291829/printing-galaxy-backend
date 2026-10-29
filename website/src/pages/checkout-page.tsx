@@ -294,7 +294,7 @@ export default function CheckoutPage() {
           ))}
         </ol>
       </div>
-      <div className="grid gap-8 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-8 *:min-w-0 md:grid-cols-[minmax(0,1fr)_300px] md:gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
         {step === 'review' ? (
           <OrderReview
             lines={lines}
@@ -337,7 +337,7 @@ export default function CheckoutPage() {
               <CardTitle>{t('checkout.fulfilment')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2" role="radiogroup">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2" role="radiogroup">
                 <ChoiceCard
                   selected={method === 'pickup'}
                   onSelect={() => setMethod('pickup')}
@@ -406,7 +406,7 @@ export default function CheckoutPage() {
                 </Alert>
               ) : (
                 // Only the methods the shop offers right now; a switched-off one is not shown at all.
-                <div className={cn('grid gap-3', onlineAllowed && counterAllowed && 'sm:grid-cols-2')} role="radiogroup">
+                <div className={cn('grid gap-3', onlineAllowed && counterAllowed && 'sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2')} role="radiogroup">
                   {onlineAllowed && (
                     <ChoiceCard
                       selected={paymentMethod === 'online'}
@@ -464,7 +464,7 @@ export default function CheckoutPage() {
         </div>
         )}
 
-        <aside className="lg:sticky lg:top-32 lg:self-start">
+        <aside className="md:sticky md:top-32 md:self-start">
           <Card>
             <CardHeader>
               <CardTitle>{t('cart.summary')}</CardTitle>

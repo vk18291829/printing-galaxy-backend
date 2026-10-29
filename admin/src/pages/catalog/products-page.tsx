@@ -1,8 +1,9 @@
-import { IconPencil, IconPlus, IconSearch, IconTagsOff } from '@tabler/icons-react';
+import { IconEye, IconEyeOff, IconPencil, IconPlus, IconSearch, IconTagsOff } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { confirmAction } from '@/components/common/confirm-dialog';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
+import { MobileList, MobileRow } from '@/components/common/mobile-list';
 import { EmptyState, ErrorState, PageHeader, Spinner } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -106,6 +107,45 @@ export default function ProductsPage() {
               <Spinner />
             </div>
           ) : data?.length ? (
+            <>
+            <MobileList>
+              {data.map((p) => (
+                <MobileRow
+                  key={p._id}
+                  to={`/products/${p._id}`}
+                  leading={
+                    <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                      <DynamicIcon name={p.icon} className="size-5" />
+                    </span>
+                  }
+                  title={en(p.name)}
+                  subtitle={`${en(p.category?.name)}${p.isFeatured ? ' · ★ featured' : ''}`}
+                  trailing={!p.isActive && <Badge variant="secondary">Hidden</Badge>}
+                  meta={
+                    <div className="grid w-full grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <p className="text-[11px] font-medium">Individual</p>
+                        <BookSummary book={p.pricing.retail} unit={p.unit} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-medium">Institution</p>
+                        <BookSummary book={p.pricing.institution} unit={p.unit} />
+                      </div>
+                      <div className="col-span-2">
+                        <Completeness product={p} />
+                      </div>
+                    </div>
+                  }
+                  actions={[
+                    { label: 'Edit product', icon: <IconPencil />, onSelect: () => navigate(`/products/${p._id}`) },
+                    p.isActive
+                      ? { label: 'Hide from website', icon: <IconEyeOff />, onSelect: () => setActive(p, false) }
+                      : { label: 'Show on website', icon: <IconEye />, onSelect: () => setActive(p, true) },
+                  ]}
+                />
+              ))}
+            </MobileList>
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -158,6 +198,8 @@ export default function ProductsPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           ) : (
             <EmptyState icon={<IconTagsOff />} title="No products" />
           )}
