@@ -26,8 +26,14 @@ export function PageNav({ items, className }: { items: Crumb[]; className?: stri
   return (
     <div className={cn('mb-6', className)}>
       {parent?.to && (
-        <Link to={parent.to} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground lg:hidden">
-          <IconArrowLeft className="size-4" /> {parent.label}
+        <Link
+          to={parent.to}
+          className="group inline-flex h-9 items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-3.5 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+        >
+          <span className="grid size-7 place-items-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+            <IconArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+          </span>
+          {parent.label}
         </Link>
       )}
       <Breadcrumb className="hidden lg:block">
