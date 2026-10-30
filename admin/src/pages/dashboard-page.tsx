@@ -29,14 +29,14 @@ import { en } from '@/lib/l10n';
 import { cn } from '@/lib/utils';
 import type { OrderSegment } from '@/types/api';
 
-/** One number in the navy welcome band; a link when there is a list behind it. */
+/** One number in the welcome band; a link when there is a list behind it. */
 function StatTile({ icon, label, value, sub, to }: { icon: ReactNode; label: string; value: string; sub?: string; to?: string }) {
   const body = (
-    <div className="flex h-full items-start justify-between gap-3 rounded-2xl bg-white/8 p-3.5 ring-1 ring-white/10 transition-colors hover:bg-white/12 sm:p-5">
+    <div className="flex h-full items-start justify-between gap-3 rounded-2xl bg-card p-3.5 ring-1 ring-border transition-colors hover:ring-primary/30 sm:p-5">
       <div className="min-w-0 space-y-1">
-        <p className="text-sm text-white/65">{label}</p>
-        <p className="truncate text-xl font-bold tracking-tight text-white tabular-nums sm:text-2xl">{value}</p>
-        {sub && <p className="truncate text-xs text-white/55">{sub}</p>}
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="truncate text-xl font-bold tracking-tight text-brand-navy tabular-nums sm:text-2xl dark:text-foreground">{value}</p>
+        {sub && <p className="truncate text-xs text-muted-foreground">{sub}</p>}
       </div>
       <span className="hidden size-10 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy sm:grid [&_svg]:size-5">{icon}</span>
     </div>
@@ -74,17 +74,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="navy-panel rounded-3xl p-5 sm:p-7">
+      <section className="light-band rounded-3xl p-5 sm:p-7">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold tracking-[0.14em] text-white/55 uppercase">
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-primary/70 uppercase">
               {new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' }).format(new Date())}
             </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl dark:text-foreground">
               {greeting()}
               {firstName ? `, ${firstName}` : ''}
             </h1>
-            <p className="mt-1 text-sm text-white/65">Today at a glance.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Today at a glance.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                 <IconReceipt /> New walk-in order
               </Link>
             </Button>
-            <Button variant="outline" className="border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white" asChild>
+            <Button variant="outline" className="bg-card" asChild>
               <Link to="/orders?active=true">
                 <IconPackage /> Open orders
               </Link>

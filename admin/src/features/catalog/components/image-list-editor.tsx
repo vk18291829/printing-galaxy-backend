@@ -2,6 +2,7 @@ import { IconChevronLeft, IconChevronRight, IconPhotoPlus, IconStar, IconX } fro
 import axios from 'axios';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { api, getErrorMessage } from '@/lib/api-client';
@@ -90,7 +91,9 @@ export function ImageListEditor({ value, onChange, max }: { value: string[]; onC
                   </Button>
                 )}
               </div>
-              <Button type="button" size="icon-sm" variant="destructive" className="size-7" aria-label="Remove image" onClick={() => onChange(value.filter((_, j) => j !== i))}>
+              <Button type="button" size="icon-sm" variant="destructive" className="size-7" aria-label="Remove image" onClick={() =>
+                void confirmAction({ tone: 'danger', title: 'Remove this image?', description: 'It is taken off the product when you save.', confirmLabel: 'Remove' }).then((ok) => ok && onChange(value.filter((_, j) => j !== i)))
+              }>
                 <IconX />
               </Button>
             </div>

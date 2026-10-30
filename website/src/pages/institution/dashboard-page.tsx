@@ -34,14 +34,14 @@ import { useLocalized } from '@/lib/i18n';
 /** Five products plus a sixth tile that opens the full list. */
 const QUICK_PICKS = 5;
 
-/** One number in the navy welcome band. */
+/** One number in the welcome band. */
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white/8 p-4 ring-1 ring-white/10">
+    <div className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-amber text-brand-navy [&_svg]:size-5">{icon}</span>
       <div className="min-w-0">
-        <p className="truncate text-xs text-white/65">{label}</p>
-        <p className="truncate text-xl font-bold text-white">{value}</p>
+        <p className="truncate text-xs text-muted-foreground">{label}</p>
+        <p className="truncate text-xl font-bold text-brand-navy">{value}</p>
       </div>
     </div>
   );

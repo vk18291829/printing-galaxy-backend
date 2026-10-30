@@ -90,9 +90,13 @@ export function ProductCard({ product, section }: { product: Product; index?: nu
           <ProductImage product={product} />
         </div>
         {!forSchools && (
-          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground backdrop-blur">
-            <IconClock className="size-3" />
-            {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
+          // How long printing takes, worded so it reads on its own: "Ready in 2 days".
+          <span
+            className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-card/95 px-2.5 py-1 text-[11px] font-semibold text-brand-navy ring-1 ring-border backdrop-blur"
+            title={t('product.turnaroundHint')}
+          >
+            <IconClock className="size-3.5 text-primary" />
+            {product.leadTimeDays === 0 ? t('products.readySameDay') : t('products.readyIn', { count: product.leadTimeDays })}
           </span>
         )}
       </div>

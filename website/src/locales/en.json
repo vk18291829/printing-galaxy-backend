@@ -223,7 +223,10 @@
     "startingAt": "Starting at",
     "orderNow": "Order now",
     "forSchools": "For schools & colleges",
-    "viewDetails": "View details"
+    "viewDetails": "View details",
+    "readyIn_one": "Ready in {{count}} day",
+    "readyIn_other": "Ready in {{count}} days",
+    "readySameDay": "Ready same day"
   },
   "product": {
     "priceByQuantity": "Price by quantity",
@@ -294,7 +297,14 @@
     "whatsappMessage": "Hi, I have a question about {{product}}.",
     "schoolStep1": "Institution prices for bulk orders",
     "schoolStep2": "Design proof to approve before printing",
-    "schoolStep3": "Student list with photos, delivered to your campus"
+    "schoolStep3": "Student list with photos, delivered to your campus",
+    "turnaroundLabel": "Printing time",
+    "readyIn_one": "Ready in {{count}} working day",
+    "readyIn_other": "Ready in {{count}} working days",
+    "readySameDay": "Ready the same day",
+    "turnaroundHint": "Counted from when your order is confirmed (and the design approved, if there is one).",
+    "proofFirstTitle": "You approve the design before we print",
+    "proofFirstDesc": "We'll send you a proof to check. Printing starts only after you approve it, and you can ask for changes."
   },
   "upload": {
     "drop": "Tap to upload or drag files here",
@@ -308,7 +318,9 @@
     "typeNotAllowed": "This file type is not accepted here",
     "tooLarge": "File is too large",
     "maxFiles": "You can add up to {{count}} files",
-    "maxShort": "{{done}}/{{count}} files"
+    "maxShort": "{{done}}/{{count}} files",
+    "uploaded": "Uploaded",
+    "addAnother": "Upload another file"
   },
   "pricing": {
     "individual": "Individuals",
@@ -583,7 +595,12 @@
       "Secure UPI and card payments",
       "Proof approval before personalised printing",
       "Pick up at the shop or home delivery"
-    ]
+    ],
+    "editDescAll": "Change the options, quantity, files or instructions for this item.",
+    "editOptions": "Options",
+    "editQuantity": "Quantity",
+    "quickPick": "Quick pick",
+    "needFile": "This item needs at least one file."
   },
   "checkout": {
     "receiveLabel": "Pickup or delivery",
@@ -981,7 +998,19 @@
     "placeOrderQuote": "We'll confirm the price before you pay.",
     "reviewTitle": "Submit your review?",
     "reviewDesc": "It appears on the product page after our team approves it.",
-    "reviewSubmitted": "Review submitted"
+    "reviewSubmitted": "Review submitted",
+    "removeFileTitle": "Remove this file?",
+    "removeFileDesc": "{{name}} will be removed from this item.",
+    "removeSideDesc": "The {{side}} you uploaded will be removed.",
+    "removePhotoTitle": "Remove your profile photo?",
+    "removePhotoDesc": "Your initials show instead. You can add a photo again any time.",
+    "revokeLinkTitle": "Stop this link?",
+    "revokeLinkDesc": "“{{label}}” will stop working. Photos already taken are kept.",
+    "removeItemTitle": "Remove {{name}} from your cart?",
+    "removeItemDesc": "Its options and instructions are removed too.",
+    "removeItemDescFiles": "Its options, instructions and uploaded files are removed too.",
+    "saveItemTitle": "Save changes to {{name}}?",
+    "saveItemDesc": "The new options, quantity, files and instructions replace the old ones."
   },
   "track": {
     "title": "Track your order",
@@ -999,7 +1028,11 @@
     "signIn": "Sign in",
     "subtitleEmail": "No account needed. Enter your order number and the email address used for the order.",
     "email": "Email address",
-    "codeSentEmail": "If the details match an order, we've emailed a 6-digit code to {{email}}."
+    "codeSentEmail": "If the details match an order, we've emailed a 6-digit code to {{email}}.",
+    "howTitle": "How tracking works",
+    "how1": "Enter your order number and the email or mobile number used for the order.",
+    "how2": "We send you a 6-digit code to confirm it is you.",
+    "how3": "See where your order is, step by step."
   },
   "legal": {
     "updated": "Last updated: {{date}}",

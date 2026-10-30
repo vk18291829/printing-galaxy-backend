@@ -1,6 +1,7 @@
 import { IconPlayerPlayFilled, IconUpload, IconX } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,9 @@ export function VideoEditor({ value, onChange }: { value: string; onChange: (url
           {uploading ? <Spinner className="size-4" /> : <IconUpload />} Upload
         </Button>
         {value && (
-          <Button type="button" variant="ghost" size="icon" onClick={() => onChange('')} aria-label="Remove video">
+          <Button type="button" variant="ghost" size="icon" onClick={() =>
+                void confirmAction({ tone: 'danger', title: 'Remove this video?', description: 'It is taken off the product when you save.', confirmLabel: 'Remove' }).then((ok) => ok && onChange(''))
+              } aria-label="Remove video">
             <IconX />
           </Button>
         )}

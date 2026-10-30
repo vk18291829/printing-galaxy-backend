@@ -1005,20 +1005,20 @@ function QuantityStep({
           </div>
 
           {/* The price at a glance: a band under the choice, laid out in a row when there is room. */}
-          <div className="navy-panel flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8" aria-live="polite">
+          <div className="light-band flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8" aria-live="polite">
             {priced ? (
               <>
                 <div className="sm:mr-auto">
-                  <p className="text-sm text-white/65">Total for this item</p>
-                  <p className="mt-1 text-3xl font-bold tracking-tight text-white tabular-nums">{formatINR(quote.subtotal)}</p>
+                  <p className="text-sm text-muted-foreground">Total for this item</p>
+                  <p className="mt-1 text-3xl font-bold tracking-tight text-brand-navy tabular-nums dark:text-foreground">{formatINR(quote.subtotal)}</p>
                 </div>
                 <dl className="space-y-2 text-sm sm:min-w-44">
                   <div className="flex justify-between gap-3">
-                    <dt className="text-white/65">Per {unit(1)}</dt>
+                    <dt className="text-muted-foreground">Per {unit(1)}</dt>
                     <dd className="font-semibold tabular-nums">{formatINR(quote.unitPrice)}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-white/65">Quantity</dt>
+                    <dt className="text-muted-foreground">Quantity</dt>
                     <dd className="font-semibold tabular-nums">
                       {formatNumber(quote.units)} {unit(quote.units)}
                     </dd>
@@ -1028,20 +1028,20 @@ function QuantityStep({
                   <button
                     type="button"
                     onClick={() => setQuantity(nextTier.minQty)}
-                    className="rounded-xl bg-brand-amber/15 px-3.5 py-2.5 text-left text-sm text-white ring-1 ring-brand-amber/40 transition-colors hover:bg-brand-amber/25 sm:max-w-60"
+                    className="rounded-xl bg-brand-amber/15 px-3.5 py-2.5 text-left text-sm text-foreground ring-1 ring-brand-amber/50 transition-colors hover:bg-brand-amber/25 sm:max-w-60"
                   >
                     Add <span className="font-bold tabular-nums">{formatNumber(nextTier.minQty - quote.units)}</span> more to pay{' '}
-                    <span className="font-bold text-brand-amber tabular-nums">{formatINR(nextTier.unitPrice + delta)}</span> each
+                    <span className="font-bold text-amber-700 tabular-nums">{formatINR(nextTier.unitPrice + delta)}</span> each
                   </button>
                 ) : (
                   activeTier &&
-                  tiers.length > 1 && <p className="rounded-xl bg-white/8 px-3.5 py-2.5 text-sm text-white/80">Best price break reached.</p>
+                  tiers.length > 1 && <p className="rounded-xl bg-card px-3.5 py-2.5 text-sm text-muted-foreground">Best price break reached.</p>
                 )}
               </>
             ) : (
               <div className="w-full py-4 text-center">
-                <p className="font-semibold text-white">{quote?.requiresQuote ? 'Priced on request' : 'Set the quantity'}</p>
-                <p className="mt-1 text-sm text-white/65">
+                <p className="font-semibold text-foreground">{quote?.requiresQuote ? 'Priced on request' : 'Set the quantity'}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {quote?.requiresQuote ? 'The shop sets the price for this item.' : 'The price shows here as soon as it is valid.'}
                 </p>
               </div>

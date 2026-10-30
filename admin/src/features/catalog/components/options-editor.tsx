@@ -1,5 +1,6 @@
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { Controller, useFieldArray, type Control, type UseFormRegister } from 'react-hook-form';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,9 @@ function OptionValues({ control, register, index }: { control: Control<ProductFo
               </label>
             )}
           />
-          <Button type="button" variant="danger" size="icon" className="size-8" onClick={() => values.remove(vi)} aria-label="Remove choice">
+          <Button type="button" variant="danger" size="icon" className="size-8" onClick={() =>
+                void confirmAction({ tone: 'danger', title: 'Remove this choice?', description: 'Customers can no longer pick it once you save the product.', confirmLabel: 'Remove' }).then((ok) => ok && values.remove(vi))
+              } aria-label="Remove choice">
             <IconTrash className="size-4" />
           </Button>
         </div>
@@ -70,7 +73,9 @@ export function OptionsEditor({ control, register }: { control: Control<ProductF
             <Input placeholder="key (e.g. paperSize)" {...register(`options.${i}.key`)} />
             <Input placeholder="Option name (EN)" {...register(`options.${i}.label.en`)} />
             <Input placeholder="विकल्प का नाम (HI)" {...register(`options.${i}.label.hi`)} />
-            <Button type="button" variant="danger" size="icon" onClick={() => options.remove(i)} aria-label="Remove option">
+            <Button type="button" variant="danger" size="icon" onClick={() =>
+                void confirmAction({ tone: 'danger', title: 'Remove this option?', description: 'The option and all its choices are removed when you save the product.', confirmLabel: 'Remove' }).then((ok) => ok && options.remove(i))
+              } aria-label="Remove option">
               <IconTrash className="size-4" />
             </Button>
           </div>

@@ -120,7 +120,7 @@ export default function OrderDetailPage() {
             <span>{t('orders.placedOn', { date: formatDate(order.createdAt, i18n.language, true) })}</span>
             {order.reference && (
               <span>
-                · {t('orders.reference')}: <span className="font-mono font-medium text-white">{order.reference}</span>
+                · {t('orders.reference')}: <span className="font-mono font-medium text-foreground">{order.reference}</span>
               </span>
             )}
           </div>

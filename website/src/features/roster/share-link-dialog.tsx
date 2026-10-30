@@ -2,6 +2,7 @@ import { IconBrandWhatsapp, IconCopy, IconLink, IconTrash } from '@tabler/icons-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -93,7 +94,15 @@ export function ShareLinkDialog({ kind, cls, section, onClose }: { kind: PersonK
                       {t('photoLink.linkInfo', { count: l.photosTaken, date: formatDate(l.expiresAt, i18n.language) })}
                     </span>
                   </span>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => revoke.mutate(l._id)} disabled={revoke.isPending}>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() =>
+                      void confirmAction({
+                        tone: 'danger',
+                        title: t('confirm.revokeLinkTitle'),
+                        description: t('confirm.revokeLinkDesc', { label: l.label }),
+                        confirmLabel: t('photoLink.revoke'),
+                        action: () => revoke.mutateAsync(l._id),
+                      })
+                    } disabled={revoke.isPending}>
                     <IconTrash /> {t('photoLink.revoke')}
                   </Button>
                 </li>

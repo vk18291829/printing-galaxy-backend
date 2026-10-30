@@ -540,10 +540,18 @@ export default function WalkInPage() {
                       line={line}
                       product={productMap.get(line.productId)!}
                       onChange={(next) => setLines((ls) => ls.map((l) => (l.key === line.key ? next : l)))}
-                      onRemove={() => {
-                        line.files.forEach((f) => void deleteUpload(f.id));
-                        setLines((ls) => ls.filter((l) => l.key !== line.key));
-                      }}
+                      onRemove={() =>
+                        void confirmAction({
+                          tone: 'danger',
+                          title: `Remove ${en(productMap.get(line.productId)?.name)}?`,
+                          description: line.files.length ? 'Its options and uploaded files are removed from this order.' : 'It is removed from this order.',
+                          confirmLabel: 'Remove',
+                        }).then((ok) => {
+                          if (!ok) return;
+                          line.files.forEach((f) => void deleteUpload(f.id));
+                          setLines((ls) => ls.filter((l) => l.key !== line.key));
+                        })
+                      }
                       onTotal={handleTotal}
                       design={designOf(line)}
                       onAddAnother={() => addAnother(line)}

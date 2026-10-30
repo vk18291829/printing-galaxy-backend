@@ -1,4 +1,4 @@
-import { IconPackage, IconRefresh, IconSearch, IconTruckDelivery } from '@tabler/icons-react';
+import { IconBuildingStore, IconPackage, IconRefresh, IconSearch, IconTruckDelivery } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status
 import { Spinner } from '@/components/common/states';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OtpInput } from '@/features/auth/components/otp-input';
@@ -20,7 +20,9 @@ import { useDocumentTitle } from '@/hooks/use-document-title';
 import { api, getErrorMessage } from '@/lib/api-client';
 import { formatDate, formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
-import type { LocalizedString, OrderStatus, PaymentStatus } from '@/types/api';
+import { cn } from '@/lib/utils';
+import { OrderTracking } from '@/features/orders/components/order-progress';
+import type { LocalizedString, Order, OrderStatus, PaymentStatus } from '@/types/api';
 
 interface TrackedOrder {
   orderNumber: string;
@@ -31,6 +33,18 @@ interface TrackedOrder {
   items: { productName: LocalizedString; quantity: number; units: number; unit: string }[];
   history: { status: OrderStatus; at: string }[];
   createdAt: string;
+}
+
+/** What the shared tracking steps read, from the smaller tracked-order reply. */
+function asOrder(o: TrackedOrder): Order {
+  const proof = o.history.some((h) => h.status === 'proof_sent' || h.status === 'approved');
+  return {
+    orderNumber: o.orderNumber,
+    status: o.status,
+    fulfilment: { method: o.fulfilment },
+    statusHistory: o.history,
+    items: [{ workflow: proof ? 'design' : 'standard', proofs: [] }],
+  } as unknown as Order;
 }
 
 /** Order status without an account: order number + email (or phone on the SMS channel), confirmed with a code. */
@@ -76,11 +90,12 @@ export default function TrackPage() {
   };
 
   return (
-    <div className="container-page max-w-2xl py-10">
+    <div className="container-page py-8 sm:py-10">
       <PageNav items={[{ label: t('track.title') }]} />
       <PageBanner className="mb-6" icon={<IconTruckDelivery />} title={t('track.title')} description={byEmail ? t('track.subtitleEmail') : t('track.subtitle')} />
 
       {step !== 'done' && (
+        <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Card>
           <CardContent className="pt-6">
             {step === 'lookup' ? (
@@ -153,59 +168,93 @@ export default function TrackPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* How it works, so first-time visitors know what the code is for. */}
+        <aside className="rounded-2xl border bg-card p-5 sm:p-6">
+          <p className="mb-4 font-semibold">{t('track.howTitle')}</p>
+          <ol className="space-y-4">
+            {(['how1', 'how2', 'how3'] as const).map((k, i) => (
+              <li key={k} className="flex gap-3">
+                <span
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold tabular-nums',
+                    (step === 'lookup' ? 0 : 1) === i ? 'bg-brand-amber text-brand-navy' : (step === 'lookup' ? 0 : 1) > i ? 'bg-brand-navy text-white' : 'bg-secondary text-primary',
+                  )}
+                >
+                  {i + 1}
+                </span>
+                <p className="pt-1 text-sm text-foreground/80">{t(`track.${k}`)}</p>
+              </li>
+            ))}
+          </ol>
+        </aside>
+        </div>
       )}
 
       {step === 'done' && order && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-xl">{order.orderNumber}</CardTitle>
-            <CardDescription>{t('track.placed', { date: formatDate(order.createdAt, i18n.language, true) })}</CardDescription>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <OrderStatusBadge status={order.status} />
-              <PaymentStatusBadge status={order.payment.status} />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ul className="divide-y rounded-lg shadow-card">
-              {order.items.map((item, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                  <span className="font-medium">{l(item.productName)}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {formatNumber(item.unit === 'page' ? item.units : item.quantity)} {t(`units.${item.unit}`, { count: item.unit === 'page' ? item.units : item.quantity })}
+        // Phones: order, then progress, then the rest. Wide screens: progress in its own column.
+        <div className="grid items-start gap-6 *:min-w-0 lg:grid-cols-[minmax(0,1fr)_400px]">
+            <section className="rounded-2xl border bg-card lg:col-start-1">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b p-5 sm:p-6">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold tracking-[0.14em] text-primary/70 uppercase">{t('orders.order')}</p>
+                  <p className="font-mono text-2xl font-bold text-brand-navy">{order.orderNumber}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{t('track.placed', { date: formatDate(order.createdAt, i18n.language, true) })}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <OrderStatusBadge status={order.status} />
+                  <PaymentStatusBadge status={order.payment.status} />
+                </div>
+              </div>
+              <ul className="divide-y">
+                {order.items.map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                      <IconPackage className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{l(item.productName)}</span>
+                    <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+                      {formatNumber(item.unit === 'page' ? item.units : item.quantity)} {t(`units.${item.unit}`, { count: item.unit === 'page' ? item.units : item.quantity })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="grid gap-3 border-t bg-muted/30 p-5 sm:grid-cols-2 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-card text-primary ring-1 ring-border">
+                    {order.fulfilment === 'delivery' ? <IconTruckDelivery className="size-5" /> : <IconBuildingStore className="size-5" />}
                   </span>
-                </li>
-              ))}
-              <li className="flex justify-between px-4 py-3 text-sm font-semibold">
-                <span>{t('orders.total')}</span>
-                <span className="tabular-nums">{formatINR(order.total)}</span>
-              </li>
-            </ul>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('orders.fulfilment')}</p>
+                    <p className="font-semibold">{order.fulfilment === 'delivery' ? t('checkout.delivery') : t('checkout.pickup')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-navy px-4 py-3 text-white sm:justify-self-end sm:min-w-56">
+                  <span className="text-sm text-white/75">{t('orders.total')}</span>
+                  <span className="text-xl font-bold tabular-nums">{formatINR(order.total)}</span>
+                </div>
+              </div>
+            </section>
 
-            <ol className="space-y-3 border-l-2 pl-5">
-              {order.history.map((h, i) => (
-                <li key={i} className="relative">
-                  <span className="absolute top-1.5 -left-[27px] size-3 rounded-full border-2 border-primary bg-background" />
-                  <p className="text-sm font-semibold">{t(`status.order.${h.status}`)}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(h.at, i18n.language, true)}</p>
-                </li>
-              ))}
-            </ol>
+          <section className="rounded-2xl border bg-card p-5 sm:p-6 lg:sticky lg:top-28 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <p className="mb-4 font-semibold">{t('orders.timeline')}</p>
+            <OrderTracking order={asOrder(order)} />
+          </section>
 
+          <div className="space-y-6 lg:col-start-1">
             {!signedIn && (
-              <Alert variant="info">
-                <AlertDescription className="flex flex-col gap-3 text-foreground sm:flex-row sm:items-center sm:justify-between">
-                  <span>{t('track.signInHint')}</span>
-                  <Button asChild size="sm">
-                    <Link to="/login">{t('track.signIn')}</Link>
-                  </Button>
-                </AlertDescription>
-              </Alert>
+              <div className="flex flex-col gap-3 rounded-2xl border border-brand-amber/50 bg-brand-amber/8 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <span className="text-sm">{t('track.signInHint')}</span>
+                <Button asChild size="sm" variant="brand">
+                  <Link to="/login">{t('track.signIn')}</Link>
+                </Button>
+              </div>
             )}
             <Button variant="outline" onClick={restart}>
               <IconRefresh /> {t('track.another')}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

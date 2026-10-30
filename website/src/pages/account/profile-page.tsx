@@ -85,18 +85,16 @@ function Section({
   );
 }
 
-/** The navy band at the top: photo, name, how to reach them, and shortcuts. */
+/** The light blue band at the top: photo, name, how to reach them, and shortcuts. */
 function ProfileHeader({ picture, name, lines }: { picture: ReactNode; name: string; lines: { icon: ReactNode; text: string }[] }) {
   const { t } = useTranslation();
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-brand-navy p-6 text-white sm:p-8">
-      <span aria-hidden className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-brand-cyan/25 blur-3xl" />
-      <span aria-hidden className="pointer-events-none absolute -bottom-28 left-1/3 size-64 rounded-full bg-brand-amber/20 blur-3xl" />
+    <div className="light-band rounded-3xl p-6 sm:p-8">
       <div className="relative flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
         {picture}
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold tracking-tight break-words sm:text-3xl">{name}</h1>
-          <ul className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-white/75 sm:justify-start">
+          <h1 className="text-2xl font-bold tracking-tight break-words text-brand-navy sm:text-3xl">{name}</h1>
+          <ul className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted-foreground sm:justify-start">
             {lines.map((l) => (
               <li key={l.text} className="flex min-w-0 items-center gap-1.5 [&_svg]:size-4 [&_svg]:shrink-0">
                 {l.icon} <span className="truncate">{l.text}</span>
@@ -105,10 +103,10 @@ function ProfileHeader({ picture, name, lines }: { picture: ReactNode; name: str
           </ul>
         </div>
         <div className="flex gap-2">
-          <Link to="/account/orders" className="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold transition-colors hover:bg-white/20">
+          <Link to="/account/orders" className="flex items-center gap-1.5 rounded-full bg-card px-4 py-2 text-sm font-semibold text-brand-navy ring-1 ring-border transition-colors hover:ring-primary/40">
             <IconPackage className="size-4" /> {t('nav.myOrders')}
           </Link>
-          <Link to="/account/updates" className="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold transition-colors hover:bg-white/20">
+          <Link to="/account/updates" className="flex items-center gap-1.5 rounded-full bg-card px-4 py-2 text-sm font-semibold text-brand-navy ring-1 ring-border transition-colors hover:ring-primary/40">
             <IconBell className="size-4" /> {t('nav.updates')}
           </Link>
         </div>
@@ -345,7 +343,7 @@ function InstitutionProfile({ institution }: { institution: Institution }) {
   return (
     <div className="space-y-6">
       <ProfileHeader
-        picture={<UserAvatar name={institution.name} src={institution.logoUrl} className="size-24 bg-white text-3xl text-brand-navy ring-4 ring-white/15 sm:size-28 [&_img]:object-contain [&_img]:p-2" />}
+        picture={<UserAvatar name={institution.name} src={institution.logoUrl} className="size-24 bg-white text-3xl text-brand-navy ring-4 ring-white sm:size-28 [&_img]:object-contain [&_img]:p-2" />}
         name={institution.name}
         lines={[
           { icon: <IconBuilding />, text: t(`auth.types.${institution.type}`) },

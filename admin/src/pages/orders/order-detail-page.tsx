@@ -1174,7 +1174,7 @@ function stagesOf(order: AdminOrder): { key: string; label: string; reached: Ord
 
 function Fact({ label, value, tone, sub }: { label: string; value: ReactNode; tone?: 'danger' | 'success'; sub?: ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl bg-white/8 px-3.5 py-3 ring-1 ring-white/10">
+    <div className="min-w-0 rounded-xl bg-card px-3.5 py-3 ring-1 ring-border">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={cn('truncate text-base font-bold tabular-nums', tone === 'danger' && 'text-destructive', tone === 'success' && 'text-success')}>{value}</p>
       {sub && <p className="truncate text-[11px] text-muted-foreground">{sub}</p>}
@@ -1190,17 +1190,17 @@ function OrderSummary({ order, onUpdate }: { order: AdminOrder; onUpdate: () => 
   const late = order.dueDate && !isClosed(order.status) && !['ready', 'out_for_delivery'].includes(order.status) && new Date(order.dueDate) < new Date(new Date().toDateString());
 
   return (
-    <section className="navy-panel rounded-3xl">
+    <section className="light-band rounded-3xl">
       <div className="space-y-6 p-5 sm:p-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
-            <p className="text-[11px] font-semibold tracking-[0.14em] text-white/55 uppercase">Order</p>
-            <h1 className="font-mono text-2xl font-bold tracking-tight text-white sm:text-3xl">{order.orderNumber}</h1>
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-primary/70 uppercase">Order</p>
+            <h1 className="font-mono text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl dark:text-foreground">{order.orderNumber}</h1>
             <div className="flex flex-wrap items-center gap-1.5">
               <OrderStatusBadge status={order.status} />
               <Badge variant="soft">{SEGMENT_LABEL[order.segment ?? (order.audience === 'institution' ? 'institution' : 'individual')]}</Badge>
               <Badge variant="outline">{order.source === 'walk_in' ? 'Walk-in' : 'Online'}</Badge>
-              <span className="text-sm text-white/65">Placed {formatDate(order.createdAt, 'en', true)}</span>
+              <span className="text-sm text-muted-foreground">Placed {formatDate(order.createdAt, 'en', true)}</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1212,7 +1212,7 @@ function OrderSummary({ order, onUpdate }: { order: AdminOrder; onUpdate: () => 
             {!['cancelled', 'quote_pending', 'quote_sent'].includes(order.status) && (
               <Button
                 variant="outline"
-                className="border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                className="bg-card"
                 onClick={() =>
                   void fetchFile(`/admin/orders/${order._id}/invoice`, { fallbackName: `${order.orderNumber}.pdf`, mode: 'open' }).catch((e) =>
                     toast.error(getErrorMessage(e)),
@@ -1231,15 +1231,15 @@ function OrderSummary({ order, onUpdate }: { order: AdminOrder; onUpdate: () => 
               const done = st.reached.includes(order.status);
               return (
                 <li key={st.key} className="min-w-0">
-                  <span className={cn('block h-1.5 rounded-full', done ? 'bg-brand-amber' : 'bg-white/15')} />
-                  <span className={cn('mt-1.5 block truncate text-[11px] font-medium sm:text-xs', done ? 'text-white' : 'text-white/50')}>{st.label}</span>
+                  <span className={cn('block h-1.5 rounded-full', done ? 'bg-brand-amber' : 'bg-primary/12')} />
+                  <span className={cn('mt-1.5 block truncate text-[11px] font-medium sm:text-xs', done ? 'text-foreground' : 'text-muted-foreground')}>{st.label}</span>
                 </li>
               );
             })}
           </ol>
         )}
         {cancelled && order.cancelReason && (
-          <p className="rounded-xl bg-white/10 px-3 py-2 text-sm text-destructive">Cancelled: {order.cancelReason}</p>
+          <p className="rounded-xl bg-destructive/8 px-3 py-2 text-sm text-destructive">Cancelled: {order.cancelReason}</p>
         )}
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">

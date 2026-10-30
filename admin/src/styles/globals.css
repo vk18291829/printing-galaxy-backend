@@ -369,3 +369,37 @@ h3 {
   --destructive: #dc2626;
   color: var(--foreground);
 }
+
+/* Page header bands: a soft light blue from the logo palette, with navy text and faint cyan and
+   amber glows in the corners. */
+.light-band {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(120deg, #e3edfb 0%, #eef4fd 55%, #e1f1fb 100%);
+  border: 1px solid #d2e0f3;
+  color: var(--foreground);
+}
+.light-band::before,
+.light-band::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(64px);
+  pointer-events: none;
+}
+.light-band::before {
+  top: -6rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgb(0 172 250 / 18%);
+}
+.light-band::after {
+  bottom: -7rem;
+  left: 30%;
+  width: 16rem;
+  height: 16rem;
+  background: rgb(252 154 1 / 12%);
+}

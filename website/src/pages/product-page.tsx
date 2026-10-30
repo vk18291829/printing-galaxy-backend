@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAudience, useAuthStore } from '@/features/auth/auth-store';
 import { sectionOf, useProduct, useQuote, type QuoteInput } from '@/features/catalog/api';
 import { OptionPicker } from '@/features/catalog/components/option-picker';
+import { QuantityPrices } from '@/features/catalog/components/quantity-prices';
 import { ProductGallery } from '@/features/catalog/components/product-gallery';
 import { startingPrice } from '@/features/catalog/components/product-card';
 import { RangeRails } from '@/features/catalog/components/range-rails';
@@ -42,7 +43,7 @@ import { breadcrumbLd, productLd } from '@/lib/seo';
 import { formatINR, formatNumber } from '@/lib/format';
 import { useLocalized } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import type { PriceBook, Product, Quote } from '@/types/api';
+import type { Product, Quote } from '@/types/api';
 import { categoryHome } from '@/features/catalog/sections';
 
 function defaultOptions(product: Product) {
@@ -123,6 +124,19 @@ function PriceSummary({
         </ul>
       )}
 
+      {/* Design items: said plainly before adding, so nobody is surprised by the approval step. */}
+      {product.workflow === 'design' && (
+        <div className="flex items-start gap-3 rounded-xl border border-brand-amber/60 bg-brand-amber/10 p-3.5">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-amber text-brand-navy">
+            <IconPalette className="size-4.5" />
+          </span>
+          <div className="min-w-0 text-sm">
+            <p className="font-semibold text-brand-navy">{t('product.proofFirstTitle')}</p>
+            <p className="text-foreground/80">{t('product.proofFirstDesc')}</p>
+          </div>
+        </div>
+      )}
+
       {orderLink ? (
         <Button size="lg" variant="brand" className="w-full" asChild>
           <Link to={orderLink}>
@@ -138,60 +152,6 @@ function PriceSummary({
   );
 }
 
-/**
- * The quantity price bands right under the quantity picker: the band the order is in is lit, and
- * tapping a band sets the quantity to its start (when the quantity is a plain count).
- */
-function QuantityPrices({ book, unit, units, onPick }: { book: PriceBook; unit: string; units?: number; onPick?: (qty: number) => void }) {
-  const { t } = useTranslation();
-  const tiers = [...book.tiers].sort((a, b) => a.minQty - b.minQty);
-  if (tiers.length < 2) return null;
-  const base = tiers[0]!.unitPrice;
-  const active = units ? tiers.reduce((idx, tier, i) => (units >= tier.minQty ? i : idx), 0) : 0;
-  const unitName = (count: number) => t(`units.${unit}`, { count });
-
-  return (
-    <section>
-      <h3 className="mb-2.5 text-sm font-semibold text-foreground">{t('product.priceByQuantity')}</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {tiers.map((tier, i) => {
-          const from = i === 0 ? Math.max(tier.minQty, book.minQty) : tier.minQty;
-          const next = tiers[i + 1];
-          const save = Math.round((1 - tier.unitPrice / base) * 100);
-          const on = i === active;
-          const body = (
-            <>
-              <span className="block text-xs text-muted-foreground tabular-nums">
-                {next ? `${formatNumber(from)}–${formatNumber(next.minQty - 1)}` : `${formatNumber(from)}+`} {unitName(2)}
-              </span>
-              <span className="mt-0.5 block text-lg font-bold text-foreground tabular-nums">
-                {formatINR(tier.unitPrice)}
-                <span className="text-xs font-normal text-muted-foreground"> / {unitName(1)}</span>
-              </span>
-              <span className={cn('block text-xs font-semibold', save > 0 ? 'text-success' : 'text-muted-foreground')}>
-                {save > 0 ? t('product.savePct', { pct: save }) : t('product.basePrice')}
-              </span>
-            </>
-          );
-          const style = cn(
-            'rounded-xl border p-3 text-left transition-colors',
-            on ? 'border-primary bg-primary/6 ring-2 ring-primary/15' : 'bg-card',
-            onPick && !on && 'hover:border-primary/40',
-          );
-          return onPick ? (
-            <button key={tier.minQty} type="button" aria-pressed={on} onClick={() => onPick(from)} className={style}>
-              {body}
-            </button>
-          ) : (
-            <div key={tier.minQty} className={style}>
-              {body}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 /** Call or WhatsApp about this product: its own number, or the shop's. */
 function ProductContact({ product }: { product: Product }) {
@@ -482,9 +442,19 @@ export default function ProductPage() {
             {l(product.description) && <p className="text-sm leading-relaxed text-muted-foreground">{l(product.description)}</p>}
             <div className="flex flex-wrap gap-2 pt-1">
               {!audienceBlocked && sectionOf(product) === 'retail' && (
-                <Badge variant="secondary">
-                  <IconClock /> {product.leadTimeDays === 0 ? t('products.sameDay') : t('products.leadTime', { count: product.leadTimeDays })}
-                </Badge>
+                // Printing time, labelled so "2 days" is not a mystery.
+                <div className="flex w-full items-center gap-3 rounded-xl border bg-card px-3.5 py-2.5 sm:w-auto">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-primary">
+                    <IconClock className="size-4.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{t('product.turnaroundLabel')}</p>
+                    <p className="text-sm font-semibold text-brand-navy">
+                      {product.leadTimeDays === 0 ? t('product.readySameDay') : t('product.readyIn', { count: product.leadTimeDays })}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{t('product.turnaroundHint')}</p>
+                  </div>
+                </div>
               )}
               {audience === 'institution' && product.pricing.institution.enabled && (
                 <Badge variant="success">
@@ -571,13 +541,8 @@ export default function ProductPage() {
             </div>
           )}
 
-          {(product.workflow === 'design' || product.sensitive) && (
+          {product.sensitive && (
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {product.workflow === 'design' && (
-                <li className="flex items-start gap-2.5">
-                  <IconPalette className="mt-0.5 size-4 shrink-0 text-primary" /> {t('product.designNote')}
-                </li>
-              )}
               {product.sensitive && (
                 <li className="flex items-start gap-2.5">
                   <IconLock className="mt-0.5 size-4 shrink-0 text-primary" /> {t('product.sensitiveNote')}

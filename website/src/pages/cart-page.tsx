@@ -13,6 +13,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Link } from 'react-router';
 import { DynamicIcon } from '@/components/common/dynamic-icon';
 import { PageNav } from '@/components/common/page-nav';
@@ -73,8 +74,15 @@ function Line({ item, quote, amount, index }: { item: CartItem; quote?: Quote; a
   const isPage = item.unit === 'page';
   const unitPrice = quote?.valid && quote.unitPrice ? `${formatINR(quote.unitPrice)} / ${t(`units.${item.unit}`, { count: 1 })}` : null;
 
-  // Removing is instant; the toast offers Undo instead of asking "are you sure?" first.
-  const removeItem = () => {
+  // Asks first; the toast still offers Undo in case of a slip.
+  const removeItem = async () => {
+    const ok = await confirmAction({
+      tone: 'danger',
+      title: t('confirm.removeItemTitle', { name: l(item.name) }),
+      description: item.files.length ? t('confirm.removeItemDescFiles') : t('confirm.removeItemDesc'),
+      confirmLabel: t('common.remove'),
+    });
+    if (!ok) return;
     remove(item.id);
     toast(t('cart.removed', { name: l(item.name) }), {
       description: item.files.length ? t('cart.removeDescFiles') : undefined,
@@ -144,7 +152,7 @@ function Line({ item, quote, amount, index }: { item: CartItem; quote?: Quote; a
             <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
               <IconPencil /> {t('cart.change')}
             </Button>
-            <Button variant="danger" size="sm" onClick={removeItem} aria-label={t('cart.removeLabel', { name: l(item.name) })}>
+            <Button variant="danger" size="sm" onClick={() => void removeItem()} aria-label={t('cart.removeLabel', { name: l(item.name) })}>
               <IconTrash /> <span className="max-sm:sr-only">{t('common.remove')}</span>
             </Button>
           </div>

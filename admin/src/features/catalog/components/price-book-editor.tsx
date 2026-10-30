@@ -1,5 +1,6 @@
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { Controller, useFieldArray, type Control, type UseFormRegister, useWatch } from 'react-hook-form';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +52,9 @@ export function PriceBookEditor({
               <div key={f.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
                 <Input type="number" min={1} {...register(`pricing.${audience}.tiers.${i}.minQty`, { valueAsNumber: true })} />
                 <Input type="number" min={0} step="0.01" {...register(`pricing.${audience}.tiers.${i}.unitPrice`, { valueAsNumber: true })} />
-                <Button type="button" variant="danger" size="icon" className="size-10" onClick={() => tiers.remove(i)} aria-label="Remove tier">
+                <Button type="button" variant="danger" size="icon" className="size-10" onClick={() =>
+                void confirmAction({ tone: 'danger', title: 'Remove this price break?', description: 'It is removed when you save the product.', confirmLabel: 'Remove' }).then((ok) => ok && tiers.remove(i))
+              } aria-label="Remove tier">
                   <IconTrash className="size-4" />
                 </Button>
               </div>

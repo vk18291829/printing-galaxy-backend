@@ -1,6 +1,7 @@
 import { IconCrop, IconLock, IconPhotoPlus, IconReplace, IconX } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -100,9 +101,16 @@ export function CardCropUploader({
     }
   }
 
-  function remove(side: Side) {
+  async function remove(side: Side) {
     const slot = slots[side];
     if (!slot) return;
+    const ok = await confirmAction({
+      tone: 'danger',
+      title: t('confirm.removeFileTitle'),
+      description: t('confirm.removeSideDesc', { side: sideLabel(side) }),
+      confirmLabel: t('common.remove'),
+    });
+    if (!ok) return;
     onChange(files.filter((f) => f.id !== slot.fileId));
     void deleteUpload(slot.fileId).catch(() => undefined);
     URL.revokeObjectURL(slot.preview);
@@ -132,7 +140,7 @@ export function CardCropUploader({
                     <Button type="button" size="sm" variant="outline" onClick={() => choose(side)}>
                       <IconReplace /> {t('crop.replace')}
                     </Button>
-                    <Button type="button" size="icon" variant="ghost" className="ml-auto size-8" onClick={() => remove(side)} aria-label={t('common.remove')}>
+                    <Button type="button" size="icon" variant="ghost" className="ml-auto size-8" onClick={() => void remove(side)} aria-label={t('common.remove')}>
                       <IconX />
                     </Button>
                   </div>

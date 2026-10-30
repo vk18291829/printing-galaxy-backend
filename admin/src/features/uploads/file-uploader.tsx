@@ -2,6 +2,7 @@ import { IconCloudUpload, IconFile, IconFileTypePdf, IconLoader2, IconPhoto, Ico
 import axios from 'axios';
 import { useRef, useState, type DragEvent } from 'react';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Progress } from '@/components/ui/progress';
 import { api, getErrorMessage } from '@/lib/api-client';
 import { formatFileSize } from '@/lib/format';
@@ -168,10 +169,13 @@ export function FileUploader({
                 type="button"
                 aria-label={`Remove ${f.name}`}
                 className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
-                  onChange(files.filter((x) => x.id !== f.id));
-                  void deleteUpload(f.id);
-                }}
+                onClick={() =>
+                  void confirmAction({ tone: 'danger', title: 'Remove this file?', description: `${f.name} will be removed.`, confirmLabel: 'Remove' }).then((ok) => {
+                    if (!ok) return;
+                    onChange(files.filter((x) => x.id !== f.id));
+                    void deleteUpload(f.id);
+                  })
+                }
               >
                 <IconX className="size-4" />
               </button>

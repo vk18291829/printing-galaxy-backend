@@ -2,6 +2,7 @@ import { IconCamera, IconTrash } from '@tabler/icons-react';
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { confirmAction } from '@/components/common/confirm-dialog';
 import { Spinner } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { useUpdateAccount } from '@/features/auth/api';
@@ -84,7 +85,14 @@ export function AvatarPicker({ name, src }: { name: string; src?: string }) {
   };
 
   const remove = () =>
-    update.mutate({ avatarFileId: null }, { onSuccess: () => toast.success(t('account.photoRemoved')), onError: () => toast.error(t('account.photoFailed')) });
+    void confirmAction({
+      tone: 'danger',
+      title: t('confirm.removePhotoTitle'),
+      description: t('confirm.removePhotoDesc'),
+      confirmLabel: t('common.remove'),
+      action: () => update.mutateAsync({ avatarFileId: null }),
+      successTitle: t('account.photoRemoved'),
+    });
 
   return (
     <div className="flex shrink-0 flex-col items-center gap-3">
@@ -94,17 +102,17 @@ export function AvatarPicker({ name, src }: { name: string; src?: string }) {
         className="group relative rounded-full focus-visible:ring-4 focus-visible:ring-brand-amber/60 focus-visible:outline-none"
         aria-label={src ? t('account.photoChange') : t('account.photoAdd')}
       >
-        <UserAvatar name={name} src={src} className="size-24 text-3xl ring-4 ring-white/15 sm:size-28" />
-        <span className="absolute right-0 bottom-0 grid size-9 place-items-center rounded-full border-2 border-brand-navy bg-brand-amber text-brand-navy transition-transform group-hover:scale-105">
+        <UserAvatar name={name} src={src} className="size-24 text-3xl ring-4 ring-white sm:size-28" />
+        <span className="absolute right-0 bottom-0 grid size-9 place-items-center rounded-full border-2 border-white bg-brand-amber text-brand-navy transition-transform group-hover:scale-105">
           {update.isPending && !source ? <Spinner className="size-4 text-current" /> : <IconCamera className="size-4.5" />}
         </span>
       </button>
       <div className="flex flex-wrap justify-center gap-1.5">
-        <Button type="button" size="sm" variant="secondary" onClick={() => input.current?.click()}>
+        <Button type="button" size="sm" variant="outline" className="bg-card" onClick={() => input.current?.click()}>
           <IconCamera /> {src ? t('account.photoChange') : t('account.photoAdd')}
         </Button>
         {src && (
-          <Button type="button" size="sm" variant="ghost" className="text-white/80 hover:bg-white/10 hover:text-white" onClick={remove} disabled={update.isPending}>
+          <Button type="button" size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={remove} disabled={update.isPending}>
             <IconTrash /> {t('common.remove')}
           </Button>
         )}
